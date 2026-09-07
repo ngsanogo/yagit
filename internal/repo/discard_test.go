@@ -60,6 +60,58 @@ func TestDiscardSaysNothingWhenThereIsNothing(t *testing.T) {
 	}
 }
 
+func TestDiscardAcceptsAPathWrittenThroughASymlinkedRoot(t *testing.T) {
+	// NewRegistry resolves the root, so a root reached through a symbolic link
+	// is stored resolved. A caller that names the destination the way the user
+	// wrote it hands over an unresolved path, and comparing the two as strings
+	// refuses a directory that is plainly inside the root.
+	//
+	// This is not a hypothetical: on macOS every t.TempDir() sits under /var,
+	// which is a link to /private/var, and the whole platform took this branch.
+	real := t.TempDir()
+	link := filepath.Join(t.TempDir(), "root-link")
+	if err := os.Symlink(real, link); err != nil {
+		t.Skipf("this platform will not make a symbolic link: %v", err)
+	}
+
+	registry := registryAt(t, link)
+	destination := filepath.Join(link, "half-cloned")
+	if err := os.MkdirAll(destination, 0o755); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := registry.DiscardIncompleteClone(destination); err != nil {
+		t.Fatalf("a path inside the root was refused because the root is a link: %v", err)
+	}
+	if _, err := os.Lstat(filepath.Join(real, "half-cloned")); !errors.Is(err, os.ErrNotExist) {
+		t.Error("the half-written clone is still there")
+	}
+}
+
+func TestDiscardRefusesASymlinkAtTheDestination(t *testing.T) {
+	// The leaf must not be resolved: following a link planted at the
+	// destination would take RemoveAll to whatever it points at.
+	root := t.TempDir()
+	registry := registryAt(t, root)
+
+	elsewhere := filepath.Join(t.TempDir(), "somebody-elses-work")
+	if err := os.MkdirAll(elsewhere, 0o755); err != nil {
+		t.Fatal(err)
+	}
+
+	planted := filepath.Join(root, "half-cloned")
+	if err := os.Symlink(elsewhere, planted); err != nil {
+		t.Skipf("this platform will not make a symbolic link: %v", err)
+	}
+
+	if err := registry.DiscardIncompleteClone(planted); err == nil {
+		t.Error("a symbolic link at the destination was accepted for removal")
+	}
+	if _, err := os.Stat(elsewhere); err != nil {
+		t.Errorf("what the link pointed at was removed: %v", err)
+	}
+}
+
 func TestDiscardRefusesAPathOutsideTheRoot(t *testing.T) {
 	root := t.TempDir()
 	outside := t.TempDir()
