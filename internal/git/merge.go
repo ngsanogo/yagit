@@ -316,5 +316,14 @@ func parseLeftRightCount(output string) (left, right int, err error) {
 	if right, err = strconv.Atoi(fields[1]); err != nil {
 		return 0, 0, fmt.Errorf("unreadable rev-list count %q: %w", output, err)
 	}
+
+	// Atoi accepts a sign, and `--count` cannot produce one. Refusing here
+	// rather than degrading to zero is this function's contract — it already
+	// errors on a field that is not a number at all — and it matters because
+	// outcomeOf switches on `behind == 0` and then `ahead == 0`: a negative
+	// count matches neither and picks an outcome by falling past both.
+	if left < 0 || right < 0 {
+		return 0, 0, fmt.Errorf("negative rev-list count %q, want two counts", output)
+	}
 	return left, right, nil
 }

@@ -88,6 +88,15 @@ func TestParseRefsUpstreamTracking(t *testing.T) {
 		{"[behind 2]", 0, 2, false},
 		{"[ahead 1, behind 4]", 1, 4, false},
 		{"[gone]", 0, 0, true},
+
+		// git cannot emit these. They are here because the counts are read
+		// out of a human-readable string, and a branch row renders them as
+		// "N commits ahead" — so the only safe reading of a number that is
+		// not a count is no count at all.
+		{"[ahead -1]", 0, 0, false},
+		{"[behind -7]", 0, 0, false},
+		{"[ahead -1, behind -2]", 0, 0, false},
+		{"[ahead notanumber]", 0, 0, false},
 	}
 
 	for _, testCase := range cases {

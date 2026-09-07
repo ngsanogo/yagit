@@ -257,12 +257,18 @@ func parseUpstreamTrack(track string) (ahead, behind int, gone bool) {
 	return ahead, behind, gone
 }
 
-// parseCountOrZero returns 0 for an unreadable number. git always produces
-// an integer here; if it did not, showing "0 commits ahead" still beats
-// failing the load of every branch.
+// parseCountOrZero returns 0 for anything that is not a count. git always
+// produces a non-negative integer here; if it did not, showing "0 commits
+// ahead" still beats failing the load of every branch.
+//
+// A negative number is unreadable in exactly the same sense, and saying so
+// takes a line of its own because Atoi does not: it parses "-1" happily, and
+// the -1 travelled all the way into the JSON a branch row renders as "N
+// commits ahead". A fuzz seed found it, which is what the round-trip target
+// exists for.
 func parseCountOrZero(text string) int {
 	count, err := strconv.Atoi(text)
-	if err != nil {
+	if err != nil || count < 0 {
 		return 0
 	}
 	return count
