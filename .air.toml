@@ -1,0 +1,38 @@
+# Hot reload for the Go daemon during `./do dev`.
+
+root = "."
+
+# air's own subdirectory of the runtime directory, NOT the runtime directory
+# itself, and the difference is `clean_on_exit` at the bottom of this file: air
+# removes tmp_dir when it stops. Pointed at `.yagit` it took the session
+# token, the end-to-end fixtures the suite keeps between runs on purpose, and
+# the compiled `./do` with it — every time a stack shut down, in silence.
+tmp_dir = ".yagit/air"
+
+[build]
+  cmd = "go build -o ./.yagit/air/yagit ./cmd/yagit"
+
+  # `entrypoint`, not `bin`: `bin` has been deprecated since air 1.63.3 and
+  # air says so on every start. The array form also carries arguments.
+  entrypoint = ["./.yagit/air/yagit"]
+
+  include_ext = ["go"]
+
+  # web/ holds node_modules: tens of thousands of files that would swamp the
+  # watcher for no gain — the frontend reloads through Vite, not through air.
+  exclude_dir = ["dist", "web", ".git", ".yagit", "internal/assets/dist"]
+
+  exclude_regex = ["_test\\.go"]
+  delay = 200
+  stop_on_error = true
+
+  # SIGINT rather than an immediate SIGKILL: the daemon shuts down cleanly —
+  # it lets in-flight requests finish and closes the event streams.
+  send_interrupt = true
+  kill_delay = "2s"
+
+[log]
+  time = false
+
+[misc]
+  clean_on_exit = true

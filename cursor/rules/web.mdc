@@ -1,0 +1,73 @@
+---
+description: React and TypeScript frontend conventions
+globs: web/**
+alwaysApply: false
+---
+
+# Frontend conventions
+
+## Stack
+
+React 19, TypeScript, Vite, Tailwind utilities generated from design tokens,
+TanStack Query for server state, TanStack Virtual for list rows, and no router
+library: the path selects the screen (ADR 0006). There are no product URLs
+worth bookmarking yet, and a router would be machinery in front of a pathname
+check.
+
+## Design system
+
+All visual values come from `web/src/design/tokens.css` — colors (OKLCH),
+typography, spacing, radii, shadows, easing. **No inline magic values** in
+components.
+
+The showcase at `/design` on the running stack — `./do up` prints its base
+URL — is the reference for every component state. It is not linked from the
+workbench.
+Accessibility: WCAG 2.1 AA enforced by `web/e2e/accessibility.spec.ts`.
+
+## Structure
+
+```
+web/src/design/      tokens, base styles, showcase
+web/src/components/  base UI components
+web/src/app/         workbench: tabs, history, graph, refs
+web/src/api/         HTTP client and types
+web/e2e/             Playwright tests
+```
+
+## Server state
+
+One TanStack Query key per page of commits — `['commits', repositoryId, page]`
+— so two components asking for the same page fetch it once. Pages are keyed
+queries and not an infinite query on purpose: a scrollbar you can drag to the
+middle of a million rows must not have to fetch the 899 pages above it
+(ADR 0005).
+
+Freshness comes from two mechanisms, and they answer different questions
+(ADR 0015):
+
+- **The event stream** — one `EventSource` for the whole session, opened in
+  `useEvents` — says when a repository's git directory moved. Anything git
+  does reaches the interface through it. Each event names a repository, and
+  the hook turns that into `invalidateQueries`.
+- **A two-second poll of `git status`**, while the window has focus, says when
+  the work tree moved. Saving a file in an editor touches nothing under
+  `.git`, so the watch never sees it, and yagit does not watch work trees
+  (ADR 0008). The diff of the file open in the changes panel is polled on that
+  same interval: the status names which files differ and never what changed
+  inside one, so it cannot stand in for the diff. That poll stops once a diff
+  passes the lines the pane draws, where a re-read costs up to the daemon's
+  whole diff cap and changes nothing on screen.
+
+Refetch-on-focus stays underneath both, which is what makes a returning user's
+first frame current.
+
+## Commands
+
+Use `./do up`, `./do test web`, `./do test e2e`, `./do lint` — not `npm run`
+directly. `./do` ensures the toolchain and environment match CI.
+
+## Formatting
+
+Prettier and ESLint via `./do lint` (`npm run lint` and `npm run fmt:check`
+inside `./do` only).

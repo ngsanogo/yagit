@@ -1,0 +1,51 @@
+name: Bug report
+description: Something behaves differently from what it says it does.
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        yagit shows the exact git command it ran, its exit code and its raw
+        stderr. If a git operation failed, that panel is the most useful thing
+        you can paste here.
+
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened
+      description: What you saw, and what you expected instead.
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Open a repository with …
+        2. Click …
+        3. …
+    validations:
+      required: true
+
+  - type: input
+    id: version
+    attributes:
+      label: yagit version
+      description: The version shown by `curl -H "X-Yagit-Token: $(./do token)" http://127.0.0.1:7420/api/health`, or the commit you built from.
+    validations:
+      required: true
+
+  - type: input
+    id: platform
+    attributes:
+      label: OS and architecture
+      placeholder: Linux arm64, macOS 15 arm64, Windows 11 amd64…
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Daemon output or git command log
+      render: text

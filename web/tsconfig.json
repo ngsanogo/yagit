@@ -1,0 +1,39 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    // ES2024 for String.prototype.isWellFormed, which is how a test asserts
+    // that splitting a name did not leave half a surrogate pair behind. Node
+    // 22 and every browser yagit targets have had it for years.
+    "lib": ["ES2024", "DOM", "DOM.Iterable"],
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "jsx": "react-jsx",
+    // "node" is required by the files that run outside the browser: the
+    // Playwright configuration and the end-to-end tests, which read the
+    // session token off disk.
+    "types": ["vite/client", "node"],
+
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "noImplicitOverride": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+
+    /*
+     * exactOptionalPropertyTypes is deliberately left off.
+     *
+     * It separates "property absent" from "property present and set to
+     * undefined". That distinction matters for an object handed to an API;
+     * it does not matter for React props, where <Panel /> and
+     * <Panel className={undefined} /> behave exactly the same. Turning it on
+     * would mean writing every optional prop in the project as
+     * `?: T | undefined` for the nine phases still ahead, and catching no
+     * real bug.
+     */
+    "isolatedModules": true,
+    "verbatimModuleSyntax": true,
+    "noEmit": true,
+    "skipLibCheck": true
+  },
+  "include": ["src", "vite.config.ts", "eslint.config.js", "playwright.config.ts", "e2e"]
+}

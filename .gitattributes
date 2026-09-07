@@ -1,0 +1,23 @@
+# Normalize line endings on the way in, check out LF everywhere. Without this a
+# clone on Windows rewrites ./do with CRLF and /bin/sh refuses to run it.
+* text=auto eol=lf
+
+# do.cmd is the one exception. cmd.exe parses a batch file line by line as it
+# runs it, and an LF-only file makes it mis-handle a parenthesised block — the
+# `if errorlevel` branches below turn into a script that silently does the
+# wrong half. Batch files get CRLF.
+*.cmd text eol=crlf
+
+*.png binary
+*.woff2 binary
+
+# The lockfiles are generated: collapse them in GitHub's view and keep them out
+# of language stats. Deliberately NOT `-diff`: that marks a file binary, and a
+# lockfile nobody can read in review is how an unresolvable dependency set gets
+# merged.
+web/package-lock.json linguist-generated=true
+mise.lock linguist-generated=true
+
+# Vite's output is committed only as an empty placeholder, but keep the
+# directory from ever counting as hand-written code.
+internal/assets/dist/** linguist-generated=true

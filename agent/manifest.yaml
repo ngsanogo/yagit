@@ -1,0 +1,57 @@
+# Agent configuration manifest. Edit rules and skills in agent/; run ./do agent sync.
+rules:
+  - id: core
+    description: Core project principles and workflow
+    always: true
+    file: rules/core.md
+
+  - id: go
+    description: Go backend conventions
+    paths:
+      - "**/*.go"
+      - "cmd/**"
+      - "internal/**"
+    file: rules/go.md
+
+  - id: web
+    description: React and TypeScript frontend conventions
+    paths:
+      - "web/**"
+    file: rules/web.md
+
+  - id: testing
+    description: Test, fuzz, and end-to-end conventions
+    paths:
+      - "**/*_test.go"
+      - "web/**/*.test.ts"
+      - "web/**/*.test.tsx"
+      - "web/e2e/**"
+    file: rules/testing.md
+
+skills:
+  - dev-workflow
+  - run-yagit
+  - commit
+  - pull-request
+
+# Paths no agent reads: this machine's secrets, build output, and generated
+# files nobody reviews by eye. Rendered into claude/settings.json; Cursor has no
+# counterpart, for the reason ADR 0019 gives. Repository-relative, never
+# anchored with a leading slash the way .gitignore anchors its paths.
+deny:
+  # YAGIT_ROOT — the boundary the daemon refuses to open outside of. Machine
+  # local and never committed; .env.example documents every key it holds.
+  - ".env"
+  # The session token, and the end-to-end stack log: it traces every git
+  # command the daemon ran and every repository path it touched. `./do test
+  # e2e` prints that log itself when the stack fails to start, which is the
+  # one moment it is worth reading.
+  - ".yagit/**"
+  # 212 MB of dependencies, 64 MB of binaries, and the frontend Vite builds
+  # into the daemon. `./do build` reproduces all three.
+  - "web/node_modules/**"
+  - "dist/**"
+  - "internal/assets/dist/**"
+  # Generated, and reviewed by tooling rather than by eye: four thousand lines
+  # of resolved npm versions.
+  - "web/package-lock.json"

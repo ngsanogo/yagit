@@ -1,0 +1,134 @@
+name: Supply chain
+
+# Actions are pinned by digest — see the note at the top of ci.yml.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  # Re-run the audits without pushing an empty commit — the same reason
+  # ci.yml has one. It matters more here: these jobs answer differently over
+  # time, so 'is that finding still true?' is a question worth being able to
+  # ask on demand rather than waiting until Tuesday.
+  workflow_dispatch:
+
+  schedule:
+    # Everything in this file answers differently over time without the code
+    # changing — an advisory published today against a dependency that has not
+    # moved, a branch protection someone loosened, a check Scorecard added.
+    # Weekly, so the answer means this week rather than whenever the last
+    # commit happened to land.
+    - cron: "41 5 * * 2"
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+
+  # Cancel a superseded run on a branch, never on main.
+  #
+  # On a branch the previous run is answering a question about code that no
+  # longer exists, so cancelling it saves minutes and loses nothing. On main
+  # every run is the only answer that commit will ever get: cancel it and the
+  # commit keeps whatever status it had, or none. A manual re-run would
+  # otherwise cancel the push run for the same commit, and main would go red
+  # on a race with itself.
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
+permissions:
+  contents: read
+
+jobs:
+  # A dependency arrives in a pull request, which is the last moment stopping it
+  # is cheap. Dependabot's alerts are the other half of this and they answer
+  # afterwards, on what is already merged.
+  dependency-review:
+    name: Dependency review
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/dependency-review-action@a1d282b36b6f3519aa1f3fc636f609c47dddb294 # v5.0.0
+        with:
+          # A known-vulnerable dependency fails the pull request outright.
+          fail-on-severity: low
+
+          # This project is MIT and intends to stay installable by anyone. A
+          # copyleft dependency pulled in by a transitive bump is the kind of
+          # thing nobody notices until it is load-bearing.
+          deny-licenses: AGPL-1.0-or-later, AGPL-3.0-or-later, GPL-2.0-or-later, GPL-3.0-or-later
+
+  # The vulnerability databases, asked directly rather than through GitHub.
+  #
+  # Dependabot watches web/package-lock.json and, since fsnotify arrived, the
+  # one entry in go.mod. What it does not watch on either side is the Go
+  # standard library — which every line of the daemon runs on, and which gets
+  # advisories like anything else. govulncheck is what covers it, and
+  # `./do audit` is the same command a contributor runs.
+  #
+  # It lives here rather than in ci.yml on purpose: its answer changes without
+  # the code changing, and a gate that can go red overnight is not a gate.
+  audit:
+    name: Audit dependencies
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      # Only the mise binary: the ./do shim installs the tools themselves, into
+      # .yagit/mise. See .github/workflows/ci.yml for the whole reasoning.
+      - uses: jdx/mise-action@c2a87611a18de5b3828c5652fe268e992400cb5c # v4.3.0
+        with:
+          install: false
+          cache: false
+
+      - name: Cache the toolchain
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: .yagit/mise
+          key: mise-${{ runner.os }}-${{ hashFiles('mise.lock', 'mise.toml') }}
+
+      # .yagit/npm-cache, not ~/.npm: the shim points npm at the checkout.
+      - name: Cache npm downloads
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: .yagit/npm-cache
+          key: npm-${{ runner.os }}-${{ hashFiles('web/package-lock.json') }}
+          restore-keys: npm-${{ runner.os }}-
+
+      - run: ./do audit
+
+  # Scorecard grades this repository against OpenSSF's checklist — pinned
+  # dependencies, branch protection, signed releases, whether a fuzzer and a
+  # SAST run at all — and publishes the result to the Security tab. It is the
+  # meta-check: it is what notices when one of the others is quietly turned off.
+  scorecard:
+    name: OpenSSF Scorecard
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read # check out the code
+      security-events: write # publish the results to the Security tab
+      id-token: write # sign the results published to the Security tab
+
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: ossf/scorecard-action@2d1146689b8cda280b9bc96326124645441f03bc # v2.4.4
+        with:
+          results_file: scorecard.sarif
+          results_format: sarif
+          # Publishing is what puts the result on the Security tab, and what
+          # lets anyone check this repository's posture without cloning it.
+          # Only ever runs on main: a fork's score is not this project's.
+          publish_results: ${{ github.event_name != 'pull_request' }}
+
+      - uses: github/codeql-action/upload-sarif@cdf488f595d80d6e07e03d4674febd5ab45fa938 # v4.37.9
+        with:
+          sarif_file: scorecard.sarif

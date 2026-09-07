@@ -1,0 +1,4 @@
+This directory receives the frontend built by Vite (see ./do build).
+Its contents are not versioned, but this file is: without it the
+//go:embed in the assets package would find no files, and the project would
+not compile on a freshly cloned repository.

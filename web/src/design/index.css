@@ -1,0 +1,10 @@
+/*
+ * Entry point for yagit's styles.
+ *
+ * Order matters: Tailwind first for its reset, the tokens next so they feed
+ * utility generation, the base styles last so they can build on both.
+ */
+
+@import 'tailwindcss';
+@import './tokens.css';
+@import './base.css';

@@ -1,0 +1,80 @@
+# yagit's toolchain.
+#
+# mise (https://mise.jdx.dev) is the project's only prerequisite. The ./do
+# shim sets MISE_DATA_DIR to .yagit/mise so the pinned tools stay inside the
+# checkout. You never run `mise install` by hand.
+#
+# Versions live HERE and nowhere else. A version pinned in two places always
+# ends up drifting.
+#
+# mise.lock beside this file is not a second source: it is what these versions
+# resolved to, plus a SHA256 for every tool on every platform. `go = "1.27"`
+# below is an intent; the lockfile records that it meant go 1.27.0 and exactly
+# which bytes those were, so a contributor joining next month gets the same
+# compiler as CI rather than whatever 1.27.x shipped meanwhile — and a download
+# that does not match is refused instead of installed. Same relationship as
+# package.json to package-lock.json.
+#
+# Changing a version here updates the lockfile for THIS platform on the next
+# `mise install`. Run `mise lock` to refresh all of them; CI goes red on a
+# lockfile that only covers the machine it was edited on.
+#
+# Playwright is deliberately absent: it is an npm dev dependency of the
+# frontend, pinned in web/package.json, and listing it here too would recreate
+# exactly that duplication.
+
+[settings]
+# Keep mise.lock current automatically.
+#
+# Without this, adding a tool above installs it with no locked checksum and
+# nothing says so — the lockfile silently stops covering everything. With it,
+# `mise install` rewrites mise.lock, and CI's "working tree must stay clean"
+# check turns a stale lockfile into a red build instead of a quiet gap.
+lockfile = true
+
+[tools]
+# The daemon. Must match the `go` directive in go.mod.
+go = "1.27"
+
+# The frontend.
+node = "22"
+
+# Hot reload for the daemon during `./do dev` (see .air.toml).
+air = "1.67.4"
+
+# Static analysis for Go (see .golangci.yml).
+golangci-lint = "2.13.2"
+
+# Static analysis for the ./do shim, which is the one piece of shell left in the
+# project and which nothing else checks. Pinned rather than "latest" because
+# shellcheck's diagnostics change between releases, and a lint gate that shifts
+# under you is not a gate.
+shellcheck = "0.11.0"
+
+# Static analysis for the GitHub workflows. A typo in a workflow file is only
+# discovered when the workflow runs, which is exactly when you least want to
+# find out.
+actionlint = "1.7.12"
+
+# Security analysis for the GitHub workflows. actionlint above reads them as
+# YAML and as shell; zizmor reads them as an attack surface — an unpinned
+# action, a `${{ }}` interpolated into a `run:` block, a token scoped wider
+# than the job needs. Two tools because they answer two different questions.
+zizmor = "1.29.0"
+
+# Go's vulnerability scanner, run by `./do audit`.
+#
+# Nothing else here looks at the Go side's exposure the same way. Dependabot
+# watches go.mod, which is one direct dependency deep — fsnotify, and the
+# golang.org/x/sys it brings with it — and stops there. Every line of this
+# daemon also runs on the standard library, and net/http and the crypto
+# packages get advisories like anything else. govulncheck reads the Go
+# vulnerability database, standard library included, and — unlike a version
+# comparison — checks whether the vulnerable function is reachable from this
+# code, so what it reports is what can actually be exploited here.
+#
+# This one carries a version in mise.lock but no checksum, unlike every other
+# tool here. It is installed by `go install`, which verifies the module against
+# sum.golang.org — a transparency log, which is a stronger guarantee than a
+# hash we wrote down ourselves, not a weaker one.
+"go:golang.org/x/vuln/cmd/govulncheck" = "1.7.0"

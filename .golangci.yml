@@ -1,0 +1,62 @@
+# golangci-lint configuration, run by `./do lint`.
+#
+# Several of the project's principles are encoded here rather than left to
+# review: a rule a machine checks is a rule that holds.
+
+version: "2"
+
+run:
+  timeout: 5m
+
+linters:
+  default: standard
+  enable:
+    - bodyclose
+    - errorlint
+    - gocritic
+    - nilerr
+    - revive
+    - unconvert
+    - wastedassign
+
+  settings:
+    errcheck:
+      # "No `_ = err`": check-blank turns that principle into a lint error.
+      # Silencing an error becomes an explicit act, one that requires a
+      # commented //nolint.
+      check-blank: true
+      check-type-assertions: true
+
+    revive:
+      rules:
+        # "No empty catch": the Go counterpart is the empty block.
+        - name: empty-block
+        - name: early-return
+        - name: unreachable-code
+        - name: superfluous-else
+
+    # misspell is left out on purpose: it checks English against a single
+    # locale (US by default), so turning it on settles the spelling of every
+    # comment and string in the repository. That is a decision of its own,
+    # not a side effect of another change.
+
+  exclusions:
+    generated: lax
+
+    paths:
+      # Some npm packages ship example Go sources. They are not ours, and
+      # there is no reason to hold them to our rules.
+      - web/node_modules
+      # Built frontend, produced by Vite.
+      - internal/assets/dist
+
+    rules:
+      # Tests are allowed to drop a return value in a helper.
+      - path: _test\.go
+        linters:
+          - errcheck
+
+formatters:
+  enable:
+    - gofmt
+    - goimports
