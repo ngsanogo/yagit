@@ -37,7 +37,7 @@ func (s *Server) handleCreateSession(writer http.ResponseWriter, request *http.R
 	// the HttpOnly cookie via a form aimed at this host. curl and other tools
 	// send no Origin and keep working.
 	if origin := request.Header.Get("Origin"); origin != "" && !s.originAllowed(request) {
-		writeError(writer, s.logger, http.StatusForbidden, errOriginRejected)
+		writeError(writer, s.logger, http.StatusForbidden, originRejected(origin))
 		return
 	}
 
