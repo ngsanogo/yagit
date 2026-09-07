@@ -54,7 +54,10 @@ func securityHeaders(development bool) func(http.Handler) http.Handler {
 			header := writer.Header()
 			header.Set("X-Content-Type-Options", "nosniff")
 			header.Set("X-Frame-Options", "DENY")
-			header.Set("Referrer-Policy", "no-referrer")
+			// same-origin, not no-referrer: under no-referrer browsers set
+			// Origin to "null" on HTML form POSTs (the session exchange), and
+			// the cookie CSRF check then refuses the only legitimate way in.
+			header.Set("Referrer-Policy", "same-origin")
 			header.Set("Permissions-Policy", "camera=(), microphone=(), geolocation=()")
 			header.Set("Content-Security-Policy", policy)
 			next.ServeHTTP(writer, request)

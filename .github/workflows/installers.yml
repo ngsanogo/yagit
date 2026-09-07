@@ -79,7 +79,11 @@ jobs:
 
           # --help exits 0 without a repository root, which is the one thing
           # the launcher can be asked to do on a machine with no repositories.
-          "$YAGIT_INSTALL_DIR/yagit" --help > help.txt
+          #
+          # Both streams: Go's flag package prints usage on stderr, so
+          # redirecting stdout alone captures an empty file and the grep below
+          # fails for a reason that has nothing to do with the installer.
+          "$YAGIT_INSTALL_DIR/yagit" --help > help.txt 2>&1
           grep -q -- '-root' help.txt \
             || { echo "::error::the launcher ran something that is not yagit"; exit 1; }
 
@@ -147,8 +151,9 @@ jobs:
               exit 1
           }
           # Through cmd.exe, because a .cmd launcher is what a user gets and
-          # its parsing is the part that only Windows can answer for.
-          $help = & cmd.exe /c "`"$launcher`" --help"
+          # its parsing is the part that only Windows can answer for. Both
+          # streams, because Go's flag package prints usage on stderr.
+          $help = & cmd.exe /c "`"$launcher`" --help 2>&1"
           if ($LASTEXITCODE -ne 0) {
               Write-Output "::error::the launcher exited $LASTEXITCODE"
               exit 1

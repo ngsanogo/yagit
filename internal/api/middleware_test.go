@@ -102,6 +102,22 @@ func TestContentSecurityPolicyAllowsVitesPreambleInDevelopment(t *testing.T) {
 	}
 }
 
+// Referrer-Policy must leave Origin intact on HTML form POSTs.
+//
+// no-referrer looks stricter, and browsers honour it by setting Origin to the
+// literal "null" on navigate-mode POSTs (the session token form). The cookie
+// CSRF check then refuses the only door a person has. same-origin still drops
+// the Referer on cross-origin requests.
+func TestReferrerPolicyKeepsFormPostOrigins(t *testing.T) {
+	request := httptest.NewRequest(http.MethodGet, "/api/health", nil)
+	request.Header.Set("X-Yagit-Token", testToken)
+	policy := execute(middlewareServer(t, false), request).Header().Get("Referrer-Policy")
+
+	if policy != "same-origin" {
+		t.Fatalf("Referrer-Policy = %q, want same-origin", policy)
+	}
+}
+
 // Nothing may be fetched from a data: URI, in either mode.
 //
 // A bundler that inlines a small asset produces one, and the browser refuses
