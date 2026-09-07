@@ -97,19 +97,32 @@ func checkOwnerOnly(path string, _ bool) error {
 	if dacl == nil {
 		return fmt.Errorf("DACL is nil")
 	}
-	if dacl.AceCount != 1 {
-		return fmt.Errorf("DACL has %d ACEs, want 1", dacl.AceCount)
+	if dacl.AceCount == 0 {
+		return fmt.Errorf("DACL is empty, so the object has no owner-only grant")
 	}
-	var ace *windows.ACCESS_ALLOWED_ACE
-	if err := windows.GetAce(dacl, 0, &ace); err != nil {
-		return err
-	}
-	if ace.Header.AceType != windows.ACCESS_ALLOWED_ACE_TYPE {
-		return fmt.Errorf("ACE type is %d, want ACCESS_ALLOWED", ace.Header.AceType)
-	}
-	got := (*windows.SID)(unsafe.Pointer(&ace.SidStart))
-	if !windows.EqualSid(got, want) {
-		return fmt.Errorf("trustee is %s, want %s", got, want)
+
+	// Every entry is checked rather than a single expected one, because the
+	// count is not ours to predict. Asking for an inheritable GENERIC_ALL on a
+	// directory makes Windows store the grant as two ACEs: one with the
+	// generic mask resolved to the rights the directory itself gets, and one
+	// INHERIT_ONLY that keeps the generic mask so each child maps it for its
+	// own type. Both name the same trustee.
+	//
+	// What matters is the property the name promises — nobody but this account
+	// appears on the list — and that is a statement about every ACE, not about
+	// how many of them Windows chose to write.
+	for index := uint32(0); index < uint32(dacl.AceCount); index++ {
+		var ace *windows.ACCESS_ALLOWED_ACE
+		if err := windows.GetAce(dacl, index, &ace); err != nil {
+			return fmt.Errorf("reading ACE %d of %d: %w", index, dacl.AceCount, err)
+		}
+		if ace.Header.AceType != windows.ACCESS_ALLOWED_ACE_TYPE {
+			return fmt.Errorf("ACE %d is type %d, want ACCESS_ALLOWED", index, ace.Header.AceType)
+		}
+		got := (*windows.SID)(unsafe.Pointer(&ace.SidStart))
+		if !windows.EqualSid(got, want) {
+			return fmt.Errorf("ACE %d names %s, want %s", index, got, want)
+		}
 	}
 	return nil
 }
