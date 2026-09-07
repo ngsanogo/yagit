@@ -130,11 +130,18 @@ func TestATransferSurvivesAsLongAsItKeepsReporting(t *testing.T) {
 
 	// Talks for well over its idle allowance, a line at a time, then finishes.
 	// Under a wall clock of the same length this could not complete.
+	//
+	// The numbers below carry a tenfold margin on the gap and only a twofold
+	// one on the total, and that asymmetry is deliberate. A gap that runs long
+	// FAILS the test, and a loaded CI runner stretches a tenth of a second
+	// into a great deal more — this test spent its first run on macOS being
+	// cut off at a 200ms allowance it should never have come close to. A total
+	// that runs long merely proves the point harder.
 	script := "#!/bin/sh\n" +
 		"i=0\n" +
-		"while [ $i -lt 12 ]; do\n" +
+		"while [ $i -lt 20 ]; do\n" +
 		"  printf 'Receiving objects: %d%%\\r' $i >&2\n" +
-		"  sleep 0.05\n" +
+		"  sleep 0.1\n" +
 		"  i=$((i+1))\n" +
 		"done\n" +
 		"exit 0\n"
@@ -148,8 +155,9 @@ func TestATransferSurvivesAsLongAsItKeepsReporting(t *testing.T) {
 	_, err := runner.Exec(context.Background(), Command{
 		Dir:  directory,
 		Args: []string{"fetch", "origin"},
-		// Shorter than the whole command takes, longer than any one gap in it.
-		IdleTimeout: 200 * time.Millisecond,
+		// Shorter than the whole command takes (about two seconds), longer than
+		// any one gap in it (a tenth of a second).
+		IdleTimeout: time.Second,
 		OnProgress:  func(string) { lines++ },
 	})
 	if err != nil {
