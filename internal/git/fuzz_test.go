@@ -128,6 +128,13 @@ func FuzzParseRefsRoundTrip(f *testing.F) {
 	f.Add("refs/heads/release ", "cccc", "", "", "")
 	f.Add("refs/heads/☃", "dddd", "", "refs/remotes/origin/☃", "[ahead 99999999999999999999]")
 
+	// The seed the fuzzer found, kept as a seed rather than only as the
+	// crasher under testdata: a number too large for an int already degraded
+	// to zero, and a negative one did not — Atoi reads a sign. The corpus
+	// file makes `./do test go` fail without the fix; this line makes the
+	// case legible next to the others.
+	f.Add("refs/heads/main", "eeee", "", "refs/remotes/origin/main", "[ahead -1]")
+
 	f.Fuzz(func(t *testing.T, name, object, dereferenced, upstream, track string) {
 		if !gitCanEmit(name, object, dereferenced, upstream, track) {
 			t.Skip("git cannot emit a NUL or a newline inside a field")
