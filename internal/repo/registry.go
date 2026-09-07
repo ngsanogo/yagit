@@ -200,6 +200,22 @@ func (r *Registry) DiscardIncompleteClone(destination string) error {
 	if !filepath.IsAbs(cleaned) {
 		return fmt.Errorf("%q: %w", destination, ErrPathNotAbsolute)
 	}
+
+	// The parent is resolved before the comparison, exactly as
+	// PrepareNewRepositoryPath resolves it, because isWithin compares two
+	// resolved paths and the root already is one. Handing it a path as written
+	// refuses a directory that is genuinely inside the root the moment any
+	// component above it is a symbolic link — /var is /private/var on macOS,
+	// so every temporary directory there took that branch.
+	//
+	// The leaf is joined back unresolved on purpose: resolving it would follow
+	// a symbolic link planted at the destination, and it is the Lstat below
+	// that has to see it as a link in order to refuse it.
+	resolvedParent, err := r.resolveWithinRoot(filepath.Dir(cleaned))
+	if err != nil {
+		return err
+	}
+	cleaned = filepath.Join(resolvedParent, filepath.Base(cleaned))
 	if !isWithin(r.root, cleaned) {
 		return fmt.Errorf("%q: %w (%q)", cleaned, ErrOutsideRoot, r.root)
 	}
