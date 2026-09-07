@@ -1,0 +1,31 @@
+# How GitHub writes the notes for a release.
+#
+# `gh release create --generate-notes` builds them from the pull requests merged
+# since the previous tag. That is the right source: this project already asks
+# every pull request for a title that says what changed and a body that says
+# why, so a hand-maintained CHANGELOG.md would be a second copy of the same
+# information — and the copy that goes stale, because nothing checks it.
+#
+# What the default output gets wrong is proportion, in both directions.
+# Dependency bumps outnumber everything else and would bury the changes a
+# reader came for. A change that stops accepting a .env somebody already has is
+# the one thing they need before they upgrade, and in a flat list it reads like
+# any other line. Each gets its own section, below.
+changelog:
+  categories:
+    # A configuration that stops being accepted. The label is applied by hand,
+    # and docs/adr/0014-a-breaking-configuration-change-announces-itself.md says
+    # why that is the weakest of the three announcements rather than the only
+    # one: the program's own refusal is what reaches the person who is blocked.
+    - title: Breaking changes
+      labels: [breaking-change]
+
+    - title: Changes
+      labels: ["*"]
+      exclude:
+        labels: [dependencies, breaking-change]
+
+    # Dependabot applies this label itself, so the split costs no manual
+    # triage — which is the only reason it will still be true in a year.
+    - title: Dependencies
+      labels: [dependencies]

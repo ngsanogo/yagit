@@ -1,0 +1,74 @@
+name: CodeQL
+
+# Actions are pinned by digest — see the note at the top of ci.yml.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  # Re-run the analysis without pushing an empty commit. CodeQL's queries
+  # improve between releases, so re-asking on today's query set is a
+  # reasonable thing to want before waiting a week for the schedule.
+  workflow_dispatch:
+
+  schedule:
+    # CodeQL's queries improve between runs, and a vulnerability disclosed
+    # after a commit lands is not found by the scan that ran before it. Weekly
+    # keeps the answer current on code nobody has touched.
+    - cron: "37 5 * * 1"
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+
+  # Cancel a superseded run on a branch, never on main.
+  #
+  # On a branch the previous run is answering a question about code that no
+  # longer exists, so cancelling it saves minutes and loses nothing. On main
+  # every run is the only answer that commit will ever get: cancel it and the
+  # commit keeps whatever status it had, or none. A manual re-run would
+  # otherwise cancel the push run for the same commit, and main would go red
+  # on a race with itself.
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
+permissions:
+  contents: read
+
+jobs:
+  analyze:
+    name: Analyze ${{ matrix.language }}
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read # check out the code
+      security-events: write # publish findings to the Security tab
+
+    strategy:
+      fail-fast: false
+      matrix:
+        # Both halves of the project. The daemon holds the security boundary;
+        # the frontend is what a hostile page would talk to.
+        language: [go, javascript-typescript]
+
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: github/codeql-action/init@cdf488f595d80d6e07e03d4674febd5ab45fa938 # v4.37.9
+        with:
+          languages: ${{ matrix.language }}
+          # security-extended goes beyond the default query set. The default
+          # is tuned for a low false-positive rate on any repository; this one
+          # is small enough that a handful of extra findings to read is a good
+          # trade for the ones the default set leaves out.
+          queries: security-extended
+
+      # No mise, and no `./do build`. CodeQL's autobuild compiles the Go with
+      # the toolchain it brings, which is all it needs to see the code — and
+      # `./do build` would also build the frontend and cross-compile six
+      # targets, none of which teaches the analysis anything.
+      - uses: github/codeql-action/autobuild@cdf488f595d80d6e07e03d4674febd5ab45fa938 # v4.37.9
+
+      - uses: github/codeql-action/analyze@cdf488f595d80d6e07e03d4674febd5ab45fa938 # v4.37.9
+        with:
+          category: /language:${{ matrix.language }}

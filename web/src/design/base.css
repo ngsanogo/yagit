@@ -1,0 +1,52 @@
+/*
+ * Base element styles.
+ *
+ * Everything here applies to the whole application and should therefore
+ * never need restating in a component.
+ */
+
+html {
+  /* Tells the browser to paint its own elements — scrollbars, native form
+   * controls — in the right theme. */
+  color-scheme: dark;
+}
+
+body {
+  background-color: var(--color-canvas);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+  font-size: var(--text-sm);
+  line-height: var(--text-sm--line-height);
+
+  /* Inter is drawn for fine rendering; without this, some platforms thicken
+   * its strokes and interface labels look heavy. */
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+::selection {
+  background-color: var(--color-accent-soft);
+  color: var(--color-ink);
+}
+
+/* Quiet scrollbars: in a git client the commit list is the main object on
+ * screen, and the scrollbar must not compete with it for attention. */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-line-strong) transparent;
+}
+
+/*
+ * Honor the system "reduce motion" preference. This is not politeness: for
+ * some people, interface movement causes nausea.
+ */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 1ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 1ms !important;
+    scroll-behavior: auto !important;
+  }
+}

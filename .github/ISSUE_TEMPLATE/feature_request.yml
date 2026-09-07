@@ -1,0 +1,29 @@
+name: Feature request
+description: Something yagit should be able to do and cannot.
+labels: [enhancement]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        yagit aims at parity with the established graphical git clients. The
+        [roadmap](https://github.com/ngsanogo/yagit/blob/main/docs/ROADMAP.md)
+        says what is already built, and what is deliberately left out — worth
+        a look before you write.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: The problem
+      description: What are you trying to do, and where does yagit stop you?
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: What you would expect
+      description: |
+        Bear in mind one of the project's rules: one action, one path in the UI.
+        A second button that duplicates an existing menu entry will be declined.
+    validations:
+      required: true
