@@ -154,6 +154,11 @@ live in `.github/workflows/`.
   the Go standard library which Dependabot does not.
 - OpenSSF Scorecard, publishing results to the repository Security tab
   (`.github/workflows/supply-chain.yml`).
+- The install scripts, run end to end on Linux, macOS and Windows whenever they
+  change and weekly (`.github/workflows/installers.yml`). They are how a release
+  reaches a machine, and the checksum check inside them is the step that has to
+  keep working — including its refusal path, which by definition only runs when
+  something is already wrong, and so is the half that rots unwatched.
 
 ## Design consequences
 

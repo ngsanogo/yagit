@@ -351,6 +351,28 @@ func TestSessionExchangeRefusesAForeignOrigin(t *testing.T) {
 	if response.Code != http.StatusForbidden {
 		t.Fatalf("status = %d, want 403: %s", response.Code, response.Body)
 	}
+	if !strings.Contains(response.Body.String(), "https://evil.example") {
+		t.Errorf("refusal must name the origin, got: %s", response.Body.String())
+	}
+}
+
+func TestSessionExchangeRefusesANullOrigin(t *testing.T) {
+	handler := testServer(t)
+
+	request := httptest.NewRequest(http.MethodPost, "/api/session",
+		strings.NewReader(`{"token":"`+testToken+`"}`))
+	request.Header.Set("Content-Type", "application/json")
+	// Sandboxed previews (editor simple browsers) send the literal string
+	// "null", which is not an absent Origin and must stay refused.
+	request.Header.Set("Origin", "null")
+
+	response := execute(handler, request)
+	if response.Code != http.StatusForbidden {
+		t.Fatalf("status = %d, want 403: %s", response.Code, response.Body)
+	}
+	if !strings.Contains(response.Body.String(), "regular browser") {
+		t.Errorf("null Origin must say how to open yagit, got: %s", response.Body.String())
+	}
 }
 
 func TestSessionExchangeAllowsAToolWithNoOrigin(t *testing.T) {

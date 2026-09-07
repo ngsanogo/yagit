@@ -4,6 +4,7 @@ import (
 	"crypto/sha256"
 	"crypto/subtle"
 	"errors"
+	"fmt"
 	"net/http"
 	"net/url"
 	"slices"
@@ -43,6 +44,22 @@ var (
 	errOriginRejected = errors.New(
 		"origin rejected for a mutating request authenticated by cookie")
 )
+
+// originRejected explains a failed origin check. Origin "null" is what a
+// sandboxed preview sends, and what browsers send on form POSTs when the
+// page was served under Referrer-Policy: no-referrer — both look the same
+// on the wire, so the message names the preview case the user can fix.
+func originRejected(origin string) error {
+	if origin == "null" {
+		return fmt.Errorf(
+			"%w (got %q — open yagit in a regular browser at the URL ./do printed)",
+			errOriginRejected, origin)
+	}
+	if origin == "" {
+		return errOriginRejected
+	}
+	return fmt.Errorf("%w (got %q)", errOriginRejected, origin)
+}
 
 // credentialSource says how a request authenticated. The distinction is not
 // cosmetic: it decides whether the origin check applies.
@@ -122,7 +139,8 @@ func (s *Server) requireToken(next http.Handler) http.Handler {
 		}
 
 		if isMutating(request.Method) && source == credentialCookie && !s.originAllowed(request) {
-			writeError(writer, s.logger, http.StatusForbidden, errOriginRejected)
+			writeError(writer, s.logger, http.StatusForbidden,
+				originRejected(request.Header.Get("Origin")))
 			return
 		}
 
