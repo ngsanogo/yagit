@@ -151,13 +151,19 @@ jobs:
               exit 1
           }
           # Through cmd.exe, because a .cmd launcher is what a user gets and
-          # its parsing is the part that only Windows can answer for. Both
-          # streams, because Go's flag package prints usage on stderr.
-          $help = & cmd.exe /c "`"$launcher`" --help 2>&1"
+          # its parsing is the part that only Windows can answer for.
+          #
+          # Every stream into a file, with PowerShell's `*>` rather than a
+          # `2>&1` inside the command string: Go's flag package prints usage on
+          # stderr, and cmd decides what to strip from `/c "…"` by looking at
+          # the first and last character of it — so appending a redirection
+          # there changes how the command line itself is read.
+          & cmd.exe /c "`"$launcher`" --help" *> help.txt
           if ($LASTEXITCODE -ne 0) {
               Write-Output "::error::the launcher exited $LASTEXITCODE"
               exit 1
           }
+          $help = Get-Content help.txt -Raw
           if ($help -notmatch '-root') {
               Write-Output "::error::the launcher ran something that is not yagit"
               exit 1
