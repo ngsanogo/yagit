@@ -83,21 +83,31 @@ func TestTheFallbackStillTakesNamesLiterally(t *testing.T) {
 
 	// One file whose name is a glob, among enough others to force the
 	// fallback. Staging it must stage that file and nothing else.
+	//
+	// The name is a bracket expression rather than the more obvious `*`
+	// because Windows refuses `*` in a filename outright — the test could not
+	// even create the fixture there, on the one platform whose command-line
+	// limit is the reason the fallback exists at all. Brackets are a glob to
+	// git's matcher and an ordinary filename to every filesystem, so the same
+	// test runs everywhere.
+	const globName = "[ab].txt"
+	const wouldMatch = "a.txt"
+
 	paths := manyFiles(t, dir, 900)
-	writeFile(t, dir, "*", "the file actually called star\n")
-	writeFile(t, dir, "innocent.txt", "should stay unstaged\n")
-	paths = append(paths, "*")
+	writeFile(t, dir, globName, "the file actually called "+globName+"\n")
+	writeFile(t, dir, wouldMatch, "should stay unstaged\n")
+	paths = append(paths, globName)
 
 	if err := runner.Stage(context.Background(), dir, paths); err != nil {
 		t.Fatalf("Stage: %v", err)
 	}
 
 	staged := stagedPaths(t, runner, dir)
-	if !staged["*"] {
-		t.Error("the file literally called * was not staged")
+	if !staged[globName] {
+		t.Errorf("the file literally called %s was not staged", globName)
 	}
-	if staged["innocent.txt"] {
-		t.Error("* was read as a pattern: a file nobody named was staged")
+	if staged[wouldMatch] {
+		t.Errorf("%s was read as a pattern: %s, which nobody named, was staged", globName, wouldMatch)
 	}
 }
 
