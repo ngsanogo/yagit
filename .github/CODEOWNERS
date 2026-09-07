@@ -1,0 +1,11 @@
+# Who is asked to review what.
+#
+# GitHub never requests a review from the author, so on a pull request opened by
+# the maintainer this file does nothing at all. It exists for the other case: a
+# contributor's pull request gets a reviewer without anyone having to notice it
+# arrived.
+#
+# One line, because the project has one maintainer. Splitting it by directory
+# before there is somebody to name in the second line would be describing a team
+# that does not exist.
+* @ngsanogo

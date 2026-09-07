@@ -1,0 +1,59 @@
+name: Accessibility
+description: Something you cannot do, or cannot do well, because of a disability or assistive technology.
+labels: [accessibility]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        A missing label or a keyboard trap can block someone from using
+        yagit at all. This template asks for the assistive technology and
+        a severity so the report can be triaged as that, not as a generic
+        bug. See [ACCESSIBILITY.md](https://github.com/ngsanogo/yagit/blob/main/ACCESSIBILITY.md).
+
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened
+      description: What you could not do, and what you expected instead.
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Steps to reproduce
+      description: Include the assistive technology, if any, in the steps.
+      placeholder: |
+        1. Open a repository with …
+        2. Press Tab until …
+        3. …
+    validations:
+      required: true
+
+  - type: dropdown
+    id: severity
+    attributes:
+      label: Severity
+      options:
+        - Critical — cannot complete a core task
+        - High — significant difficulty, a workaround exists
+        - Medium — inconsistent or annoying
+        - Low — minor, little effect on the task
+    validations:
+      required: true
+
+  - type: input
+    id: assistive-tech
+    attributes:
+      label: Assistive technology
+      description: Screen reader, magnifier, switch, voice control, or none. Include the version if you know it.
+      placeholder: VoiceOver on macOS 15, NVDA 2024.4, keyboard only…
+
+  - type: input
+    id: environment
+    attributes:
+      label: OS, browser, yagit version
+      description: The version shown by `curl -H "X-Yagit-Token: $(./do token)" http://127.0.0.1:7420/api/health`, or the commit you built from.
+      placeholder: macOS 15, Firefox 142, yagit from commit abc1234
+    validations:
+      required: true

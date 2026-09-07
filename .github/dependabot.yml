@@ -1,0 +1,82 @@
+version: 2
+
+updates:
+  - package-ecosystem: npm
+    directory: /web
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+
+    # A compromised release is usually caught and yanked within days. A
+    # cooldown means Dependabot never proposes a version that has not survived
+    # a week of everyone else's scrutiny — which is the window a poisoned
+    # release of a widely installed package gets to spread in before anyone
+    # notices.
+    #
+    # A week of latency on a dependency bump costs nothing. Being the first
+    # repository to install a poisoned package costs everything.
+    cooldown:
+      default-days: 7
+
+    groups:
+      # The linting and type-checking stack moves as one, major versions
+      # included.
+      #
+      # These packages constrain each other through peer dependencies, and
+      # splitting them produced a tree npm could not resolve at all: @eslint/js
+      # 10 landed while eslint was still 9, and `npm ci` refused the result.
+      # One pull request per package is one chance per package to merge half a
+      # migration.
+      tooling:
+        patterns:
+          - eslint
+          - "@eslint/*"
+          - "eslint-plugin-*"
+          - typescript
+          - typescript-eslint
+          - "@typescript-eslint/*"
+          - globals
+        update-types: [major, minor, patch]
+
+      # Everything else, minor and patch only: fifteen separate pull requests
+      # for routine bumps is not review, it is noise.
+      frontend:
+        patterns: ["*"]
+        update-types: [minor, patch]
+
+    ignore:
+      # typescript cannot leave 6 while typescript-eslint reads the types.
+      # Every release of it, canary included, declares `typescript >=4.8.4
+      # <6.1.0` as a peer dependency: 7 is the native compiler and the lint
+      # ecosystem has not followed. npm refuses the combination outright, so
+      # the bump cannot even install, let alone be merged. Unignore this when
+      # typescript-eslint accepts 7 — check with
+      # `npm view typescript-eslint peerDependencies`.
+      - dependency-name: "typescript"
+        update-types: [version-update:semver-major]
+
+      # @types/node must track the node major pinned in mise.toml, or the types
+      # describe APIs the runtime does not have. Bump it when node moves, not
+      # before.
+      - dependency-name: "@types/node"
+        update-types: [version-update:semver-major]
+
+  - package-ecosystem: gomod
+    directory: /
+    schedule:
+      interval: weekly
+
+    # See the npm block above.
+    cooldown:
+      default-days: 7
+
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly
+
+    # See the npm block above.
+    cooldown:
+      default-days: 7
+

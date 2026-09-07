@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "deny": [
+      "Read(/.env)",
+      "Read(/.yagit/**)",
+      "Read(/web/node_modules/**)",
+      "Read(/dist/**)",
+      "Read(/internal/assets/dist/**)",
+      "Read(/web/package-lock.json)"
+    ]
+  }
+}

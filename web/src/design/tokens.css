@@ -1,0 +1,358 @@
+/*
+ * yagit's design tokens — the single source of every visual value.
+ *
+ * Project rule: no component hardcodes a color, a spacing, a radius, a
+ * shadow or a duration. Everything comes from here, and Tailwind generates
+ * the matching utilities. A missing value gets added here, not slipped into
+ * a component.
+ *
+ * Colors are OKLCH rather than hex for a precise reason: in that space, two
+ * colors with the same L are perceived as equally light. That keeps the gray
+ * ramp even to the eye, and above all it lets the ten graph lane colors be
+ * equally salient — no lane should look more important than another because
+ * its hue happens to be brighter.
+ *
+ * Dark is the default theme. Light redefines the same variables further down;
+ * the utilities follow without any component having to know.
+ */
+
+/*
+ * `static`, not `@theme` alone: without that keyword Tailwind only emits the
+ * variables it has seen a matching utility class for. yagit applies several
+ * tokens another way — a lane's color and an avatar's tint are chosen by data,
+ * so they go in as `var(--color-lane-N)` in an inline style or an SVG
+ * attribute, and no class name mentions them anywhere in the source. Those
+ * tokens would then be missing and their colors merely transparent: a silent
+ * visual failure with no error message anywhere. See docs/adr/0011.
+ */
+@theme static {
+  /* ---------------------------------------------------------------------
+   * Typography
+   *
+   * Inter for the interface: drawn for small sizes and dense screens, with
+   * tabular figures that line up dates and counters. JetBrains Mono for
+   * anything a machine wrote — SHAs, paths, git commands — where telling 0
+   * from O and 1 from l matters.
+   * ------------------------------------------------------------------- */
+  --font-sans: 'Inter Variable', ui-sans-serif, -apple-system, 'Segoe UI', system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono Variable', ui-monospace, SFMono-Regular, Menlo, monospace;
+
+  /* Size scale. Seven steps, not one more: a finer scale does not help you
+   * decide, it only gives you room to hesitate. */
+  --text-2xs: 0.6875rem; /* 11px — timestamps, metadata */
+  --text-2xs--line-height: 1rem;
+  --text-xs: 0.78125rem; /* 12.5px — secondary labels */
+  --text-xs--line-height: 1.125rem;
+  --text-sm: 0.875rem; /* 14px — body text, commit rows */
+  --text-sm--line-height: 1.3125rem;
+  --text-base: 1rem; /* 16px — emphasized text */
+  --text-base--line-height: 1.5rem;
+  --text-lg: 1.25rem; /* 20px — panel titles */
+  --text-lg--line-height: 1.75rem;
+  --text-xl: 1.625rem; /* 26px — screen titles */
+  --text-xl--line-height: 2.125rem;
+  --text-2xl: 2.125rem; /* 34px — empty states, welcome screen */
+  --text-2xl--line-height: 2.625rem;
+
+  /* ---------------------------------------------------------------------
+   * Spacing
+   *
+   * A single 4px base step; everything else is a multiple of it. p-1 is 4px,
+   * p-2 8px, p-6 24px. No in-between value exists, which is what makes two
+   * components written months apart line up anyway.
+   * ------------------------------------------------------------------- */
+  --spacing: 0.25rem;
+
+  /* ---------------------------------------------------------------------
+   * Surfaces and text — dark theme
+   *
+   * The ramp climbs steadily in lightness: the page background is the
+   * darkest, and every surface resting on it is one step lighter. A barely
+   * saturated 200° hue runs through the whole ramp: the grays are never
+   * neutral, they lean slightly cold, which gives the green accent
+   * something to stand out against.
+   * ------------------------------------------------------------------- */
+  --color-canvas: oklch(17.5% 0.012 200); /* application background */
+  --color-sunken: oklch(14.5% 0.012 200); /* sunken: fields, input areas */
+  --color-surface: oklch(21.5% 0.013 200); /* panels */
+  --color-raised: oklch(25.5% 0.014 200); /* dialogs, menus */
+  --color-hover: oklch(29% 0.015 200); /* row hover */
+  --color-selected: oklch(32% 0.022 200); /* selected row */
+
+  --color-line: oklch(30% 0.014 200); /* quiet separators */
+  --color-line-strong: oklch(42% 0.016 200); /* assertive borders */
+
+  --color-ink: oklch(94% 0.008 200); /* primary text */
+  --color-ink-muted: oklch(80% 0.014 200); /* secondary text */
+  --color-ink-subtle: oklch(70% 0.016 200); /* tertiary text, disabled */
+
+  /* ---------------------------------------------------------------------
+   * Accent
+   *
+   * A mint green: the yagit tree, and a hue git uses for no status at all,
+   * so it cannot be mistaken for "added".
+   * ------------------------------------------------------------------- */
+  --color-accent: oklch(76% 0.135 168);
+  --color-accent-hover: oklch(82% 0.14 168);
+  --color-accent-active: oklch(70% 0.13 168);
+  --color-accent-ink: oklch(20% 0.04 168); /* text sitting on the accent */
+  --color-accent-soft: oklch(30% 0.05 168); /* quiet accent-tinted background */
+
+  /* ---------------------------------------------------------------------
+   * Statuses
+   *
+   * Every status has a solid color, for text and icons, and a soft variant,
+   * for backgrounds. Status text on a status background of the same
+   * intensity would be unreadable.
+   * ------------------------------------------------------------------- */
+  --color-success: oklch(76% 0.15 150);
+  --color-success-soft: oklch(28% 0.06 150);
+  --color-warning: oklch(82% 0.14 85);
+  --color-warning-soft: oklch(30% 0.06 85);
+  --color-danger: oklch(70% 0.17 25);
+  --color-danger-soft: oklch(28% 0.08 25);
+  --color-info: oklch(74% 0.12 245);
+  --color-info-soft: oklch(29% 0.06 245);
+
+  /* ---------------------------------------------------------------------
+   * File statuses, under the names git gives them
+   * ------------------------------------------------------------------- */
+  --color-added: oklch(76% 0.15 150);
+  --color-modified: oklch(82% 0.14 85);
+  --color-deleted: oklch(70% 0.17 25);
+  --color-renamed: oklch(74% 0.12 245);
+  --color-untracked: oklch(70% 0.1 285);
+  --color-conflicted: oklch(72% 0.18 350);
+
+  /* ---------------------------------------------------------------------
+   * The two sides of a conflict
+   *
+   * Two hues far enough apart to be told apart at a glance down a file, and
+   * neither of them the conflicted pink above: that one marks the FILE, and
+   * these mark the halves inside it. Their soft counterparts are what the
+   * region bands are painted with, so the code on top keeps reading as code
+   * rather than as coloured text.
+   *
+   * Deliberately not green and red. Nothing here is right or wrong — "ours"
+   * is only the branch you happen to be standing on, and during a rebase it
+   * is not even that — and a palette that says otherwise is an interface
+   * with an opinion about somebody else's merge.
+   * ------------------------------------------------------------------- */
+  --color-ours: oklch(74% 0.12 245);
+  --color-ours-soft: oklch(30% 0.055 245);
+  --color-theirs: oklch(76% 0.13 300);
+  --color-theirs-soft: oklch(31% 0.06 300);
+
+  /* ---------------------------------------------------------------------
+   * Git references
+   *
+   * Four colors for four kinds. HEAD takes the accent because it is the one
+   * marker whose position moves under the user's feet.
+   * ------------------------------------------------------------------- */
+  --color-ref-head: oklch(76% 0.135 168);
+  --color-ref-branch: oklch(74% 0.12 245);
+  --color-ref-remote: oklch(72% 0.11 285);
+  --color-ref-tag: oklch(82% 0.13 85);
+
+  /* ---------------------------------------------------------------------
+   * Graph lanes
+   *
+   * Ten colors, all at L = 74% and C = 0.13. At equal lightness and chroma
+   * in OKLCH, no branch looks more important than another through a mere
+   * accident of hue. A few hues fall outside the sRGB gamut at this chroma
+   * and the browser clips them back in; the resulting drift stays far
+   * smaller than that of a palette picked by hand.
+   *
+   * Their ORDER is chosen, not sorted: any two lanes next to each other on
+   * screen are at least 75° of hue apart. A palette laid out by increasing
+   * hue would put near-identical colors side by side, which is exactly when
+   * a graph stops being readable.
+   *
+   * The list wraps: past ten lanes the palette cycles, so lane 10 ends up
+   * beside lane 1 and that pair counts too. It is the wrap that fixes the
+   * order of the last two — 25° next to 168° clears the bar, 140° would not.
+   * ------------------------------------------------------------------- */
+  --color-lane-1: oklch(74% 0.13 168);
+  --color-lane-2: oklch(74% 0.13 264);
+  --color-lane-3: oklch(74% 0.13 55);
+  --color-lane-4: oklch(74% 0.13 340);
+  --color-lane-5: oklch(74% 0.13 205);
+  --color-lane-6: oklch(74% 0.13 110);
+  --color-lane-7: oklch(74% 0.13 300);
+  --color-lane-8: oklch(74% 0.13 140);
+  --color-lane-9: oklch(74% 0.13 235);
+  --color-lane-10: oklch(74% 0.13 25);
+
+  /* ---------------------------------------------------------------------
+   * Radii
+   * ------------------------------------------------------------------- */
+  --radius-sm: 0.25rem; /* badges, pills */
+  --radius-md: 0.375rem; /* buttons, fields */
+  --radius-lg: 0.625rem; /* panels */
+  --radius-xl: 0.875rem; /* dialogs */
+
+  /* ---------------------------------------------------------------------
+   * Shadows
+   *
+   * On a dark background a drop shadow on its own goes unnoticed: every
+   * level pairs a shadow with a light inner edge, and that edge is what
+   * actually lifts the surface off its background.
+   * ------------------------------------------------------------------- */
+  --shadow-raised: 0 1px 2px oklch(0% 0 0 / 0.4), inset 0 1px 0 oklch(100% 0 0 / 0.04);
+  --shadow-popover: 0 8px 24px oklch(0% 0 0 / 0.45), 0 0 0 1px oklch(100% 0 0 / 0.06);
+  --shadow-dialog: 0 24px 64px oklch(0% 0 0 / 0.55), 0 0 0 1px oklch(100% 0 0 / 0.08);
+
+  /* ---------------------------------------------------------------------
+   * Scrim
+   *
+   * What a dialog puts between itself and the application. Two values, not
+   * one: the veil alone would leave sharp text legible right behind the
+   * dialog and fight it for attention, and the blur alone would leave the
+   * page just as bright.
+   * ------------------------------------------------------------------- */
+  --color-scrim: oklch(0% 0 0 / 0.55);
+  --blur-scrim: 2px;
+
+  /* ---------------------------------------------------------------------
+   * Easing curves
+   * ------------------------------------------------------------------- */
+  --ease-out-quart: cubic-bezier(0.25, 1, 0.5, 1);
+  --ease-in-out-quart: cubic-bezier(0.76, 0, 0.24, 1);
+  --ease-overshoot: cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/*
+ * Durations. Outside @theme because Tailwind has no namespace for them; the
+ * dedicated utilities just below expose them instead.
+ */
+:root {
+  --duration-instant: 90ms; /* hovers, presses */
+  --duration-fast: 150ms; /* things appearing in place */
+  --duration-slow: 260ms; /* dialogs, panels */
+}
+
+/*
+ * Light theme.
+ *
+ * The same semantic names, different values. No component knows which theme
+ * is current — that is the whole point of naming tokens after their role
+ * rather than after their color.
+ *
+ * This theme is structurally complete but has not had the proportional pass
+ * the dark theme got — the product screens do not exist yet to judge it
+ * against.
+ *
+ * Contrast is not part of what is deferred, and it used to be. The reasoning
+ * was that tuning contrast against screens that do not exist is work you do
+ * twice; the flaw in it is that contrast is not taste, it is a ratio with a
+ * threshold, and it can be measured on the components alone. When it finally
+ * was, this theme failed in ten places — and the dark one, the finished one,
+ * failed too. Both are now checked by an assertion rather than by eye.
+ */
+:root[data-theme='light'] {
+  color-scheme: light;
+
+  --color-canvas: oklch(97.5% 0.004 200);
+  --color-sunken: oklch(94.5% 0.006 200);
+  --color-surface: oklch(100% 0 0);
+  --color-raised: oklch(100% 0 0);
+  --color-hover: oklch(95% 0.007 200);
+  --color-selected: oklch(92% 0.02 200);
+
+  --color-line: oklch(90% 0.008 200);
+  --color-line-strong: oklch(78% 0.012 200);
+
+  --color-ink: oklch(24% 0.02 200);
+  --color-ink-muted: oklch(38% 0.02 200);
+  --color-ink-subtle: oklch(50% 0.018 200);
+
+  --color-accent: oklch(50% 0.13 168);
+  --color-accent-hover: oklch(45% 0.13 168);
+  --color-accent-active: oklch(40% 0.12 168);
+  --color-accent-ink: oklch(99% 0.01 168);
+  --color-accent-soft: oklch(94% 0.04 168);
+
+  --color-success: oklch(50% 0.14 150);
+  --color-success-soft: oklch(94% 0.05 150);
+  --color-warning: oklch(52% 0.13 70);
+  --color-warning-soft: oklch(95% 0.05 85);
+  --color-danger: oklch(52% 0.19 25);
+  --color-danger-soft: oklch(95% 0.04 25);
+  --color-info: oklch(52% 0.14 245);
+  --color-info-soft: oklch(95% 0.04 245);
+
+  --color-added: oklch(50% 0.14 150);
+  --color-modified: oklch(56% 0.13 70);
+  --color-deleted: oklch(52% 0.19 25);
+  --color-renamed: oklch(52% 0.14 245);
+  --color-untracked: oklch(52% 0.12 285);
+  --color-conflicted: oklch(54% 0.19 350);
+
+  --color-ours: oklch(50% 0.14 245);
+  --color-ours-soft: oklch(95% 0.035 245);
+  --color-theirs: oklch(50% 0.15 300);
+  --color-theirs-soft: oklch(95% 0.04 300);
+
+  --color-ref-head: oklch(48% 0.13 168);
+  --color-ref-branch: oklch(50% 0.14 245);
+  --color-ref-remote: oklch(50% 0.13 285);
+  --color-ref-tag: oklch(51% 0.13 70);
+
+  --color-lane-1: oklch(46% 0.15 168);
+  --color-lane-2: oklch(46% 0.15 264);
+  --color-lane-3: oklch(46% 0.15 55);
+  --color-lane-4: oklch(46% 0.15 340);
+  --color-lane-5: oklch(46% 0.15 205);
+  --color-lane-6: oklch(46% 0.15 110);
+  --color-lane-7: oklch(46% 0.15 300);
+  --color-lane-8: oklch(46% 0.15 140);
+  --color-lane-9: oklch(46% 0.15 235);
+  --color-lane-10: oklch(46% 0.15 25);
+
+  --shadow-raised: 0 1px 2px oklch(0% 0 0 / 0.08), inset 0 1px 0 oklch(100% 0 0 / 0.8);
+  --shadow-popover: 0 8px 24px oklch(0% 0 0 / 0.12), 0 0 0 1px oklch(0% 0 0 / 0.06);
+  --shadow-dialog: 0 24px 64px oklch(0% 0 0 / 0.18), 0 0 0 1px oklch(0% 0 0 / 0.08);
+
+  /* Lighter on a light theme: the same opacity over a white page reads as a
+     gray sheet rather than as depth. */
+  --color-scrim: oklch(0% 0 0 / 0.35);
+}
+
+/*
+ * Cross-cutting utilities.
+ *
+ * They exist so that the interface's most repeated decisions — how long a
+ * transition lasts, what keyboard focus looks like — are made once here
+ * instead of being reinvented in every component.
+ */
+
+@utility transition-instant {
+  transition-duration: var(--duration-instant);
+  transition-timing-function: var(--ease-out-quart);
+}
+
+@utility transition-fast {
+  transition-duration: var(--duration-fast);
+  transition-timing-function: var(--ease-out-quart);
+}
+
+@utility transition-slow {
+  transition-duration: var(--duration-slow);
+  transition-timing-function: var(--ease-out-quart);
+}
+
+/*
+ * One focus ring for the whole application. Its offset keeps it visible on
+ * every surface, and it only shows up under keyboard navigation — a mouse
+ * click must not trigger it.
+ */
+@utility focus-ring {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+/* Fixed-width figures: dates and counters down a list have to line up
+ * vertically, otherwise the column jitters as it scrolls. */
+@utility tabular {
+  font-variant-numeric: tabular-nums;
+}
