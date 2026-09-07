@@ -7,8 +7,8 @@ commit graph at the center of the screen.
 [![CI](https://github.com/ngsanogo/yagit/actions/workflows/ci.yml/badge.svg)](https://github.com/ngsanogo/yagit/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
-**Pre-1.0, and there is no published release yet.** Everything listed below is
-built and covered by the gates; the way in is a checkout.
+**Pre-1.0.** Everything listed below is built and covered by the gates, on
+Linux, macOS and Windows.
 
 ## What you get
 
@@ -55,9 +55,9 @@ to contribute: [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## Install from a release
 
-Once a GitHub Release is published, the installers download the binary for this
-machine, verify `SHA256SUMS`, and put a `yagit` launcher on your PATH (usually
-`~/.local/bin` on Unix, `%USERPROFILE%\.local\bin` on Windows).
+The installers download the binary for this machine, check it against
+`SHA256SUMS`, and put a `yagit` launcher on your PATH (usually `~/.local/bin`
+on Unix, `%USERPROFILE%\.local\bin` on Windows).
 
 macOS / Linux:
 
@@ -75,6 +75,15 @@ Pin a tag with `YAGIT_VERSION=<tag>` before the install command. Then:
 
 ```sh
 yagit
+```
+
+A checksum says the bytes arrived intact. It says nothing about where they came
+from, and it is published by whoever published the binaries. Every release
+binary also carries a Sigstore attestation of the workflow run that built it,
+which anyone can check without trusting this repository:
+
+```sh
+gh attestation verify yagit-linux-amd64 --repo ngsanogo/yagit
 ```
 
 ## Uninstall
