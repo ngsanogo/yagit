@@ -1,10 +1,14 @@
-import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Page } from '@playwright/test';
 
 import { execFileSync } from 'node:child_process';
 import { existsSync, mkdirSync } from 'node:fs';
 import { join } from 'node:path';
 
+// The one axe run in the suite. This file used to hold a second copy of it
+// with the four tags spelled out again, so a rule or an option added to the
+// helper silently did not apply to the workbench — the screen with the most
+// components on it.
+import { violations } from './accessibility';
 import {
   BRANCH_COMMITS,
   CLONE_COMMITS,
@@ -569,26 +573,6 @@ test('a selected commit does not cross to another repository', async ({ page }) 
 });
 
 /**
- * The accessibility violations on the page, flattened.
- *
- * axe returns a deep object per violation, and an assertion on it prints
- * hundreds of lines of DOM. This keeps the failure readable: the rule, what it
- * means, and the elements at fault.
- */
-async function violations(page: Page) {
-  const results = await new AxeBuilder({ page })
-    .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'])
-    .analyze();
-
-  return results.violations.map((violation) => ({
-    rule: violation.id,
-    impact: violation.impact,
-    help: violation.help,
-    elements: violation.nodes.map((node) => node.target.join(' ')),
-  }));
-}
-
-/**
  * The workbench fills the window and never grows past it.
  *
  * Every list on this screen is unbounded — a history of a million commits, a
@@ -621,12 +605,20 @@ test('the panels scroll, and the page does not', async ({ page }) => {
 
   expect(measured.page.scroll).toBeLessThanOrEqual(measured.page.client);
 
-  // And the references took that overflow rather than shedding it: a list that
-  // simply clipped would satisfy the line above and lose every ref past the
-  // fold, with no way to reach them. The scroller is the panel's own body,
-  // which is the element that carries overflow-auto.
+  // And something took that overflow rather than shedding it: a column that
+  // simply clipped would satisfy the line above and lose every panel past the
+  // fold, with no way to reach them. Asked of the ancestors as well as of the
+  // panel's own body, because either answer keeps the promise — the sidebar is
+  // one scroller now, with each panel sized to what it holds, and the
+  // references cap and scroll inside it only once their own list is long
+  // enough to need it.
   const scroller = await references.evaluate((panel) => {
-    const found = Array.from(panel.querySelectorAll('*')).find(
+    const inside = Array.from(panel.querySelectorAll('*'));
+    const above: Element[] = [];
+    for (let node = panel.parentElement; node !== null; node = node.parentElement) {
+      above.push(node);
+    }
+    const found = [...inside, panel, ...above].find(
       (element) => element.scrollHeight > element.clientHeight,
     );
     return found === undefined ? null : { scroll: found.scrollHeight, client: found.clientHeight };
@@ -648,7 +640,7 @@ test('the workbench has no accessibility violations', async ({ page }) => {
 test('a refused path is explained, not swallowed', async ({ page }) => {
   await openFixtureRepository(page);
 
-  await page.getByRole('button', { name: 'Open repository' }).click();
+  await page.getByRole('button', { name: 'Add repository' }).click();
   await expect(page.getByRole('dialog')).toBeVisible();
 
   // A path outside the allowed root. The daemon refuses it with 403 and a
@@ -678,8 +670,8 @@ test('a second repository can be opened while one is already open', async ({ pag
   // The gap this closes: the form used to live only in the empty state, so an
   // application with one repository open had no way to open a second — and the
   // tab bar it would have appeared in was built for many.
-  await expect(page.getByRole('button', { name: 'Open repository' })).toBeVisible();
-  await page.getByRole('button', { name: 'Open repository' }).click();
+  await expect(page.getByRole('button', { name: 'Add repository' })).toBeVisible();
+  await page.getByRole('button', { name: 'Add repository' }).click();
 
   await expect(page.getByRole('dialog', { name: 'Add a repository' })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Repositories on disk' })).toBeVisible();
@@ -707,7 +699,7 @@ test('a repository can be opened from the discover list', async ({ page }) => {
   await page.reload();
 
   const dialog = page.getByRole('dialog', { name: 'Add a repository' });
-  await page.getByRole('button', { name: 'Open repository' }).click();
+  await page.getByRole('button', { name: 'Add repository' }).click();
   await expect(dialog).toBeVisible();
 
   // The scan skips hidden directories, which is right — nobody wants their
@@ -727,7 +719,12 @@ test('a repository can be opened from the discover list', async ({ page }) => {
   await expect(scanIn).toHaveValue(fixtures);
   await dialog.getByRole('button', { name: 'Scan again' }).click();
 
-  const row = dialog.getByRole('button', { name: new RegExp(name) });
+  // Anchored, and followed by the space the path starts after. This directory
+  // is built by the test rather than by fixtureName, so the sweep in
+  // global-setup cannot recognise it and every run leaves one behind:
+  // `refused-row-2` matched `refused-row-21` and `refused-row-23` from runs
+  // long finished, and strict mode killed the test rather than the assertion.
+  const row = dialog.getByRole('button', { name: new RegExp(`^${name} `) });
   await expect(row).toBeVisible();
   await row.click();
 
@@ -802,7 +799,7 @@ test('a refused row explains itself on the row, not under the path field', async
   // strict mode rather than on the behaviour under test.
   const dialog = page.getByRole('dialog', { name: 'Add a repository' });
 
-  await page.getByRole('button', { name: 'Open repository' }).click();
+  await page.getByRole('button', { name: 'Add repository' }).click();
   await expect(dialog).toBeVisible();
 
   // Waited for before it is filled, for the reason spelled out in "a
@@ -817,15 +814,21 @@ test('a refused row explains itself on the row, not under the path field', async
 
   await dialog.getByRole('button', { name: 'Scan again' }).click();
 
-  const row = dialog.getByRole('button', { name: new RegExp(name) });
+  // Anchored for the reason the discover test above spells out: this
+  // directory outlives its run, and `refused-row-2` matches `refused-row-21`.
+  const row = dialog.getByRole('button', { name: new RegExp(`^${name} `) });
   await expect(row).toBeVisible();
 
   await row.click();
 
+  // Anchored like the row locator above, and for the same reason: the row's
+  // text begins with the name and continues into the path, so a plain
+  // substring also matches `refused-row-13` left behind by a run with more
+  // workers.
   const item = dialog
     .getByRole('list', { name: 'Discovered repositories' })
     .getByRole('listitem')
-    .filter({ hasText: name });
+    .filter({ hasText: new RegExp(`^${name}/`) });
 
   const alert = item.getByRole('alert');
   await expect(alert).toBeVisible();

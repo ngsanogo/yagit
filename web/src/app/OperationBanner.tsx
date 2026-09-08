@@ -100,7 +100,24 @@ export function OperationBanner({ repositoryId, status }: OperationBannerProps) 
         // window — a merge run in a terminal — and a screen reader that only
         // announces what it was told to look at would never mention it.
         role="status"
-        className="flex shrink-0 flex-wrap items-center gap-x-3 gap-y-1 border-b border-warning/40 bg-warning-soft px-3 py-1.5"
+        // The edge carries the band, not the fill. In the light theme the soft
+        // warning ground sits 1.08:1 off the page behind it — a real
+        // difference in hue but a very small one in weight — so a stopped
+        // merge, which is the interface's answer to "why is git refusing me?",
+        // read as a quiet stripe rather than as an interruption. A rule
+        // thinned to 40% was the wrong thing to spend on a region whose fill
+        // was already doing so little. Undiluted the token carries it: the
+        // same oklch is measured at 4.46:1 on the light page in tokens.css,
+        // and dark's warning stands further off its own ground again — both
+        // well clear of the 3:1 a non-text boundary is held to, which the
+        // fill was never near in either theme.
+        //
+        // A leading rule and a bottom rule, and no box: this is a full-width
+        // strip under the header, and a border on all four sides would draw a
+        // vertical line down each edge of the window and read as an inset
+        // panel that has come loose. The leading rule is the shape the
+        // conflict bands already use for the same job.
+        className="flex shrink-0 flex-wrap items-center gap-x-3 gap-y-1 border-b border-l-2 border-warning bg-warning-soft px-3 py-1.5"
       >
         <span className="text-xs font-medium text-ink">
           {headline(state.operation, state.branch)}

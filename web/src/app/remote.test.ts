@@ -96,6 +96,21 @@ describe('remoteOffers', () => {
     expect(offers.canFetch).toBe(true);
     expect(offers.push.kind).toBe('unavailable');
   });
+
+  it('names that wait the way the pane below names it', () => {
+    // Word for word what the workbench puts on the spinner for the same wait,
+    // trailing "…" included — which is to say not included. In this interface
+    // the mark means a control asks a question before it acts, and these two
+    // reasons were spending it on "in progress": one mark, two opposite
+    // promises, and the same sentence spelt two ways on one screen.
+    const offers = remoteOffers(undefined, 1);
+
+    if (offers.pull.kind !== 'unavailable' || offers.push.kind !== 'unavailable') {
+      throw new Error('a status that has not answered refuses both');
+    }
+    expect(offers.pull.reason).toBe('Reading the work tree');
+    expect(offers.push.reason).toBe('Reading the work tree');
+  });
 });
 
 describe('canForcePush', () => {

@@ -95,7 +95,7 @@ export function RemoteBar({
     return (
       <div className="flex shrink-0 items-center gap-1.5">
         <Button size="sm" variant="ghost" onClick={onAddRemote}>
-          Add remote
+          Add remote…
         </Button>
       </div>
     );
@@ -104,50 +104,129 @@ export function RemoteBar({
   const upstream = status?.upstream;
 
   return (
-    <div className="flex shrink-0 flex-col items-end gap-0.5">
-      <div className="flex items-center gap-1.5">
-        <Tooltip label={fetchDescription(remotes)}>
-          <Button size="sm" variant="ghost" loading={busy === 'fetch'} onClick={onFetch}>
-            Fetch
-          </Button>
-        </Tooltip>
+    // `relative` for the progress line alone, which is positioned rather than
+    // laid out — see ProgressLine. The bar itself is one row of buttons and
+    // stays one row of buttons whether an operation is running or not.
+    <div className="relative flex shrink-0 items-center gap-1.5">
+      <Tooltip label={fetchDescription(remotes)}>
+        <Button size="sm" variant="ghost" loading={busy === 'fetch'} onClick={onFetch}>
+          Fetch
+        </Button>
+      </Tooltip>
 
-        <Tooltip label={pullDescription(offers.pull, upstream)}>
-          <Button
-            size="sm"
-            variant="ghost"
-            loading={busy === 'pull'}
-            disabled={offers.pull.kind !== 'pull'}
-            onClick={() => onPull('ff-only')}
-          >
-            Pull
-            {offers.pull.kind === 'pull' && offers.pull.behind > 0 && (
-              <Badge tone="warning" className="ml-1.5">{`↓${offers.pull.behind}`}</Badge>
-            )}
-          </Button>
-        </Tooltip>
+      <Tooltip label={pullDescription(offers.pull, upstream)}>
+        <Button
+          size="sm"
+          variant="ghost"
+          loading={busy === 'pull'}
+          disabled={offers.pull.kind !== 'pull'}
+          onClick={() => onPull('ff-only')}
+        >
+          Pull
+          {offers.pull.kind === 'pull' && offers.pull.behind > 0 && (
+            <Badge tone="warning" className="ml-1.5">{`↓${offers.pull.behind}`}</Badge>
+          )}
+        </Button>
+      </Tooltip>
 
-        <Tooltip label={pushDescription(offers.push, upstream)}>
-          <PushButton
-            offer={offers.push}
-            busy={busy === 'push'}
-            onPush={onPush}
-            onPublish={onPublish}
-          />
-        </Tooltip>
-
-        <Menu
-          label="More remote actions"
-          items={remoteMenu(offers, onPull, onForcePush, onManageRemotes)}
+      <Tooltip label={pushDescription(offers.push, upstream)}>
+        <PushButton
+          offer={offers.push}
+          busy={busy === 'push'}
+          onPush={onPush}
+          onPublish={onPublish}
         />
-      </div>
+      </Tooltip>
 
-      {busy !== undefined && progress !== undefined && progress !== '' && (
-        <p className="max-w-xs truncate font-mono text-2xs text-ink-subtle" title={progress}>
-          {progress}
-        </p>
-      )}
+      <Menu
+        label="More remote actions"
+        items={remoteMenu(offers, onPull, onForcePush, onManageRemotes)}
+      />
+
+      <ProgressLine line={busy === undefined ? undefined : progress} />
+      <OperationAnnouncement busy={busy} />
     </div>
+  );
+}
+
+/** What each operation is called while it is running, for the announcement. */
+const RUNNING: Record<NonNullable<RemoteBarProps['busy']>, string> = {
+  fetch: 'Fetching',
+  pull: 'Pulling',
+  push: 'Pushing',
+};
+
+/**
+ * What a screen reader is told when one of the three starts.
+ *
+ * The line beside it is deliberately NOT a live region, which is the whole
+ * reason this exists. What that line carries is git's own progress —
+ * "Receiving objects:  43% (1290/3000), 1.20 MiB | 2.00 MiB/s" — rewritten
+ * several times a second, and a polite region offers every value it is given
+ * to be spoken: a fetch of anything substantial would read a stream of byte
+ * counts over the top of the rest of the page for as long as it took. Those
+ * counters answer "is it worth waiting" at a glance, and a glance is not a
+ * sentence; there is no reading of them that is not worse than silence.
+ *
+ * So the milestone is announced and the ticker is not. It fires once, at the
+ * press — the other end is already covered, because every one of the three
+ * settles into a toast, and the toast host is a live region. Mounted with the
+ * bar rather than with the operation, and empty in between: a region created
+ * and filled in the same frame is one several screen readers never announce
+ * at all, which would have made this the same silence with more code in it.
+ */
+function OperationAnnouncement({ busy }: { busy: RemoteBarProps['busy'] }) {
+  return (
+    <span role="status" className="sr-only">
+      {busy === undefined ? '' : RUNNING[busy]}
+    </span>
+  );
+}
+
+/**
+ * The line git is writing while an operation runs.
+ *
+ * Positioned, not laid out, and both halves of that are repairs.
+ *
+ * It used to be a second row under the buttons, drawn only while there was
+ * something to say — so the bar grew when the first progress line arrived and
+ * shrank again when the operation settled. Sixteen pixels, twice per fetch,
+ * pull and push, and what moved with them was the header, the History/Changes
+ * switch and the commit graph: the project's central screen element lurching
+ * at exactly the moment the pointer was still over the button that had just
+ * been pressed, which is a click hazard as well as an eyesore. Reserving that
+ * row permanently was the other repair, and it is worse than it sounds: the
+ * header row centres what it holds, so a bar kept two rows tall for a line
+ * that is usually absent would become the tallest thing in it and carry the
+ * buttons above the middle — permanently out of line with the undo and the
+ * view switch beside them, on every repository. Out of flow the bar is one
+ * row of buttons and always was, and nothing can move.
+ *
+ * The width is the second repair. Held to the 320px the buttons above it
+ * occupy, the line was cut exactly where its numbers are: "Receiving objects:
+ * 100% (3/3), 28.62 MiB | 185.48 MiB/s, done." wants 434px and lost its
+ * megabytes and its rate, and the rate is what somebody reads to decide
+ * whether to keep waiting on a slow remote — the one question the line exists
+ * to answer. Anchored to the bar's
+ * right edge it grows leftwards into the gap under the toolbar, which is
+ * empty, so it can be as wide as the longest line git writes without the
+ * buttons or the undo beside them moving a pixel. The ceiling is the scale
+ * step above the longest line measured — 512px over about 480px for
+ * "remote: Resolving deltas: 100% (1/1), completed with 1 local object." —
+ * and past it `title` still carries the tail.
+ */
+function ProgressLine({ line }: { line: string | undefined }) {
+  if (line === undefined || line === '') {
+    return null;
+  }
+
+  return (
+    <p
+      className="absolute top-full right-0 w-max max-w-lg truncate font-mono text-2xs text-ink-subtle"
+      title={line}
+    >
+      {line}
+    </p>
   );
 }
 
@@ -182,7 +261,7 @@ function PushButton({
   if (offer.kind === 'publish') {
     return (
       <Button size="sm" variant="ghost" loading={busy} onClick={onPublish} {...described}>
-        Publish branch
+        Publish branch…
       </Button>
     );
   }

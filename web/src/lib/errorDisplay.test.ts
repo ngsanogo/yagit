@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { ApiError } from '../api/client';
-import { gitFailureLine, refusalHeading } from './errorDisplay';
+import { errorSummary, gitFailureLine, refusalHeading } from './errorDisplay';
 
 /**
  * The one refusal the interface has to read out of a status code.
@@ -76,5 +76,77 @@ describe('gitFailureLine', () => {
     // the message on the row above is already the whole of what happened.
     expect(gitFailureLine(new ApiError(0, 'the daemon is not answering'))).toBeUndefined();
     expect(gitFailureLine(new Error('the daemon is not answering'))).toBeUndefined();
+  });
+});
+
+/**
+ * The daemon sends git's account of a failure twice — once as the message,
+ * once as the object beside it — and this is the subtraction that keeps the
+ * interface from drawing both. Getting it wrong is not an error either way:
+ * too eager and a route's own sentence disappears, too shy and every failure
+ * in the product is twice as tall as it needs to be.
+ */
+describe('errorSummary', () => {
+  const failure = {
+    command: 'git switch --no-guess -- refs/heads/nope',
+    args: ['switch', '--no-guess', '--', 'refs/heads/nope'],
+    exit_code: 128,
+    stderr: 'fatal: invalid reference: refs/heads/nope\n',
+  };
+
+  it('has nothing to add when the message is what the block is about to draw', () => {
+    // What every route that hands the git error straight back sends: the
+    // command, the exit code and the stderr, which is exactly what the block
+    // under it is about to draw.
+    const error = new ApiError(
+      500,
+      'git switch --no-guess -- refs/heads/nope: exit code 128: ' +
+        'fatal: invalid reference: refs/heads/nope',
+      failure,
+    );
+
+    expect(errorSummary(error)).toBeUndefined();
+  });
+
+  it('keeps the sentence a route added in front of it', () => {
+    // A route that wrapped the git error said something the block cannot: it
+    // names what yagit was doing when git refused.
+    const error = new ApiError(
+      500,
+      'could not read the history: git switch --no-guess -- refs/heads/nope: exit code 128: ' +
+        'fatal: invalid reference: refs/heads/nope',
+      failure,
+    );
+
+    expect(errorSummary(error)).toBe('could not read the history');
+  });
+
+  it('subtracts the stand-in the daemon uses when git wrote nothing', () => {
+    // git can fail in silence, and the daemon writes "(no error output)"
+    // rather than end its sentence on a colon. The stderr field is still
+    // empty, so the two halves only line up if this knows about the stand-in.
+    const silent = { command: 'git gc', args: ['gc'], exit_code: 1, stderr: '' };
+
+    expect(errorSummary(new ApiError(500, 'git gc: exit code 1: (no error output)', silent))).toBe(
+      undefined,
+    );
+  });
+
+  it('hands back a message that is not built that way, whole', () => {
+    // The subtraction is a tail match, so anything the daemon assembled some
+    // other way survives untouched rather than being trimmed by a pattern
+    // that guessed.
+    const error = new ApiError(409, 'the file changed since this diff was read', failure);
+
+    expect(errorSummary(error)).toBe('the file changed since this diff was read');
+  });
+
+  it('hands back a failure git had no part in, whole', () => {
+    expect(errorSummary(new Error('the daemon is not answering'))).toBe(
+      'the daemon is not answering',
+    );
+    expect(errorSummary(new ApiError(0, 'the daemon is not answering'))).toBe(
+      'the daemon is not answering',
+    );
   });
 });

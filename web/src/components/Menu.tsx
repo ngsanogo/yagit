@@ -167,8 +167,8 @@ export function Menu({ label, items, className }: MenuProps) {
    * refused item draws its reason under its label, and a reason that arrives
    * or leaves changes the menu's height while the count stays put: RemoteBar
    * rebuilds its three items on every working-directory poll, so a menu opened
-   * while the status is still loading holds three "Reading the working
-   * directory…" sentences that vanish a moment later. Placed for the tall box
+   * while the status is still loading holds three "Reading the work tree…"
+   * sentences that vanish a moment later. Placed for the tall box
    * and never re-placed, it hangs off the button it was anchored to.
    *
    * Newlines as the separator, because these are single-line interface

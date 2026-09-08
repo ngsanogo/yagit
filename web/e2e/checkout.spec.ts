@@ -141,11 +141,11 @@ test('checking out a branch moves HEAD, and says which command did it', async ({
   // `git switch`, never `git checkout`: the log panel is where somebody learns
   // the command, and `git checkout side` would be a command that means
   // something else in a repository holding a file called `side`.
-  await page.getByRole('button', { name: 'Git log' }).click();
+  await page.getByRole('button', { name: 'Command log' }).click();
   // The session log lists every worker's commands; this suite shares one daemon.
   await expect(
     page
-      .getByRole('region', { name: 'Git log' })
+      .getByRole('region', { name: 'Command log' })
       .getByText('git switch --no-guess -- side')
       .first(),
   ).toBeVisible();
@@ -199,7 +199,7 @@ test('a checkout git refuses says what is in the way', async ({ page }) => {
 
   await checkOutFromSidebar(page, 'Check out side');
 
-  const refusal = page.getByRole('status').filter({ hasText: 'Could not check out side' });
+  const refusal = page.getByRole('alert').filter({ hasText: 'Could not check out side' });
   await expect(refusal).toBeVisible();
   // git's own words, whole. Nothing else on the screen can say which file is
   // in the way, and a "something went wrong" here would leave the user with a

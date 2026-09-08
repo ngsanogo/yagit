@@ -4,8 +4,9 @@ import { api } from '../api/client';
 import { CloseButton } from '../components/CloseButton';
 import { EmptyState } from '../components/EmptyState';
 import { Panel } from '../components/Panel';
+import { QueryErrorState } from '../components/PanelState';
 import { Spinner } from '../components/Spinner';
-import { errorDescription, refusalHeading } from '../lib/errorDisplay';
+import { refusalHeading } from '../lib/errorDisplay';
 import { HistoryRow } from './FileHistory';
 
 /**
@@ -57,12 +58,15 @@ export function LineHistoryPanel({
         </div>
       )}
 
+      {/* The shared failure state, and the way out with it. `git log -L` is
+          the most easily refused read in the application — a line number past
+          the end of the file at that revision answers with git's own error —
+          so this is the panel most likely to be looking at one. */}
       {history.error !== null && (
-        <EmptyState
+        <QueryErrorState
           title={refusalHeading(history.error) ?? `Could not read history of ${path}:${line}`}
-          description=""
-          detail={errorDescription(history.error)}
-          className="py-8"
+          error={history.error}
+          retry={history}
         />
       )}
 
@@ -70,7 +74,6 @@ export function LineHistoryPanel({
         <EmptyState
           title="No commits changed this line"
           description="Nothing in this walk touched that line — it may be past the end of the file at this revision."
-          className="py-8"
         />
       )}
 

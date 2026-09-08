@@ -1,3 +1,4 @@
+import { useRef } from 'react';
 import type { ReactNode } from 'react';
 
 import { Button } from './Button';
@@ -105,16 +106,39 @@ export function ConfirmDialog({
   size,
   children,
 }: ConfirmDialogProps) {
+  /*
+   * The box opens on Cancel, not on the first thing in it.
+   *
+   * Left to the platform, focus lands on the first focusable child — which
+   * here is the button that copies the git command to the clipboard, because
+   * the command is drawn above the footer where it can be read before the
+   * answer is given. So the keypress a user is most likely to fire blind, on
+   * a dialog that is about to delete a branch, went to the clipboard.
+   *
+   * Cancel rather than the confirm button for the obvious reason: this
+   * component exists for operations that destroy work, and the answer that
+   * has to be typed deliberately is the one that cannot be undone.
+   *
+   * The cost is paid by the one caller that puts a control in `children`: the
+   * reset dialog's mode picker is now behind the focus point rather than in
+   * front of it, reached with Shift+Tab. Worth it — the description names the
+   * mode already, and a dialog that opens on the button that destroys nothing
+   * is the safer default for the other dozen callers.
+   */
+  const cancelRef = useRef<HTMLButtonElement>(null);
+
   return (
     <Dialog
       open={open}
       onClose={onCancel}
       title={title}
+      initialFocus={cancelRef}
+      busy={busy}
       {...(size === undefined ? {} : { size })}
       {...(description === undefined ? {} : { description })}
       footer={
         <>
-          <Button variant="ghost" onClick={onCancel} disabled={busy}>
+          <Button ref={cancelRef} variant="ghost" onClick={onCancel} disabled={busy}>
             Cancel
           </Button>
           <Button

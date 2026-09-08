@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 
+import { Button } from './Button';
 import { EmptyState } from './EmptyState';
 import { errorDescription } from '../lib/errorDisplay';
 
@@ -15,28 +16,66 @@ import { errorDescription } from '../lib/errorDisplay';
  */
 
 /**
+ * The query a failed panel can ask again.
+ *
+ * Two fields of a TanStack query result rather than the result itself, so a
+ * call site passes what it already holds — `retry={stashes}` — and this file
+ * does not depend on a library it otherwise has no use for. `isFetching` is
+ * here because the button has to say that the second attempt is running:
+ * without it, a retry against a daemon that is still not answering looks like
+ * a button that does nothing.
+ */
+export interface RetryableQuery {
+  refetch: () => Promise<unknown>;
+  isFetching: boolean;
+}
+
+/**
  * A failed query, reported whole.
  *
  * The title says what could not be read; the detail is the command, the exit
  * code and the raw stderr, exactly as the daemon sent them. Never "Something
  * went wrong" — a git failure the user cannot see is a git failure they cannot
  * fix.
+ *
+ * `retry` is the way out, and it is offered here rather than invented per
+ * panel for the reason above: a failure that can be retried in the references
+ * and not in the stashes is a workbench where the user has to learn which
+ * panels recover. Automatic retries stay refused — App.tsx says why, and a
+ * failed git command is not a network blip — but the index.lock a terminal
+ * held for a second is exactly the failure a person can answer, and until now
+ * the only gesture that answered it was clicking to another window and back.
  */
 export function QueryErrorState({
   title,
   error,
   compact,
+  retry,
 }: {
   title: string;
   error: Error;
   compact?: boolean;
+  retry?: RetryableQuery;
 }) {
   return (
     <EmptyState
       title={title}
-      description=""
       detail={errorDescription(error)}
-      className={compact ? 'py-6' : undefined}
+      compact={compact}
+      action={
+        retry === undefined ? undefined : (
+          <Button
+            size="sm"
+            loading={retry.isFetching}
+            // Not awaited, and nothing is dropped by that: what the second
+            // attempt answers is this query's own state, so a failure comes
+            // back as this component drawn again with the newer error in it.
+            onClick={() => void retry.refetch()}
+          >
+            Retry
+          </Button>
+        )
+      }
     />
   );
 }

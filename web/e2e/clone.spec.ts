@@ -57,7 +57,7 @@ function bareRemote(name: string): { root: string; server: string } {
 
 async function openCloneForm(page: Page): Promise<Locator> {
   await openWorkbench(page);
-  await page.getByRole('button', { name: 'Open repository' }).click();
+  await page.getByRole('button', { name: 'Add repository' }).click();
 
   // Scoped to the dialog: with no repository open, the empty state behind it
   // offers the same Open/Clone control, so an unscoped locator matches two —

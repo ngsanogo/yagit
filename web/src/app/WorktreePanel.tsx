@@ -1,12 +1,11 @@
 import type { Worktree } from '../api/types';
 import { Badge } from '../components/Badge';
 import { Button } from '../components/Button';
-import { EmptyState } from '../components/EmptyState';
 import { Menu, menuItem, type MenuItem } from '../components/Menu';
 import { Panel } from '../components/Panel';
+import { QueryErrorState, type RetryableQuery } from '../components/PanelState';
 import { Spinner } from '../components/Spinner';
 import { cx } from '../lib/cx';
-import { errorDescription } from '../lib/errorDisplay';
 import { shortenSha } from '../lib/format';
 import { leafOf } from '../lib/path';
 
@@ -30,6 +29,8 @@ interface WorktreePanelProps {
   worktrees: Worktree[] | undefined;
   loading: boolean;
   error?: Error;
+  /** The query behind that failure, so the panel can offer to ask again. */
+  retry?: RetryableQuery;
 
   /** Makes another checkout. */
   onAdd?: () => void;
@@ -47,6 +48,7 @@ export function WorktreePanel({
   worktrees,
   loading,
   error,
+  retry,
   onAdd,
   adding = false,
   onRemove,
@@ -60,7 +62,7 @@ export function WorktreePanel({
   return (
     <Panel
       title={`Worktrees${worktrees === undefined ? '' : ` — ${worktrees.length}`}`}
-      className="max-h-48 min-h-0"
+      className="max-h-48 shrink-0"
       flush
       actions={
         <div className="flex items-center gap-1">
@@ -69,15 +71,23 @@ export function WorktreePanel({
               Prune
             </Button>
           )}
+          {/* No aria-label at all: the words on the button are the name, and
+              an aria-label that replaced them broke WCAG 2.5.3 (Label in
+              Name, level A) — "click Add worktree" named a control whose
+              accessible name held none of those words. The sentence is a
+              native `title` for the reason CommitAction sets out: a Tooltip
+              hangs its bubble above its anchor, and Panel is
+              `overflow-hidden`, so on a header button it is clipped away
+              unread. */}
           {onAdd !== undefined && (
             <Button
               size="sm"
               variant="ghost"
               onClick={onAdd}
               loading={adding}
-              aria-label="Check out another worktree of this repository"
+              title="Checks out another worktree of this repository."
             >
-              Add worktree
+              Add worktree…
             </Button>
           )}
         </div>
@@ -91,11 +101,11 @@ export function WorktreePanel({
         )}
 
         {error !== undefined && (
-          <EmptyState
+          <QueryErrorState
             title="Could not read the worktrees"
-            description=""
-            detail={errorDescription(error)}
-            className="py-6"
+            error={error}
+            compact
+            retry={retry}
           />
         )}
 

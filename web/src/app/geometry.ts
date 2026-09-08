@@ -20,10 +20,21 @@ import { ABSENT_ROW, type GraphEdge } from '../api/types';
  *
  * Fixed because measuring every row is what makes a virtualised list feel
  * loose: the scrollbar changes size as you drag it, and the position you were
- * dragging towards moves. A commit row holds one line of subject and one of
- * metadata, and nothing in it wraps.
+ * dragging towards moves.
+ *
+ * Forty, and it used to be fifty-six. A row is one line now — subject, author,
+ * date and sha side by side in columns rather than stacked in two — and the
+ * tallest thing on it is the author chip at twenty-four pixels. Fifty-six left
+ * seventeen pixels of nothing and cost the history on screen a third of its
+ * rows, which is the price paid twice over the moment a commit is selected and
+ * the panel halves. Nothing in a row wraps, so this height is the content's
+ * and not the text's luck.
+ *
+ * BEND below is this number, so the merge curves rescale with it rather than
+ * being retuned by hand: at forty a line still takes a whole row to change
+ * column, which is what keeps a merge a curve rather than a corner.
  */
-export const ROW_HEIGHT = 56;
+export const ROW_HEIGHT = 40;
 
 /**
  * The horizontal step between two columns, in pixels. Four spacing units, so
@@ -76,6 +87,57 @@ const BEND = ROW_HEIGHT;
 /** The width, in pixels, a graph of this many columns needs. */
 export function graphWidth(columns: number): number {
   return GRAPH_INSET + Math.max(columns, 1) * LANE_WIDTH;
+}
+
+/**
+ * The most of the list the graph gutter may take.
+ *
+ * MOST_DRAWABLE_COLUMNS reasons in exactly this fraction — "384 pixels, which
+ * already takes a third of the panel" — but it is written in columns, and a
+ * column count cannot see how wide the window got. Twenty-three columns is
+ * 380 pixels: about a third of the history panel at the design viewport, and
+ * two thirds of a panel half that size, where the graph kept all 380 anyway
+ * and the subjects beside it went to nothing. It is the same judgement, asked
+ * of the panel rather than of a number fixed at one window width.
+ */
+const GRAPH_SHARE_OF_LIST = 1 / 3;
+
+/**
+ * How much room the rows leave for the graph, in pixels.
+ *
+ * `available` is the width of the list. Zero means nobody has measured it yet
+ * — the first render, and every render in a runner with no layout — and has to
+ * read as "no bound known", never as "no room": a gutter that collapsed on the
+ * first frame would draw the whole window at the wrong indent and then move
+ * it, which is the horizontal twin of the jitter ROW_HEIGHT is fixed to
+ * prevent.
+ *
+ * Measured against the list and not against the rows on screen, deliberately.
+ * Sizing the gutter from the widest lane currently rendered would slide the
+ * entire subject column sideways during an ordinary flick of the wheel, and a
+ * text column that stays put is worth more than one that is tight.
+ *
+ * The floor is one column: below that what is left is not a narrower picture,
+ * it is a vertical line with nothing to relate.
+ */
+export function graphGutter(columns: number, available: number): number {
+  const wanted = graphWidth(columns);
+  if (available <= 0) {
+    return wanted;
+  }
+  return Math.max(graphWidth(1), Math.min(wanted, Math.floor(available * GRAPH_SHARE_OF_LIST)));
+}
+
+/**
+ * How many whole columns a gutter this wide has room for.
+ *
+ * The rows say so out loud when it is fewer than the history has. A picture
+ * that quietly left branches out is the one answer MOST_DRAWABLE_COLUMNS
+ * above refuses, and clipping one at the panel edge without a word would be
+ * that answer arrived at sideways.
+ */
+export function columnsWithin(gutter: number): number {
+  return Math.max(1, Math.floor((gutter - GRAPH_INSET) / LANE_WIDTH));
 }
 
 /** The centre of a column. */

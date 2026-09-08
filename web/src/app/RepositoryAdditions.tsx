@@ -47,7 +47,7 @@ export function RepositoryAdditions({
   return (
     <div className="flex shrink-0 flex-wrap items-center gap-1">
       <Button size="sm" variant="ghost" onClick={onAddSubmodule} loading={submodulePending}>
-        Add submodule
+        Add submodule…
       </Button>
 
       {/* Refused with its reason on the button rather than left off the row,
@@ -63,7 +63,7 @@ export function RepositoryAdditions({
           loading={lfsPending}
           disabled={lfsRefusal !== undefined}
         >
-          Track large files
+          Track large files…
         </Button>
       </Tooltip>
     </div>

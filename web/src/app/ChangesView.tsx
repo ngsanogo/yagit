@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 import type {
   ConflictSide,
@@ -15,23 +15,39 @@ import { SegmentedControl } from '../components/SegmentedControl';
 import { Spinner } from '../components/Spinner';
 import { useToast } from '../components/ToastHost';
 import { ApiError } from '../api/client';
+import { cx } from '../lib/cx';
 import { errorDescription, refusalHeading } from '../lib/errorDisplay';
 import { pluralize } from '../lib/format';
 import { ChangeList, type Selection } from './ChangeList';
 import { CommitBox } from './CommitBox';
 import { DiffView, type DiffAction } from './DiffView';
-import { FileEditor } from './FileEditor';
+import { FileEditor, KeepWholeFileDialog } from './FileEditor';
 import { isOnDisk, sideOf, useFileDiff, useWorktreeOperations } from './useWorkingDirectory';
 
 /**
- * The working directory: what differs, what it looks like, and the message
- * that will record it.
+ * The work tree: what differs, what it looks like, and the message that will
+ * record it.
  *
  * The files on the left and the diff on the right, which is the only
  * arrangement that lets a file be chosen and read at once. Depth stays at two —
  * a repository tab, then this — and there is no third pane: the reference list
  * belongs to the history, where the graph is the main object.
  */
+
+/**
+ * How many files it takes before the panel offers to filter them.
+ *
+ * A search box above three rows costs more attention than the list it filters,
+ * and a vendored drop or a formatter run puts hundreds in it — where dragging
+ * a scrollbar three percent tall is the only way to find one path. Twelve is
+ * about where the list stops fitting on a short window, which is the point at
+ * which scrolling starts being the answer to a question.
+ *
+ * The box stays once it is on screen and holding something, whatever the count
+ * does: a filter that vanished mid-typing because it had narrowed the list
+ * below the threshold would leave a panel hiding files with no visible reason.
+ */
+const FILTER_FROM = 12;
 
 interface ChangesViewProps {
   repository: Repository;
@@ -66,6 +82,16 @@ export function ChangesView({
   const [pendingDiscard, setPendingDiscard] = useState<DiscardRequest>();
 
   /**
+   * The conflicted file whose deletion is being proposed, or nothing.
+   *
+   * The other half of the same question the editor asks. Only a conflict with
+   * no file on disk reaches it — see MissingConflictFile — and the button that
+   * opens it runs `git rm`, so it goes through the confirmation the editor's
+   * whole-file buttons go through rather than round it.
+   */
+  const [pendingDeletion, setPendingDeletion] = useState<FileStatus>();
+
+  /**
    * Which face of the chosen file the right pane shows.
    *
    * A preference and not a fact about the file: it survives moving between
@@ -73,6 +99,16 @@ export function ChangesView({
    * second one to fix.
    */
   const [pane, setPane] = useState<'diff' | 'edit'>('diff');
+
+  /**
+   * What the list is narrowed to, over the whole path.
+   *
+   * On the list and not on the query: `git status` is answered in a few
+   * milliseconds for the whole work tree and is already cached, so asking the
+   * daemon for a subset of an answer it has just given would spend a request
+   * per keystroke to draw fewer rows.
+   */
+  const [filter, setFilter] = useState('');
 
   const toast = useToast();
   const operations = useWorktreeOperations(repository.id);
@@ -92,6 +128,25 @@ export function ChangesView({
   const conflicted = status.files.filter((file) => file.kind === 'unmerged');
   const changed = unstaged.filter((file) => file.kind !== 'unmerged');
 
+  /*
+   * What the filter narrows, and what it deliberately does not.
+   *
+   * The rows, and only the rows. The panel's title goes on counting the whole
+   * work tree — it is a fact about the repository rather than about the box —
+   * and a selection is resolved against the whole lists below, so typing in
+   * the filter never empties the pane on the right.
+   *
+   * The section buttons DO follow it: "Stage all" over a filtered list stages
+   * what is listed, which is both what the rows in front of the user say and
+   * the safe direction for the discard beside it. Their labels count the same
+   * files, so what a screen reader hears is what is on screen.
+   */
+  const query = filter.trim().toLowerCase();
+  const listed = (files: FileStatus[]) =>
+    query === '' ? files : files.filter((file) => file.path.toLowerCase().includes(query));
+  const matches = listed(status.files).length;
+  const showFilter = status.files.length >= FILTER_FROM || filter !== '';
+
   // The row the user picked may be gone — staged, discarded, committed. The
   // file is then looked for in the other list before the pane is emptied: a
   // file staged from the left is still on screen on the right, and clearing
@@ -103,6 +158,29 @@ export function ChangesView({
   // pane the moment somebody clicked the file they most needed to see.
   const current = resolveSelection(selected, staged, unstaged);
   const side = current === undefined ? 'unstaged' : sideOf(current.file, current.row);
+
+  /*
+   * The pane on the right is three quarters of the screen, and entering this
+   * view used to leave all of it saying "No file chosen". The commonest state
+   * of the screen is one to three changed files, and in every one of them the
+   * first click is a foregone conclusion the user was made to perform in front
+   * of the pane that would have answered their question.
+   *
+   * Once, and only into an empty selection. A second automatic choice — after
+   * a commit empties the list, say — would be the panel taking the pointer
+   * back from somebody who had just put it down. What it costs is one diff
+   * request on entry, which for a lockfile as the first row is a real one; the
+   * daemon's cap and the drawn-line limit both still apply to it.
+   */
+  const opening = firstToShow(conflicted, changed, staged);
+  const opened = useRef(false);
+  useEffect(() => {
+    if (opened.current || selected !== undefined || opening === undefined) {
+      return;
+    }
+    opened.current = true;
+    onSelect(opening);
+  }, [opening, selected, onSelect]);
 
   const busy =
     operations.stage.isPending ||
@@ -136,7 +214,37 @@ export function ChangesView({
   function move(operation: 'stage' | 'unstage', paths: string[], lines?: LineSelection) {
     operations[operation].mutate(
       { paths, ...(lines === undefined ? {} : { lines }) },
-      { onError: (error) => report(operation, error) },
+      {
+        // Said, not drawn. Staging is a per-file action performed many times a
+        // minute and a notification for each would be a card in front of the
+        // work every time the work succeeds — while a reader who cannot see
+        // the rows move from one list to the other is told nothing at all.
+        onSuccess: () => toast.announce(describeMove(operation, paths, lines)),
+        onError: (error) => report(operation, error),
+      },
+    );
+  }
+
+  /**
+   * `git add` on an unmerged path, which is the same mutation as a stage and
+   * not the same act.
+   *
+   * What the command does there is collapse the three index stages into one,
+   * and that is what ends the conflict — the reason the button beside these
+   * rows says "Mark resolved" and deliberately does not say "Stage". Routed
+   * through its own handler so that the two sentences nobody sees on screen
+   * agree with the one they do: a reader who presses "Mark resolved" hears it
+   * confirmed in the word they pressed, and a failure names that word too,
+   * rather than answering with the one the label was chosen to avoid.
+   */
+  function markResolved(paths: string[]) {
+    operations.stage.mutate(
+      { paths },
+      {
+        onSuccess: () => toast.announce(`Marked ${describePaths(paths)} resolved`),
+        onError: (error) =>
+          report(paths.length === 1 ? 'mark that resolved' : 'mark those resolved', error),
+      },
     );
   }
 
@@ -177,15 +285,6 @@ export function ChangesView({
   }
 
   /**
-   * Runs a line action, and says whether it went.
-   *
-   * A discard is proposed rather than run — it is the one operation nothing
-   * can undo — and the answer is what tells the diff to keep the selection
-   * while the dialog is open. Throwing it away at the moment the question is
-   * asked would punish the user for saying no to the one dialog that exists to
-   * let them.
-   */
-  /**
    * Takes one side of a conflict for whole files, through git.
    *
    * Two commands and not one — `git checkout --ours`, then `git add` — and the
@@ -194,13 +293,70 @@ export function ChangesView({
    * that decides which of the two commands a path actually needs, because the
    * side somebody keeps may be the side that has no file at all.
    */
-  function keepWholeFile(paths: string[], side: ConflictSide) {
+  function keepWholeFile(paths: string[], side: ConflictSide, onSettled: () => void) {
+    const kept = `Kept ${side} for ${describePaths(paths)}`;
+
     operations.resolve.mutate(
       { paths, side },
-      { onError: (error) => report(`take the ${side} version`, error) },
+      {
+        // Announced with a card rather than politely, and it is the one thing
+        // this screen does that nothing can undo alongside a discard: the
+        // other side's version of the file is gone from the work tree, and
+        // every comparable operation in the application — reset, revert,
+        // stash, undo, checkout — says so when it succeeds.
+        onSuccess: () => toast.push({ tone: 'success', title: kept }),
+        // "keep ours", not "take the ours version": the enum is git's own word
+        // and it is already on screen as the buttons Ours and Theirs, but "the
+        // ours version" is not English, and a failure heading is the one
+        // sentence on this screen that has to read like the rest of them.
+        onError: (error) => report(side === 'ours' ? 'keep ours' : 'keep theirs', error),
+        // Handed back to whoever asked, so the confirmation that put the
+        // question closes on git's answer rather than on the press. Settled
+        // and not succeeded: a box still on screen over a refusal is a box
+        // with no way out of it. The discard dialog beside it is held open
+        // the same way.
+        onSettled,
+      },
     );
   }
 
+  /**
+   * The other resolution, which is not keeping a side at all.
+   *
+   * Both branches deleted the file, so there is no version to check out and
+   * the button on the pane says "Record the deletion". Routed through resolve
+   * like the rest — the daemon decides that a side with no content is a
+   * `git rm` — but named after the button that was pressed: a failure reading
+   * "Could not keep ours" would name a side the pane had just finished saying
+   * does not exist.
+   *
+   * A side is still sent, because the route takes one and this is the same
+   * mutation. Which one is arbitrary and the daemon never uses it here: with
+   * neither side holding a version, `HasSide` is false for both and the
+   * command is the same `git rm` either way.
+   */
+  function recordDeletion(path: string, onSettled: () => void) {
+    const recorded = `Recorded the deletion of ${path}`;
+
+    operations.resolve.mutate(
+      { paths: [path], side: 'ours' },
+      {
+        onSuccess: () => toast.push({ tone: 'success', title: recorded }),
+        onError: (error) => report('record the deletion', error),
+        onSettled,
+      },
+    );
+  }
+
+  /**
+   * Runs a line action, and says whether it went.
+   *
+   * A discard is proposed rather than run — it is the one operation nothing
+   * can undo — and the answer is what tells the diff to keep the selection
+   * while the dialog is open. Throwing it away at the moment the question is
+   * asked would punish the user for saying no to the one dialog that exists to
+   * let them.
+   */
   function applyToDiff(action: DiffAction, indices: number[]): boolean {
     if (current === undefined || diff.data === undefined) {
       return false;
@@ -223,11 +379,50 @@ export function ChangesView({
         flush
       >
         <div className="flex h-full min-h-0 flex-col">
-          <div className="min-h-0 flex-1 overflow-auto">
+          {showFilter && (
+            <div className="shrink-0 border-b border-line px-3 py-2">
+              {/* Not a Field: that one draws a label above itself and stands
+                  36px tall, and this is a strip over a list in a 384px panel.
+                  The name is on the control instead, where a screen reader
+                  reads it and the placeholder repeats it for everyone else. */}
+              <input
+                type="text"
+                value={filter}
+                onChange={(event) => setFilter(event.target.value)}
+                aria-label="Filter files by path"
+                placeholder="Filter files…"
+                className={cx(
+                  'h-7 w-full min-w-0 rounded-sm border border-line-strong bg-sunken px-2',
+                  'font-mono text-xs text-ink placeholder:text-ink-subtle',
+                  'transition-colors transition-instant outline-none',
+                  'focus-visible:focus-ring hover:border-ink-subtle',
+                )}
+              />
+            </div>
+          )}
+
+          {/* A floor under the list. The commit box below is a constant 245px
+              at every window height and the list used to take the whole
+              squeeze — 499px of rows at 900, 59 at 460, none at all at 400.
+              Below the floor it is the commit box that scrolls, which is why
+              its wrapper has an overflow of its own: a box allowed to shrink
+              without one puts its Commit button outside the panel, and a
+              button that cannot be reached is worse than a short list. */}
+          <div className="min-h-32 flex-1 overflow-auto">
             {status.files.length === 0 ? (
               <EmptyState
                 title="Nothing to commit"
-                description="The working directory matches the last commit. Edit a file and it will appear here."
+                description="The work tree matches the last commit. Edit a file and it will appear here."
+              />
+            ) : matches === 0 ? (
+              <EmptyState
+                title="No file matches"
+                description={`Nothing in the work tree has "${filter.trim()}" in its path.`}
+                action={
+                  <Button variant="secondary" size="sm" onClick={() => setFilter('')}>
+                    Clear the filter
+                  </Button>
+                }
               />
             ) : (
               <>
@@ -235,10 +430,10 @@ export function ChangesView({
                 <ChangeList
                   title="Conflicted"
                   row="unstaged"
-                  files={conflicted}
+                  files={listed(conflicted)}
                   selected={selected}
                   onSelect={onSelect}
-                  onMove={(paths) => move('stage', paths)}
+                  onMove={markResolved}
                   // Not "Stage". It IS `git add`, and `git add` on an unmerged
                   // path does something staging does not: it collapses the
                   // three index stages into one, which is the act that ends
@@ -249,17 +444,23 @@ export function ChangesView({
                 <ChangeList
                   title="Staged"
                   row="staged"
-                  files={staged}
+                  files={listed(staged)}
                   selected={selected}
                   onSelect={onSelect}
                   onMove={(paths) => move('unstage', paths)}
                   moveLabel="Unstage"
                   busy={busy}
                 />
+                {/* "Unstaged", the word the panel's own title counts in.
+                    "Changed" had no matching count, "2 unstaged" had no
+                    matching heading, and the same files were called four
+                    things within a few hundred pixels — including a file git
+                    has never seen, filed under a heading asserting it
+                    changed. */}
                 <ChangeList
-                  title="Changed"
+                  title="Unstaged"
                   row="unstaged"
-                  files={changed}
+                  files={listed(changed)}
                   selected={selected}
                   onSelect={onSelect}
                   onMove={(paths) => move('stage', paths)}
@@ -271,27 +472,32 @@ export function ChangesView({
             )}
           </div>
 
-          <CommitBox
-            repositoryId={repository.id}
-            status={status}
-            draft={draft}
-            onDraftChange={onDraftChange}
-            busy={operations.commit.isPending}
-            error={operations.commit.error}
-            onCommit={(message, amend, onRecorded) => {
-              operations.commit.mutate(
-                { message, amend },
-                {
-                  // Only here. Until git has answered, the message the user
-                  // wrote is the only copy of it that exists.
-                  onSuccess: () => {
-                    onRecorded();
-                    toast.push({ tone: 'success', title: amend ? 'Commit amended' : 'Committed' });
+          <div className="min-h-0 shrink overflow-auto">
+            <CommitBox
+              repositoryId={repository.id}
+              status={status}
+              draft={draft}
+              onDraftChange={onDraftChange}
+              busy={operations.commit.isPending}
+              error={operations.commit.error}
+              onCommit={(message, amend, onRecorded) => {
+                operations.commit.mutate(
+                  { message, amend },
+                  {
+                    // Only here. Until git has answered, the message the user
+                    // wrote is the only copy of it that exists.
+                    onSuccess: () => {
+                      onRecorded();
+                      toast.push({
+                        tone: 'success',
+                        title: amend ? 'Commit amended' : 'Committed',
+                      });
+                    },
                   },
-                },
-              );
-            }}
-          />
+                );
+              }}
+            />
+          </div>
         </div>
       </Panel>
 
@@ -301,8 +507,15 @@ export function ChangesView({
       <Panel
         className="min-w-0 flex-1"
         title={paneTitle(showing)}
+        // Not for a binary file, and the condition is the diff's own answer
+        // rather than a guess from the path: git decides what is binary, and
+        // it says so in the diff this pane has already read. The control used
+        // to offer an Edit pane that could only ever end in the daemon's 409 —
+        // a request spent to be told, in an error, what the question was.
+        // FileEditor's "Not a text file" stays as the backstop for the race
+        // where a file becomes binary after its diff was read.
         actions={
-          editable && !editingConflict ? (
+          editable && !editingConflict && diff.data?.binary !== true ? (
             <SegmentedControl
               label="What to show of this file"
               value={pane}
@@ -325,7 +538,7 @@ export function ChangesView({
           <MissingConflictFile
             file={current.file}
             busy={busy}
-            onResolve={() => keepWholeFile([current.file.path], 'ours')}
+            onRecord={() => setPendingDeletion(current.file)}
           />
         ) : showing === 'edit' ? (
           <FileEditor
@@ -343,8 +556,13 @@ export function ChangesView({
                 { onSuccess: onSaved, onError: (error) => report('save that file', error) },
               );
             }}
-            onKeepWholeFile={(path, sideKept) => keepWholeFile([path], sideKept)}
-            onStage={(path) => move('stage', [path])}
+            onKeepWholeFile={(path, sideKept, onSettled) => {
+              keepWholeFile([path], sideKept, onSettled);
+            }}
+            // The editor's only use of this is its own "Mark resolved", drawn
+            // beside the conflict markers and nowhere else, so it is the same
+            // press as the one on the row.
+            onStage={(path) => markResolved([path])}
           />
         ) : diff.isPending ? (
           <div className="grid h-full place-items-center">
@@ -362,18 +580,118 @@ export function ChangesView({
         busy={operations.discard.isPending}
         onCancel={() => setPendingDiscard(undefined)}
         onConfirm={(request) => {
-          setPendingDiscard(undefined);
           operations.discard.mutate(
             {
               paths: request.files.map((file) => file.path),
               ...(request.lines === undefined ? {} : { lines: request.lines }),
             },
-            { onError: (error) => report('discard those changes', error) },
+            {
+              // It happened, and nothing on screen would otherwise say so: the
+              // rows leave the list, which is also what an ordinary refetch
+              // looks like, and this is the operation the code beside it calls
+              // the one nothing can undo.
+              onSuccess: () => toast.push({ tone: 'success', title: describeDiscarded(request) }),
+              onError: (error) => report('discard those changes', error),
+              // Closed when git has answered, not when the button was pressed.
+              // The dialog was handed `busy` and then unmounted itself a tick
+              // before the flag could become true, so the spinner it draws and
+              // the Cancel it refuses were unreachable by construction — and a
+              // discard across a large work tree read as a click that did
+              // nothing until the status came back. RemoteActions holds its
+              // force-push dialog open the same way.
+              onSettled: () => setPendingDiscard(undefined),
+            },
           );
         }}
       />
+
+      {/* The editor's own question, put over the pane that has no editor.
+          Both buttons run the same `git rm`, and the rule this product keeps
+          is that a command which removes something shows itself first — a
+          confirmation on one of two routes into one command is an exception,
+          not a rule. Rendered only while it is being asked, because the file
+          it is about is the one on screen at the time.
+
+          `resolve.isPending` is precise here rather than the panel-wide
+          `busy`: the editor is not mounted over this pane, so the only resolve
+          that can be in flight is the one this box just sent. */}
+      {pendingDeletion !== undefined && (
+        <KeepWholeFileDialog
+          side="ours"
+          file={pendingDeletion}
+          busy={operations.resolve.isPending}
+          onCancel={() => setPendingDeletion(undefined)}
+          onConfirm={() => {
+            recordDeletion(pendingDeletion.path, () => setPendingDeletion(undefined));
+          }}
+        />
+      )}
     </div>
   );
+}
+
+/**
+ * The row this view opens on when nothing has been chosen.
+ *
+ * Conflicted first, for the reason that list is drawn first: it is what stops
+ * everything else. Unstaged next, because that is where the work being done
+ * is, and the staged list only when it is the whole of what differs.
+ */
+export function firstToShow(
+  conflicted: FileStatus[],
+  changed: FileStatus[],
+  staged: FileStatus[],
+): Selection | undefined {
+  const unstagedFirst = conflicted[0] ?? changed[0];
+  if (unstagedFirst !== undefined) {
+    return { path: unstagedFirst.path, row: 'unstaged' };
+  }
+  const stagedFirst = staged[0];
+  return stagedFirst === undefined ? undefined : { path: stagedFirst.path, row: 'staged' };
+}
+
+/** One path, or how many there were. A toast has room for one file name. */
+function describePaths(paths: string[]): string {
+  return paths.length === 1 ? (paths[0] ?? 'the file') : pluralize(paths.length, 'file');
+}
+
+/**
+ * What a stage or an unstage just did, for the reader who cannot see it.
+ *
+ * Past tense and no more: this is said into a live region while the pointer is
+ * still on the button, and a sentence is a sentence to sit through every time
+ * a file moves.
+ */
+export function describeMove(
+  operation: 'stage' | 'unstage',
+  paths: string[],
+  lines?: LineSelection,
+): string {
+  const verb = operation === 'stage' ? 'Staged' : 'Unstaged';
+  if (lines !== undefined) {
+    return `${verb} ${pluralize(lines.indices.length, 'line')} of ${describePaths(paths)}`;
+  }
+  return `${verb} ${describePaths(paths)}`;
+}
+
+/**
+ * What a discard destroyed, in the toast that confirms it.
+ *
+ * The untracked case is a different loss and says so, exactly as the dialog
+ * that asked did: nothing was discarded from that file, the file is gone.
+ */
+export function describeDiscarded(request: DiscardRequest): string {
+  const [only] = request.files;
+
+  if (request.lines !== undefined) {
+    return `Discarded ${pluralize(request.lines.indices.length, 'line')} of ${only?.path ?? 'the file'}`;
+  }
+  if (request.files.length === 1 && only !== undefined) {
+    return only.kind === 'untracked'
+      ? `Deleted ${only.path}`
+      : `Discarded the changes to ${only.path}`;
+  }
+  return `Discarded ${pluralize(request.files.length, 'file')}`;
 }
 
 /** Which face of the chosen file the right pane draws. */
@@ -420,22 +738,32 @@ function paneTitle(showing: Pane): string {
  * That is a command rather than an edit. Neither side has a version to check
  * out, so `git rm` is the resolution: it collapses the three index stages into
  * one, which is what the daemon runs for a side with no content.
+ *
+ * The button asks before it runs it. It used to be the one route into that
+ * command with nothing in front of it — the same `git rm`, reached from the
+ * editor's buttons, has shown itself since those learned to ask — and a
+ * command that is quoted on one screen and silent on the next teaches the
+ * reader that the quoting means nothing.
  */
 function MissingConflictFile({
   file,
   busy,
-  onResolve,
+  onRecord,
 }: {
   file: FileStatus;
   busy: boolean;
-  onResolve: () => void;
+  onRecord: () => void;
 }) {
   return (
     <EmptyState
       title="Nothing on disk to edit"
       description={`git calls ${file.path} "${file.conflict ?? 'unmerged'}", so there is no version of it in the work tree to open. Recording the deletion is what ends the conflict.`}
+      // No ellipsis, though the button now opens a question: the menus spell
+      // a dialog with one and the buttons do not — the row's Discard opens a
+      // confirmation and says "Discard" — and one button spelled a third way
+      // would be a rule invented for a single control.
       action={
-        <Button variant="secondary" size="sm" disabled={busy} onClick={onResolve}>
+        <Button variant="secondary" size="sm" disabled={busy} onClick={onRecord}>
           Record the deletion
         </Button>
       }
@@ -480,7 +808,7 @@ function DiffFailure({ error }: { error: Error }) {
     );
   }
 
-  return <EmptyState title="Could not read the diff" description="" detail={detail} />;
+  return <EmptyState title="Could not read the diff" detail={detail} />;
 }
 
 /** What a pending discard is about to throw away, and how. */

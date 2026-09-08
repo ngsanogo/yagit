@@ -50,7 +50,7 @@ export function rebaseSummary(plan: RebasePlan): string {
       return (
         `${plan.from} has no commit of its own, so it moves up to ${plan.onto} ` +
         `by ${arriving}. Nothing is replayed and no commit is rewritten, but the ` +
-        `files in your working directory become ${plan.onto}'s.`
+        `files in your work tree become ${plan.onto}'s.`
       );
 
     case 'rebase':

@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
 
 import type { FileDiff, FileStatus, StatusCode } from '../api/types';
-import { describeRow, splitPath } from './ChangeList';
-import { resolveSelection } from './ChangesView';
+import { describeDiscard, describeRow, splitPath } from './ChangeList';
+import { describeDiscarded, describeMove, firstToShow, resolveSelection } from './ChangesView';
 import {
   changedLines,
   countDrawnLines,
@@ -101,6 +101,82 @@ describe('describeRow', () => {
     // staging is the next step.
     const conflicted = file('server.go', { kind: 'unmerged', conflict: 'both modified' });
     expect(describeRow(conflicted, 'unstaged')).toBe('server.go, both modified');
+  });
+});
+
+describe('describeDiscard', () => {
+  it('promises to discard changes only where there are changes', () => {
+    expect(describeDiscard(file('src/parser.go'))).toBe('Discard the changes to src/parser.go');
+  });
+
+  it('says the file goes when git has never seen it', () => {
+    // `git clean`, not `git restore`: nothing about the file is being put
+    // back, the file is being removed. The confirmation always said so and
+    // the button that opens it said the opposite, which is the wrong way
+    // round for the two of them — the button is read first.
+    expect(describeDiscard(file('src/new.go', { kind: 'untracked' }))).toBe(
+      'Delete src/new.go, which git has never seen',
+    );
+  });
+});
+
+describe('firstToShow', () => {
+  const conflicted = file('server.go', { kind: 'unmerged', conflict: 'both modified' });
+  const changed = file('notes.txt');
+  const staged = file('a.txt', { staged: true, unstaged: false });
+
+  it('opens on a conflict before anything else', () => {
+    // The list a conflict is in is drawn first because it is what stops
+    // everything else, and the pane that opens with it follows the same rule.
+    expect(firstToShow([conflicted], [changed], [staged])).toEqual({
+      path: 'server.go',
+      row: 'unstaged',
+    });
+  });
+
+  it('opens on the work being done before the work already recorded', () => {
+    expect(firstToShow([], [changed], [staged])).toEqual({ path: 'notes.txt', row: 'unstaged' });
+  });
+
+  it('falls back to the staged list when that is the whole of what differs', () => {
+    expect(firstToShow([], [], [staged])).toEqual({ path: 'a.txt', row: 'staged' });
+  });
+
+  it('opens on nothing when nothing differs', () => {
+    expect(firstToShow([], [], [])).toBeUndefined();
+  });
+});
+
+/**
+ * What the two operations say when they succeed.
+ *
+ * Both are read at the moment somebody cannot see what happened — one into a
+ * live region, one in a card over the work — so a count that does not agree
+ * with its noun is a number the reader stops trusting.
+ */
+describe('what a stage and a discard report', () => {
+  it('counts files and lines with the noun that agrees', () => {
+    expect(describeMove('stage', ['a.txt'])).toBe('Staged a.txt');
+    expect(describeMove('unstage', ['a.txt', 'b.txt'])).toBe('Unstaged 2 files');
+    expect(describeMove('stage', ['a.txt'], { diff: 'fingerprint', indices: [1] })).toBe(
+      'Staged 1 line of a.txt',
+    );
+  });
+
+  it('names the file for a single discard and the count for a batch', () => {
+    const command: [string] = ["git restore -- ':(literal)a.txt'"];
+    const one = { files: [file('a.txt')], commands: command };
+    const two = { files: [file('a.txt'), file('b.txt')], commands: command };
+
+    expect(describeDiscarded(one)).toBe('Discarded the changes to a.txt');
+    expect(describeDiscarded(two)).toBe('Discarded 2 files');
+  });
+
+  it('says a file git has never seen was deleted, not discarded', () => {
+    const command: [string] = ["git clean --force -- ':(literal)new.txt'"];
+    const request = { files: [file('new.txt', { kind: 'untracked' })], commands: command };
+
+    expect(describeDiscarded(request)).toBe('Deleted new.txt');
   });
 });
 

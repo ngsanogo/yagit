@@ -69,6 +69,32 @@ export function formatAbsoluteTime(value: Date): string {
   });
 }
 
+/**
+ * The same instant, to the minute: "28 Jun 2024, 09:00".
+ *
+ * For the places that hang a tooltip on a date. The short forms above are what
+ * a list should show, and past a week they are a day and nothing more — so the
+ * tooltip on a row dated "28 Jun 2024" handed back "28 Jun 2024", and a reader
+ * who hovers once and learns nothing does not hover again. A working day's
+ * worth of commits shares a date, the list's order is topological rather than
+ * chronological, and the clock the daemon already sends was on no screen in
+ * the application.
+ *
+ * Twenty-four hour, because the alternative is an am/pm marker that doubles as
+ * a source of off-by-twelve mistakes in a tool whose whole job is putting
+ * events in order.
+ */
+export function formatExactTime(value: Date): string {
+  return value.toLocaleString('en-GB', {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    hourCycle: 'h23',
+  });
+}
+
 export function pluralize(count: number, singular: string): string {
   return `${count} ${singular}${count === 1 ? '' : 's'}`;
 }
