@@ -141,7 +141,13 @@ func (s *Server) requireToken(next http.Handler) http.Handler {
 			// Counted after the refusal is decided, so a client that holds
 			// the token never touches this counter however much it asks for.
 			if s.credentials != nil && !s.credentials.allow(clientKey(request)) {
-				writeError(writer, s.logger, http.StatusTooManyRequests, errTooManyRequests)
+				// wantsHTML and not fromTheDoorPage: a reader arrives at this
+				// branch by navigating, not by submitting anything, so the
+				// test that recognises them is the one writeUnauthorized uses
+				// on the line below. Refusing a navigation with JSON because
+				// the budget ran out, on the very screen that exists to stop
+				// exactly that, would put the dead end back one door along.
+				writeTooManyAttempts(writer, s.logger, wantsHTML(request))
 				return
 			}
 			writeUnauthorized(writer, request, s.logger)
