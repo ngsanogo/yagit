@@ -47,6 +47,11 @@ jobs:
   unix:
     name: Installer on ${{ matrix.platform }}
     runs-on: ${{ matrix.os }}
+    # Every step here waits on a download, and neither curl nor wget is given
+    # a deadline of its own. Without this a stalled connection holds a runner
+    # for the six-hour default — weekly, unattended, and on macOS at ten times
+    # the minutes.
+    timeout-minutes: 15
     strategy:
       fail-fast: false
       matrix:
@@ -90,6 +95,12 @@ jobs:
       # A version that does not exist must fail, not install something else.
       # This is the half of the script that only runs when something is wrong,
       # so it is the half that rots unwatched.
+      #
+      # What is checked is not only that it failed. A script broken anywhere —
+      # a syntax error, a missing tool, a rename nobody followed — also fails,
+      # and would pass a test that asked no more than that. So the refusal has
+      # to name the version it refused, and must not have reached the point
+      # where it says what it installed.
       - name: A version that does not exist is refused
         env:
           YAGIT_VERSION: v0.0.0-does-not-exist
@@ -97,12 +108,32 @@ jobs:
           YAGIT_HOME: ${{ runner.temp }}/refused-home
         run: |
           set -eu
-          if sh scripts/install.sh; then
+          # The output is captured, so it has to be printed before any bail —
+          # including the one below, which is the run whose output a reader
+          # most wants and the only one that would otherwise lose it.
+          status=0
+          sh scripts/install.sh > refused.txt 2>&1 || status=$?
+          cat refused.txt
+          if [ "$status" -eq 0 ]; then
             echo "::error::install.sh reported success for a version that does not exist"
+            exit 1
+          fi
+          # The download URL and not the version alone: the script names the
+          # version in its opening banner, before it has downloaded anything,
+          # so a plain version check is satisfied by a failure anywhere after
+          # that line — a missing sha256sum, a renamed asset — which is the
+          # half this test exists to tell apart. The URL is printed by the
+          # refusal and by nothing else.
+          grep -qF -- "releases/download/${YAGIT_VERSION}/" refused.txt \
+            || { echo "::error::install.sh failed, but not over the missing version"; exit 1; }
+          if grep -qF "Installed:" refused.txt; then
+            echo "::error::install.sh got as far as reporting an install"
             exit 1
           fi
           test ! -e "$YAGIT_INSTALL_DIR/yagit" \
             || { echo "::error::a failed install left a launcher behind"; exit 1; }
+          test ! -e "$YAGIT_HOME/yagit" \
+            || { echo "::error::a failed install left a binary behind"; exit 1; }
 
       - name: Uninstall
         env:
@@ -127,6 +158,9 @@ jobs:
   windows:
     name: Installer on Windows
     runs-on: windows-latest
+    # Same reason as the job above: Invoke-WebRequest is called without
+    # -TimeoutSec, so the job timeout is the only deadline there is.
+    timeout-minutes: 15
 
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -158,8 +192,16 @@ jobs:
           # stderr, and cmd decides what to strip from `/c "…"` by looking at
           # the first and last character of it — so appending a redirection
           # there changes how the command line itself is read.
+          # The exit code is read here, so it must not have been turned into a
+          # terminating error first: the step runs under $ErrorActionPreference
+          # = 'stop', and a pwsh that honours it for native commands would
+          # throw on the way out of cmd.exe and never reach the check below —
+          # failing the step with a stack trace instead of the line that says
+          # what happened.
+          $PSNativeCommandUseErrorActionPreference = $false
           & cmd.exe /c "`"$launcher`" --help" *> help.txt
           if ($LASTEXITCODE -ne 0) {
+              Get-Content help.txt -Raw
               Write-Output "::error::the launcher exited $LASTEXITCODE"
               exit 1
           }
@@ -178,14 +220,56 @@ jobs:
         run: |
           # $ErrorActionPreference is Stop inside the script, so the throw
           # surfaces here as a terminating error rather than an exit code.
+          #
+          # What is checked is not only that it threw. A script broken
+          # anywhere — a parse error, a missing cmdlet, a rename nobody
+          # followed — also throws, and would pass a test that asked no more
+          # than that. So the refusal has to name the version it refused, and
+          # must not have reached the point where it says what it installed.
+          #
+          # Redirected to a file as it is produced, not collected after the
+          # script returns: a terminating error aborts an assignment of the
+          # pipeline, and would leave only the exception text — which is
+          # enough to name a 404 URI today and not enough the day the failure
+          # mode changes.
           $failed = $false
-          try { ./scripts/install.ps1 } catch { $failed = $true }
+          if (Test-Path refused.txt) { Remove-Item refused.txt }
+          try { ./scripts/install.ps1 *> refused.txt }
+          catch {
+              $failed = $true
+              $_ | Out-String | Add-Content -Path refused.txt
+          }
+          # [string] because Get-Content -Raw answers $null for an empty
+          # file, and the check below is a method call: on $null it throws,
+          # and the step fails with a null-reference trace instead of the line
+          # that says what the script actually did.
+          $said = ""
+          if (Test-Path refused.txt) { $said = [string](Get-Content -Raw refused.txt) }
+          Write-Output $said
           if (-not $failed) {
               Write-Output "::error::install.ps1 reported success for a version that does not exist"
               exit 1
           }
+          # The version alone is not enough: the script names it in its
+          # opening banner, before it has downloaded anything, so a failure
+          # anywhere after that line satisfies the check. PowerShell's web
+          # exception does not carry the URI it failed on — unlike the shell
+          # script's own message — so what ties the refusal to the download is
+          # the status the missing tag came back with.
+          if (-not $said.Contains($env:YAGIT_VERSION) -or $said -notmatch '404|Not Found') {
+              Write-Output "::error::install.ps1 failed, but not over the missing version"
+              exit 1
+          }
+          if ($said -match 'Installed:') {
+              Write-Output "::error::install.ps1 got as far as reporting an install"
+              exit 1
+          }
           if (Test-Path (Join-Path $env:YAGIT_INSTALL_DIR "yagit.cmd")) {
               Write-Output "::error::a failed install left a launcher behind"
+              exit 1
+          }
+          if (Test-Path (Join-Path $env:YAGIT_HOME "yagit.exe")) {
+              Write-Output "::error::a failed install left a binary behind"
               exit 1
           }
 
