@@ -4,6 +4,28 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>yagit</title>
+    <!--
+      Render-blocking and not a module, which is the whole point: it has to run
+      before the first paint, and a module cannot.
+
+      The workbench follows the machine's colour preference unless the reader
+      chose otherwise, and the choice lives in localStorage under `yagit.theme`
+      — absent meaning "follow the system" (web/src/app/sessionStore.ts).
+      React stamps `data-theme` in a layout effect, so React's own first paint
+      is right; the frame BEFORE it was not. Until the bundle had run there was
+      no attribute on <html> at all and the dark tokens were painted
+      unconditionally, so a reader who chose light got one dark frame on every
+      load.
+
+      A file of its own rather than two lines inline, because the daemon sends
+      `script-src 'self'` and adds 'unsafe-inline' only where a dev server was
+      configured (internal/api/middleware.go). Inline, this would work under
+      `./do dev`, be refused in the released binary, and say so only in a
+      console nobody has open — the same silent divergence between the two ways
+      of serving this page that once cost a font. `web/public/` is copied into
+      the build as-is, so the released binary serves it from its own origin.
+    -->
+    <script src="/theme.js"></script>
   </head>
   <body>
     <div id="root"></div>

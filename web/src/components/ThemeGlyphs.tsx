@@ -1,4 +1,10 @@
-/** Sun and moon icons for the theme toggle — shared by the workbench and the showcase. */
+/**
+ * Icons for the theme control — shared by the workbench and the showcase.
+ *
+ * One per state the control can be in, the screen included: a reader who is
+ * letting the machine decide is in a state neither the sun nor the moon can
+ * stand for, and drawing one of them anyway would claim a choice nobody made.
+ */
 
 export function SunGlyph() {
   return (
@@ -22,6 +28,28 @@ export function MoonGlyph() {
         stroke="currentColor"
         strokeWidth="1.3"
         strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+export function SystemGlyph() {
+  return (
+    <svg width="13" height="13" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+      <rect
+        x="1.4"
+        y="2.4"
+        width="11.2"
+        height="7.6"
+        rx="1.2"
+        stroke="currentColor"
+        strokeWidth="1.3"
+      />
+      <path
+        d="M7 10v2.1M4.7 12.4h4.6"
+        stroke="currentColor"
+        strokeWidth="1.3"
+        strokeLinecap="round"
       />
     </svg>
   );

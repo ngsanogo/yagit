@@ -27,5 +27,11 @@ export default defineConfig({
   use: {
     baseURL: baseURL(),
     ...devices['Desktop Chrome'],
+    // Pinned, because the workbench now follows the machine's colour
+    // preference when the reader has not chosen one — and a test runner's
+    // preference is whatever the machine it happens to be on reports. Without
+    // this the suite would assert against one theme locally and the other in
+    // CI, and every axe scan would measure a palette nobody picked.
+    colorScheme: 'dark',
   },
 });

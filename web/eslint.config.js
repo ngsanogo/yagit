@@ -27,4 +27,12 @@ export default typescriptEslint.config(
     files: ['scripts/**/*.{js,mjs}', 'e2e/**/*.ts', '*.config.{js,ts}'],
     languageOptions: { globals: globals.node },
   },
+  {
+    // public/ is copied into the build byte for byte and runs in the browser
+    // before the bundle does — it is the one place in this project that is
+    // browser JavaScript without being TypeScript, so it needs the browser
+    // globals the .ts block above grants and the .js default does not.
+    files: ['public/**/*.js'],
+    languageOptions: { globals: globals.browser },
+  },
 );
