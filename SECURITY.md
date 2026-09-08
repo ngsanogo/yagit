@@ -156,9 +156,13 @@ These are what this repository runs today. The workflows live in
   (`.github/workflows/supply-chain.yml`).
 - The install scripts, run end to end on Linux, macOS and Windows whenever they
   change and weekly (`.github/workflows/installers.yml`). They are how a release
-  reaches a machine, and the checksum check inside them is the step that has to
-  keep working — including its refusal path, which by definition only runs when
-  something is already wrong, and so is the half that rots unwatched.
+  reaches a machine: each job downloads a published release, checks that the
+  launcher it writes really runs the binary, and removes it again. Beside that
+  it runs the refusal — a version that does not exist must fail without
+  installing anything — because a path that only runs when something is already
+  wrong is the half that rots unwatched. That refusal stops at the download; a
+  corrupted asset reaching the checksum comparison is not yet exercised, and
+  wants a fixture the scripts cannot be pointed at today.
 
 ### Ruleset on `main`
 
