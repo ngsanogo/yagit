@@ -463,3 +463,161 @@ func TestSessionExchangeAllowsAToolWithNoOrigin(t *testing.T) {
 		t.Fatalf("status = %d, want 204: %s", response.Code, response.Body)
 	}
 }
+
+// The credential budget stands in front of two doors, and until this change
+// both slammed in JSON. These pin the third way the door page is reached: not
+// because the token was missing, and not because it was wrong, but because too
+// many have been offered from this address.
+//
+// It is the refusal a correct token can also earn — the budget counts attempts
+// and not mistakes — which is why the reader has to be able to read it.
+
+// exhaustTheCredentialBudget spends the per-address budget on wrong tokens, so
+// that the next request from this address is refused for the budget rather
+// than for what it carried.
+//
+// Through the door's own form because that is the cheapest way to the counter:
+// /api/session is charged by the middleware before any handler runs. The
+// counter is one per address and shared by both doors, so what spends it and
+// what then trips it need not be the same kind of request — which is the whole
+// reason the second door can be tested at all.
+func exhaustTheCredentialBudget(t *testing.T, handler http.Handler) {
+	t.Helper()
+
+	for range 1200 {
+		if execute(handler, doorSubmission("token=not-the-token")).Code == http.StatusTooManyRequests {
+			return
+		}
+	}
+	t.Fatal("1200 attempts never reached the limit; the budget is not being charged")
+}
+
+// The token submitted here is the RIGHT one, and that is the point. A reader
+// who pasted correctly and pressed the button once too often gets this page,
+// and a sentence telling them their token was not accepted would be a lie the
+// daemon has no way to take back.
+func TestABudgetedDoorSubmissionComesBackAsTheDoor(t *testing.T) {
+	handler := testServer(t)
+	exhaustTheCredentialBudget(t, handler)
+
+	response := execute(handler, doorSubmission("token="+testToken))
+
+	// 429 and not 200: the page is a courtesy to the reader, never a claim
+	// that the request got through. A proxy or a `curl -f` still has to read
+	// the refusal off the status line.
+	if response.Code != http.StatusTooManyRequests {
+		t.Fatalf("status = %d, want 429: %s", response.Code, response.Body)
+	}
+	if contentType := response.Header().Get("Content-Type"); !strings.Contains(contentType, "text/html") {
+		t.Fatalf("Content-Type = %q, want text/html: %s", contentType, response.Body)
+	}
+
+	body := response.Body.String()
+	// A refusal with no field under it is the dead end in a friendlier font.
+	for _, needed := range []string{`name="token"`, `action="/api/session"`, "wait a moment"} {
+		if !strings.Contains(body, needed) {
+			t.Errorf("the answer does not carry %q: %s", needed, body)
+		}
+	}
+	// The one this route has just seen, and it is the real secret: a page that
+	// echoed the submitted value back would put the token in the DOM, in a
+	// screenshot, and in whatever the browser keeps of the page.
+	if strings.Contains(body, testToken) {
+		t.Errorf("the refusal page carries the session token: %s", body)
+	}
+}
+
+// The other door. A reader who trips the budget while simply loading the
+// address is not submitting anything, so nothing about their request looks
+// like the form — only the navigation's Accept header says they are a person.
+func TestABudgetedNavigationComesBackAsTheDoor(t *testing.T) {
+	handler := testServer(t)
+	exhaustTheCredentialBudget(t, handler)
+
+	request := httptest.NewRequest(http.MethodGet, "/", nil)
+	request.Header.Set("Accept", "text/html")
+
+	response := execute(handler, request)
+	if response.Code != http.StatusTooManyRequests {
+		t.Fatalf("status = %d, want 429: %s", response.Code, response.Body)
+	}
+	body := response.Body.String()
+	if !strings.Contains(body, `name="token"`) {
+		t.Errorf("a reader was refused with nowhere to act on it: %s", body)
+	}
+	if !strings.Contains(body, "wait a moment") {
+		t.Errorf("the page does not say what to do next: %s", body)
+	}
+}
+
+// And the answer a client gets is unchanged, at both doors. Handing JSON's
+// caller a page is the mirror image of the bug being fixed, and the harder one
+// to notice: the status line still says 429 while the parse fails.
+func TestABudgetedClientIsStillAnsweredInJSON(t *testing.T) {
+	cases := []struct {
+		name    string
+		request func() *http.Request
+	}{
+		{
+			// The exchange, refused by the middleware in front of it.
+			"the session exchange",
+			func() *http.Request {
+				request := httptest.NewRequest(http.MethodPost, "/api/session",
+					strings.NewReader(`{"token":"`+testToken+`"}`))
+				request.Header.Set("Content-Type", "application/json")
+				// Asking for HTML must not move it: a request under /api/ is
+				// never a navigation whatever it claims.
+				request.Header.Set("Accept", "text/html")
+				return request
+			},
+		},
+		{
+			// Any other route, refused by requireToken.
+			"an API route without a token",
+			func() *http.Request {
+				return httptest.NewRequest(http.MethodGet, "/api/health", nil)
+			},
+		},
+	}
+
+	for _, testCase := range cases {
+		t.Run(testCase.name, func(t *testing.T) {
+			handler := testServer(t)
+			exhaustTheCredentialBudget(t, handler)
+
+			response := execute(handler, testCase.request())
+			if response.Code != http.StatusTooManyRequests {
+				t.Fatalf("status = %d, want 429: %s", response.Code, response.Body)
+			}
+			if contentType := response.Header().Get("Content-Type"); !strings.HasPrefix(contentType, "application/json") {
+				t.Fatalf("Content-Type = %q, want JSON: %s", contentType, response.Body)
+			}
+			if !strings.Contains(response.Body.String(), `"error"`) {
+				t.Errorf("a client got %q, which is not the JSON refusal", response.Body)
+			}
+		})
+	}
+}
+
+// A budget that fired is a record worth keeping whichever way it was answered.
+// The HTML arm does not go through writeError, so the line it writes is its
+// own — and it must carry no credential, because the value that trips this
+// refusal can be the correct one.
+func TestTheBudgetRefusalIsLoggedAndCarriesNoToken(t *testing.T) {
+	var logBuf bytes.Buffer
+	logger := slog.New(slog.NewTextHandler(&logBuf, &slog.HandlerOptions{Level: slog.LevelWarn}))
+	handler := testServerWithLogger(t, logger)
+
+	exhaustTheCredentialBudget(t, handler)
+	if response := execute(handler, doorSubmission("token="+testToken)); response.Code != http.StatusTooManyRequests {
+		t.Fatalf("status = %d, want 429", response.Code)
+	}
+
+	logged := logBuf.String()
+	if !strings.Contains(logged, "budget exhausted") {
+		t.Errorf("the refusal never reached the log, got: %s", logged)
+	}
+	if strings.Contains(logged, testToken) {
+		t.Error("the log carries the session token")
+	}
+}
