@@ -54,12 +54,20 @@ func middlewareServer(t *testing.T, development bool) http.Handler {
 	return server.Handler()
 }
 
-func policyOf(t *testing.T, handler http.Handler) string {
+// headerOf reads one response header off any route, because securityHeaders
+// wraps the whole handler and sets the same set on every answer it gives.
+func headerOf(t *testing.T, handler http.Handler, name string) string {
 	t.Helper()
 
 	request := httptest.NewRequest(http.MethodGet, "/api/health", nil)
 	request.Header.Set("X-Yagit-Token", testToken)
-	return execute(handler, request).Header().Get("Content-Security-Policy")
+	return execute(handler, request).Header().Get(name)
+}
+
+func policyOf(t *testing.T, handler http.Handler) string {
+	t.Helper()
+
+	return headerOf(t, handler, "Content-Security-Policy")
 }
 
 // The production policy is the strict one: nothing inline may run.
@@ -108,13 +116,20 @@ func TestContentSecurityPolicyAllowsVitesPreambleInDevelopment(t *testing.T) {
 // literal "null" on navigate-mode POSTs (the session token form). The cookie
 // CSRF check then refuses the only door a person has. same-origin still drops
 // the Referer on cross-origin requests.
+//
+// The browser half of that cannot be observed from here — no request this
+// test makes has a referrer policy applied to it — so what is pinned is the
+// value, in both modes: the door is the same form in development, and a
+// policy that differed there would break the interface nobody runs in
+// production while developing it.
 func TestReferrerPolicyKeepsFormPostOrigins(t *testing.T) {
-	request := httptest.NewRequest(http.MethodGet, "/api/health", nil)
-	request.Header.Set("X-Yagit-Token", testToken)
-	policy := execute(middlewareServer(t, false), request).Header().Get("Referrer-Policy")
+	for _, development := range []bool{false, true} {
+		policy := headerOf(t, middlewareServer(t, development), "Referrer-Policy")
 
-	if policy != "same-origin" {
-		t.Fatalf("Referrer-Policy = %q, want same-origin", policy)
+		if policy != "same-origin" {
+			t.Errorf("Referrer-Policy = %q with development=%v, want same-origin",
+				policy, development)
+		}
 	}
 }
 
