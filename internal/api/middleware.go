@@ -188,7 +188,7 @@ const (
 // Requests that fail authentication are counted too, and by the same limiter:
 // presenting a token that is wrong is the same guess whichever route it was
 // aimed at. That happens in requireToken, which is where the answer is known —
-// see refuseUnauthenticated.
+// see its credentialAbsent branch.
 //
 // Everything outside /api/ is the interface itself: its HTML, its bundle, its
 // fonts. One page load in development asks the Vite proxy for a couple of
@@ -204,7 +204,11 @@ func (s *Server) rateLimit(next http.Handler) http.Handler {
 		}
 
 		if !s.credentials.allow(clientKey(request)) {
-			writeError(writer, s.logger, http.StatusTooManyRequests, errTooManyRequests)
+			// fromTheDoorPage, the same predicate the handler behind this
+			// uses to decide a refused token: whoever the exchange would have
+			// answered on the page is answered on the page here too. A budget
+			// that fired is still a refusal a reader has to be able to read.
+			writeTooManyAttempts(writer, s.logger, fromTheDoorPage(request))
 			return
 		}
 		next.ServeHTTP(writer, request)
