@@ -33,7 +33,7 @@ function scratchParent(name: string): string {
 
 async function openInitForm(page: Page): Promise<void> {
   await openWorkbench(page);
-  await page.getByRole('button', { name: 'Open repository' }).click();
+  await page.getByRole('button', { name: 'Add repository' }).click();
 
   // Scoped to the dialog, like the clone form beside it: the empty state
   // behind it offers the same control, and which one an unscoped locator finds

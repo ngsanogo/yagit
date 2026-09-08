@@ -461,6 +461,19 @@ export function ResetDialog({
   return <ConfirmDialog {...shared}>{modePicker}</ConfirmDialog>;
 }
 
+/**
+ * Deleting a branch: the one confirmation here that really does take something
+ * away, and the sentence that bounds how much.
+ *
+ * Every other confirmation in this file says in a sentence what confirming
+ * does — the merge, rebase, cherry-pick, revert and reset summaries, and the
+ * unset-upstream consequence below. This one said it only in the red list,
+ * which names what goes and cannot name what stays, so the reader was left to
+ * assume the copy on the remote went with it. It does not: `git branch -D`
+ * touches refs/heads and nothing else. That is the same half of the story the
+ * tag delete spells out, and it is the half that decides whether this is a
+ * tidy-up or a mistake.
+ */
 export function DeleteBranchDialog({
   pending,
   busy,
@@ -480,6 +493,7 @@ export function DeleteBranchDialog({
       onCancel={onCancel}
       onConfirm={onConfirm}
       title={`Delete ${pending.name}?`}
+      description="Only the local branch is removed. A branch of the same name on a remote stays until it is deleted there separately."
       command={pending.command}
       // Named as what it is rather than as what it usually is. A branch is a
       // name pointing at a commit; deleting it takes the name away, and takes
@@ -627,6 +641,25 @@ export interface PendingUnsetUpstream {
   command: string;
 }
 
+/**
+ * Forgetting what a branch follows.
+ *
+ * A command-and-confirm dialog, and it took some undoing to make it one. This
+ * used to carry the red "This will permanently discard" panel — the strongest
+ * treatment the product has, the one force push and hard reset wear — over
+ * `git branch --unset-upstream`, which writes two config keys and is put back
+ * by the menu item directly above it. The branch keeps every commit, every
+ * file and its own name; nothing is sent and nothing is deleted. Naming a loss
+ * there was a warning about something that does not happen, which is exactly
+ * how a reader learns to click past the warnings that do — the same argument
+ * the rebase dialog above makes for its fast-forward arm, and the same one
+ * api/types.ts makes about plans that take nothing away.
+ *
+ * What is real is a consequence, not a loss, so it goes in the sentence, which
+ * is where the two delete confirmations put theirs. The bullets it replaces
+ * were also broken English: "the follow main has to a remote branch" used
+ * "follow" as a noun, and the second said the first again at greater length.
+ */
 export function UnsetUpstreamDialog({
   pending,
   busy,
@@ -645,11 +678,8 @@ export function UnsetUpstreamDialog({
       onCancel={onCancel}
       onConfirm={onConfirm}
       title={`Unset upstream for ${pending.branch}?`}
+      description={`${pending.branch} stops following a branch on a remote. Nothing is sent and nothing is deleted, but pushing and pulling will need a destination named each time until you set one again.`}
       command={pending.command}
-      losing={[
-        `the follow ${pending.branch} has to a remote branch`,
-        'the silent destination every later push and pull reads',
-      ]}
       confirmLabel="Unset upstream"
     />
   );

@@ -100,7 +100,7 @@ test('shows what is pinned, and says when a checkout is missing', async ({ page 
   await expect(panel).toContainText('not fetched');
 
   // The button that would fill it appears exactly here, and not before.
-  await expect(panel.getByRole('button', { name: /Check out every submodule/ })).toBeVisible();
+  await expect(panel.getByRole('button', { name: 'Update all submodules' })).toBeVisible();
 
   // Clicking it is not exercised here: the fixture's library is a local path,
   // and git refuses a submodule clone over the file transport unless the

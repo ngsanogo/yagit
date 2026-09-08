@@ -81,7 +81,10 @@ test('resets hard to a commit after showing the command', async ({ page }) => {
 
   const pane = page.getByRole('region', { name: 'Commit' });
   await expect(pane).toBeVisible();
-  await pane.getByRole('button', { name: /^Reset/ }).click();
+  // Reset moved into the commit's menu when the pane's five equal chips became
+  // one row of ordinary actions and a menu for the two that move the branch.
+  await pane.getByRole('button', { name: /^More actions for/ }).click();
+  await page.getByRole('menuitem', { name: 'Reset the current branch to this' }).click();
 
   const dialog = page.getByRole('dialog');
   await expect(dialog).toBeVisible();
@@ -115,10 +118,15 @@ test('a detached HEAD refuses the button and says why', async ({ page }) => {
   await page.getByRole('list', { name: 'Commits' }).getByText('one', { exact: true }).click();
 
   const pane = page.getByRole('region', { name: 'Commit' });
-  const button = pane.getByRole('button', { name: /^Reset/ });
-  await expect(button).toBeVisible();
-  await expect(button).toBeDisabled();
-  await expect(pane.getByText('HEAD is detached, so there is no branch to reset')).toBeAttached();
+  await pane.getByRole('button', { name: /^More actions for/ }).click();
+
+  // Refused as a menu item now, which is the same promise in the vocabulary
+  // the menu already had: aria-disabled rather than disabled, so it keeps its
+  // place in the list, and the reason drawn under the label.
+  const item = page.getByRole('menuitem', { name: 'Reset the current branch to this' });
+  await expect(item).toBeVisible();
+  await expect(item).toHaveAttribute('aria-disabled', 'true');
+  await expect(page.getByText('HEAD is detached, so there is no branch to reset')).toBeAttached();
 });
 
 test('a commit not on the branch is refused rather than offered', async ({ page }) => {
@@ -139,8 +147,9 @@ test('a commit not on the branch is refused rather than offered', async ({ page 
   await page.getByRole('list', { name: 'Commits' }).getByText('side only', { exact: true }).click();
 
   const pane = page.getByRole('region', { name: 'Commit' });
-  await pane.getByRole('button', { name: /^Reset/ }).click();
+  await pane.getByRole('button', { name: /^More actions for/ }).click();
+  await page.getByRole('menuitem', { name: 'Reset the current branch to this' }).click();
 
-  await expect(page.getByRole('status').filter({ hasText: 'not on the branch' })).toBeVisible();
+  await expect(page.getByRole('alert').filter({ hasText: 'not on the branch' })).toBeVisible();
   await expect(page.getByRole('dialog')).toHaveCount(0);
 });

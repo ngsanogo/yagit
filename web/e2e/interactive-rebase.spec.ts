@@ -79,10 +79,12 @@ async function openPlan(page: Page) {
 
   const pane = page.getByRole('region', { name: 'Commit' });
   await expect(pane).toBeVisible();
-  // By its accessible name, which is the description rather than the word on
-  // the button: CommitAction labels every action with the sentence a screen
-  // reader reads, and "Rewrite after" on its own would name no commit.
-  await pane.getByRole('button', { name: /^Plan a rewrite of the commits after/ }).click();
+  // Behind the commit's menu, with reset: the two operations that move the
+  // branch left the header when five chips of identical weight stopped saying
+  // which of them rewrites history. The trigger names the commit, so the item
+  // does not have to.
+  await pane.getByRole('button', { name: /^More actions for/ }).click();
+  await page.getByRole('menuitem', { name: 'Rewrite the commits after this' }).click();
 
   const dialog = page.getByRole('dialog');
   await expect(dialog).toBeVisible();

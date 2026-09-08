@@ -3,9 +3,11 @@ import { describe, expect, it } from 'vitest';
 import { ABSENT_ROW, type GraphEdge } from '../api/types';
 import {
   columnCentre,
+  columnsWithin,
   edgePath,
   edgeShape,
   graphFits,
+  graphGutter,
   graphWidth,
   MOST_DRAWABLE_COLUMNS,
   ROW_HEIGHT,
@@ -48,6 +50,54 @@ describe('graphFits', () => {
     // mean leaving branches out of it without saying so.
     expect(graphFits(MOST_DRAWABLE_COLUMNS + 1)).toBe(false);
     expect(graphFits(280)).toBe(false);
+  });
+});
+
+describe('graphGutter', () => {
+  it('gives the graph everything it asked for while the panel is wide enough', () => {
+    expect(graphGutter(4, 1200)).toBe(graphWidth(4));
+  });
+
+  it('takes no more than a third of the panel', () => {
+    // Twenty-three columns is 380 pixels: a third of the design viewport's
+    // panel, and two thirds of a panel half that size, where the subjects the
+    // picture exists to sit beside reach zero.
+    expect(graphGutter(23, 1140)).toBe(380);
+    expect(graphGutter(23, 600)).toBe(200);
+  });
+
+  it('reads an unmeasured panel as no bound rather than as no room', () => {
+    // Zero is the first render, and every render in a runner with no layout. A
+    // gutter that collapsed there would draw a whole window at the wrong
+    // indent and then move it.
+    expect(graphGutter(9, 0)).toBe(graphWidth(9));
+    expect(graphGutter(9, -1)).toBe(graphWidth(9));
+  });
+
+  it('keeps a whole column even when a third of the panel is less than one', () => {
+    expect(graphGutter(9, 40)).toBe(graphWidth(1));
+  });
+});
+
+describe('columnsWithin', () => {
+  it('counts the columns a gutter has room for', () => {
+    for (const columns of [1, 2, 9, MOST_DRAWABLE_COLUMNS]) {
+      expect(columnsWithin(graphWidth(columns))).toBe(columns);
+    }
+  });
+
+  it('never claims a fraction of a column, and never claims none', () => {
+    expect(columnsWithin(graphWidth(3) - 1)).toBe(2);
+    expect(columnsWithin(0)).toBe(1);
+  });
+
+  it('agrees with the gutter it is asked about, which is what the rows say out loud', () => {
+    // The pair is the honest refusal at panel scale: the gutter clips the
+    // picture and this is the number the notice above the rows names.
+    const gutter = graphGutter(23, 600);
+
+    expect(columnsWithin(gutter)).toBeLessThan(23);
+    expect(graphWidth(columnsWithin(gutter))).toBeLessThanOrEqual(gutter);
   });
 });
 

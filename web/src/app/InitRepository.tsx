@@ -8,6 +8,7 @@ import { Field } from '../components/Field';
 import { GitCommand } from '../components/GitCommand';
 import { GitFailureDetail } from '../components/GitFailureDetail';
 import { Spinner } from '../components/Spinner';
+import { errorSummary } from '../lib/errorDisplay';
 import { leafOf } from '../lib/path';
 import { discoverQuery } from './OpenRepository';
 
@@ -81,14 +82,7 @@ export function InitRepository({ onOpened }: { onOpened?: (id: string) => void }
           <GitCommand command={plan.command} />
         </div>
 
-        {runFailure !== null && (
-          <div role="alert" className="flex flex-col gap-1 text-xs text-danger">
-            <span>{runFailure.message}</span>
-            {runFailure instanceof ApiError && runFailure.git !== undefined ? (
-              <GitFailureDetail failure={runFailure.git} />
-            ) : null}
-          </div>
-        )}
+        {runFailure !== null && <InitFailure error={runFailure} />}
 
         <div className="flex items-center justify-end gap-2">
           <Button
@@ -124,7 +118,7 @@ export function InitRepository({ onOpened }: { onOpened?: (id: string) => void }
             Make a repository
           </h2>
           <p className="text-2xs text-ink-subtle">
-            An empty repository under the daemon root, opened here once it exists. Nothing is
+            An empty repository under the allowed root, opened here once it exists. Nothing is
             committed and no remote is added.
           </p>
         </div>
@@ -132,7 +126,7 @@ export function InitRepository({ onOpened }: { onOpened?: (id: string) => void }
         <form className="flex flex-col gap-3" onSubmit={submit}>
           <Field
             label="Folder"
-            hint="Absolute path inside the daemon root. The parent must exist; the folder itself must not."
+            hint="Absolute path inside the allowed root. The parent must exist; the folder itself must not."
             value={path}
             onChange={(event) => setPath(event.target.value)}
             placeholder={root !== undefined ? `${root}/repo` : '/home/you/repo'}
@@ -161,15 +155,28 @@ export function InitRepository({ onOpened }: { onOpened?: (id: string) => void }
           </div>
         </form>
 
-        {planFailure !== null && (
-          <div role="alert" className="flex flex-col gap-1 text-xs text-danger">
-            <span>{planFailure.message}</span>
-            {planFailure instanceof ApiError && planFailure.git !== undefined ? (
-              <GitFailureDetail failure={planFailure.git} />
-            ) : null}
-          </div>
-        )}
+        {planFailure !== null && <InitFailure error={planFailure} />}
       </section>
+    </div>
+  );
+}
+
+/**
+ * What went wrong, said once.
+ *
+ * The twin of CloneRepository's — same doubling, same subtraction. See the
+ * note there for why the paragraph disappears rather than emptying, and
+ * `errorSummary` in lib/errorDisplay for what it takes away.
+ */
+function InitFailure({ error }: { error: Error }) {
+  const summary = errorSummary(error);
+
+  return (
+    <div role="alert" className="flex flex-col gap-1 text-xs text-danger">
+      {summary !== undefined && <span>{summary}</span>}
+      {error instanceof ApiError && error.git !== undefined ? (
+        <GitFailureDetail failure={error.git} />
+      ) : null}
     </div>
   );
 }

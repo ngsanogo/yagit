@@ -8,6 +8,7 @@ import { Field } from '../components/Field';
 import { GitCommand } from '../components/GitCommand';
 import { GitFailureDetail } from '../components/GitFailureDetail';
 import { Spinner } from '../components/Spinner';
+import { errorSummary } from '../lib/errorDisplay';
 import { discoverQuery } from './OpenRepository';
 
 /**
@@ -155,14 +156,7 @@ export function CloneRepository({ onOpened }: { onOpened?: (id: string) => void 
           </pre>
         )}
 
-        {runFailure !== null && (
-          <div role="alert" className="flex flex-col gap-1 text-xs text-danger">
-            <span>{runFailure.message}</span>
-            {runFailure instanceof ApiError && runFailure.git !== undefined ? (
-              <GitFailureDetail failure={runFailure.git} />
-            ) : null}
-          </div>
-        )}
+        {runFailure !== null && <CloneFailure error={runFailure} />}
 
         <div className="flex items-center justify-end gap-2">
           <Button
@@ -199,8 +193,8 @@ export function CloneRepository({ onOpened }: { onOpened?: (id: string) => void 
             Clone a repository
           </h2>
           <p className="text-2xs text-ink-subtle">
-            Copy a remote onto disk under the daemon root, then open it. Credentials stay with git —
-            yagit never asks for a password.
+            Copy a remote onto disk under the allowed root, then open it. Credentials stay with git
+            — yagit never asks for a password.
           </p>
         </div>
 
@@ -216,7 +210,7 @@ export function CloneRepository({ onOpened }: { onOpened?: (id: string) => void 
           />
           <Field
             label="Destination"
-            hint="Absolute path inside the daemon root. The parent must exist; the folder itself must not."
+            hint="Absolute path inside the allowed root. The parent must exist; the folder itself must not."
             value={path}
             onChange={(event) => {
               setPathTouched(true);
@@ -239,15 +233,39 @@ export function CloneRepository({ onOpened }: { onOpened?: (id: string) => void 
           </div>
         </form>
 
-        {planFailure !== null && (
-          <div role="alert" className="flex flex-col gap-1 text-xs text-danger">
-            <span>{planFailure.message}</span>
-            {planFailure instanceof ApiError && planFailure.git !== undefined ? (
-              <GitFailureDetail failure={planFailure.git} />
-            ) : null}
-          </div>
-        )}
+        {planFailure !== null && <CloneFailure error={planFailure} />}
       </section>
+    </div>
+  );
+}
+
+/**
+ * What went wrong, said once.
+ *
+ * The daemon sends two accounts of a failed git command: a message, and the
+ * command, exit code and stderr beside it. The message usually ENDS with
+ * those same three facts rendered as a sentence, so drawing both put the
+ * whole of git's stderr on the screen twice — once as prose, once in the
+ * block underneath it. `errorSummary` keeps only the half the block cannot
+ * say, which is why the paragraph is conditional: when the message was the
+ * restatement and nothing else there is nothing left to draw, and an empty
+ * line above the block is not an improvement on a duplicated one.
+ *
+ * The `role="alert"` stays on the wrapper rather than moving to whichever of
+ * the two is drawn. Either half can be the only one — a refusal from the
+ * daemon has no git failure under it, and a git failure whose message adds
+ * nothing has no paragraph over it — and the thing that has to be announced
+ * is the failure, not the half that happened to survive.
+ */
+function CloneFailure({ error }: { error: Error }) {
+  const summary = errorSummary(error);
+
+  return (
+    <div role="alert" className="flex flex-col gap-1 text-xs text-danger">
+      {summary !== undefined && <span>{summary}</span>}
+      {error instanceof ApiError && error.git !== undefined ? (
+        <GitFailureDetail failure={error.git} />
+      ) : null}
     </div>
   );
 }

@@ -54,10 +54,10 @@ describe('what the rebase confirmation says will happen', () => {
   // the whole of what a fast-forward costs, and a sentence that stopped at "no
   // commit is rewritten" would read as "nothing happens" over a working
   // directory about to become somebody else's.
-  it('says a fast-forward still rewrites the working directory', () => {
+  it('says a fast-forward still rewrites the work tree', () => {
     const sentence = rebaseSummary(plan({ outcome: 'fast-forward', rewriting: 0, behind: 2 }));
 
-    expect(sentence).toContain('working directory');
+    expect(sentence).toContain('work tree');
     expect(sentence).toContain("become main's");
   });
 

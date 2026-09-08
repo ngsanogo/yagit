@@ -1,4 +1,4 @@
-import { useMemo, useState, type ReactNode } from 'react';
+import { useMemo, useState, type KeyboardEvent, type ReactNode } from 'react';
 
 import type { DiffHunk, DiffLine, DiffSide, FileDiff } from '../api/types';
 import { Badge } from '../components/Badge';
@@ -62,7 +62,10 @@ const SIDE_LABELS: Record<DiffSide, string> = {
 
 export function DiffView({ diff, side, onApply, busy }: DiffViewProps) {
   const [selected, setSelected] = useState<ReadonlySet<number>>(new Set());
-  // Where the last click landed, so Shift+click has a range to close.
+  // Where the last click landed, so Shift+click has a range to close. It is
+  // also where the pane's single tab stop sits: the line the keyboard last
+  // touched is the line it should come back to, and a roving tab stop needs
+  // exactly one line to be the one — see the arrow keys below.
   const [anchor, setAnchor] = useState<number>();
 
   // The changed lines in the order they are drawn, which is the order a
@@ -70,6 +73,22 @@ export function DiffView({ diff, side, onApply, busy }: DiffViewProps) {
   // refetched on every change, and a stored copy would describe the file as it
   // was before the last stage.
   const changed = useMemo(() => changedLines(diff), [diff]);
+
+  // The same lines by index, because the arrow keys move between line NUMBERS
+  // and toggling wants the line itself. Built once per diff rather than
+  // searched per keystroke: a rewritten lockfile is two thousand rows, and a
+  // linear scan of them on every press is a key that feels stuck.
+  const lineAt = useMemo(() => {
+    const byIndex = new Map<number, DiffLine>();
+    for (const hunk of diff.hunks) {
+      for (const line of hunk.lines) {
+        if (line.kind !== 'context') {
+          byIndex.set(line.index, line);
+        }
+      }
+    }
+    return byIndex;
+  }, [diff]);
 
   // The selection is dropped whenever the diff changes, because an index means
   // something different in a different diff. Keying on the fingerprint rather
@@ -138,7 +157,61 @@ export function DiffView({ diff, side, onApply, busy }: DiffViewProps) {
     setAnchor(undefined);
   }
 
+  /**
+   * ArrowUp and ArrowDown between CHANGED lines, Shift with them to extend.
+   *
+   * Every changed line is a button, and a 600-line rewrite is 600 of them: as
+   * plain tab stops they put the next hunk's header several hundred presses
+   * away, which is a keyboard path that exists and cannot be walked. So the
+   * pane keeps one tab stop — the anchor, the line the keyboard last touched —
+   * and the arrows move between the rest, which is the same roving pattern the
+   * design system's tablist and menu already use.
+   *
+   * Context lines are skipped rather than stepped over, because they are not
+   * choosable: `changed` is the sequence a Shift+click range runs through, and
+   * the arrows walk exactly that so the two ways of building a selection agree
+   * about what is next.
+   */
+  function moveByKey(event: KeyboardEvent<HTMLDivElement>) {
+    if (event.key !== 'ArrowDown' && event.key !== 'ArrowUp') {
+      return;
+    }
+
+    // instanceof rather than a cast: the key may have been pressed on a hunk
+    // button, where there is no line to move from and the pane should scroll
+    // the way it always does.
+    const from =
+      event.target instanceof HTMLElement ? event.target.closest('[data-diff-line]') : null;
+    if (!(from instanceof HTMLElement) || from.dataset.diffLine === undefined) {
+      return;
+    }
+
+    const at = changed.indexOf(Number(from.dataset.diffLine));
+    const next = at < 0 ? undefined : changed[at + (event.key === 'ArrowDown' ? 1 : -1)];
+    if (next === undefined) {
+      return;
+    }
+
+    const target = event.currentTarget.querySelector(`[data-diff-line="${next}"]`);
+    if (!(target instanceof HTMLElement)) {
+      return;
+    }
+
+    // Or the pane scrolls a row under the focus it has just moved, and the two
+    // movements land the reader somewhere neither of them meant.
+    event.preventDefault();
+    target.focus();
+
+    const line = lineAt.get(next);
+    if (event.shiftKey && line !== undefined) {
+      toggle(line, true);
+      return;
+    }
+    setAnchor(next);
+  }
+
   const drawn = countDrawnLines(diff);
+  const gutter = gutterWidth([diff]);
 
   return (
     <div className="flex h-full min-h-0 flex-col">
@@ -154,7 +227,9 @@ export function DiffView({ diff, side, onApply, busy }: DiffViewProps) {
         }}
       />
 
-      <div className="min-h-0 flex-1 overflow-auto font-mono text-xs">
+      <div className="min-h-0 flex-1 overflow-auto font-mono text-xs" onKeyDown={moveByKey}>
+        <Capped drawn={drawn}>Hunk buttons act on the lines drawn, not on the rest.</Capped>
+
         {pointer !== undefined && <PointerNote note={pointer} />}
 
         {diff.hunks.map((hunk, position) => (
@@ -165,7 +240,15 @@ export function DiffView({ diff, side, onApply, busy }: DiffViewProps) {
             key={position}
             hunk={hunk}
             firstDrawnLine={firstLineOfHunk(diff, position)}
-            actions={{ side, busy, selected, onToggle: toggle, onApply: apply }}
+            gutter={gutter}
+            actions={{
+              side,
+              busy,
+              selected,
+              tabStop: anchor ?? changed[0],
+              onToggle: toggle,
+              onApply: apply,
+            }}
           />
         ))}
 
@@ -205,6 +288,12 @@ function actionsFor(side: DiffSide): { primary: DiffAction; label: string; disca
  * strip that appears and disappears shifts every line under it by its own
  * height, and the line the user was about to click moves out from under the
  * pointer.
+ *
+ * It is its own container, and the hint below is gated on THAT rather than on
+ * the window. The bar is as wide as the Diff panel, which is the window minus
+ * the file list beside it and can be half of it; a viewport breakpoint here
+ * measures a box this text has never been inside, and answers about a width
+ * the reader does not have.
  */
 function DiffHeader({
   diff,
@@ -222,22 +311,43 @@ function DiffHeader({
   onClear: () => void;
 }) {
   const { primary, label, discardable } = actionsFor(side);
+  const cameFrom = diff.old_path !== undefined && diff.old_path !== '' ? diff.old_path : undefined;
 
   return (
-    <div className="flex h-9 shrink-0 items-center gap-3 border-b border-line px-3">
+    <div className="@container flex h-9 shrink-0 items-center gap-3 border-b border-line px-3">
       <span className="flex min-w-0 items-baseline gap-2">
         <span className="truncate font-mono text-xs text-ink" title={diff.path}>
           {diff.path}
         </span>
+        {/* Where a rename came from, in the words a commit's patch already
+            uses for the same fact. Truncating rather than shrink-0, which is
+            the mistake the hint beside it used to make: a string that holds
+            its full width wins that width from the one thing in this bar that
+            names what is about to be staged. Both paths give ground together
+            instead, and the title carries whichever of them is cut. */}
+        {cameFrom !== undefined && (
+          <span
+            className="min-w-0 truncate font-mono text-2xs text-ink-subtle"
+            title={`Renamed from ${cameFrom}`}
+          >
+            ← {cameFrom}
+          </span>
+        )}
         <span className="shrink-0 text-2xs text-ink-subtle">{SIDE_LABELS[side]}</span>
       </span>
 
       {count === 0 ? (
-        <p className="ml-auto hidden shrink-0 text-2xs text-ink-subtle lg:block">
-          Click a changed line to choose it, Shift+click for a range
+        <p className="ml-auto hidden shrink-0 text-2xs text-ink-subtle @2xl:block">
+          Click a line to choose it, Shift+click for a range, or {label.toLowerCase()} a whole hunk
+          from its header
         </p>
       ) : (
         <span className="ml-auto flex shrink-0 items-center gap-2">
+          {/* The sentence above says Shift+click, and the moment a first line
+              is chosen it is replaced by these buttons — which is exactly when
+              the reader first has an anchor to extend from. The short form
+              survives into that state. */}
+          <span className="hidden text-2xs text-ink-subtle @3xl:inline">Shift+click to extend</span>
           <Badge tone="accent">{count} selected</Badge>
           {/* Secondary, not primary. The screen already has its one primary
               button — Commit — and that is the action it is ultimately
@@ -265,6 +375,8 @@ interface HunkActions {
   side: DiffSide;
   busy: boolean;
   selected: ReadonlySet<number>;
+  /** The one changed line that is in the tab order; see moveByKey. */
+  tabStop: number | undefined;
   onToggle: (line: DiffLine, extend: boolean) => void;
   onApply: (action: DiffAction, indices: number[]) => void;
 }
@@ -278,6 +390,8 @@ interface HunkViewProps {
    * ended.
    */
   firstDrawnLine: number;
+  /** The width both line-number columns are drawn at; see gutterWidth. */
+  gutter: string;
   /**
    * Absent in a commit's diff.
    *
@@ -289,8 +403,23 @@ interface HunkViewProps {
   actions?: HunkActions;
 }
 
-function HunkView({ hunk, firstDrawnLine, actions }: HunkViewProps) {
-  if (firstDrawnLine >= MAX_DRAWN_LINES) {
+function HunkView({ hunk, firstDrawnLine, gutter, actions }: HunkViewProps) {
+  // How many of this hunk's lines the cap still has room for — nought or fewer
+  // for a hunk that is entirely past it. A commit's patch is every hunk of
+  // every file it touched, so most of them are never drawn at all, and the one
+  // the cap lands in the middle of is drawn in part.
+  //
+  // The word diff is asked the same number rather than being handed the whole
+  // hunk. A regenerated lockfile arrives as one hunk of sixty thousand lines,
+  // and tokenising all of them to mark the two thousand on screen is precisely
+  // the freeze the cap was put there to prevent.
+  const drawable = MAX_DRAWN_LINES - firstDrawnLine;
+  const marked = useMemo(
+    () => (drawable > 0 ? markedSpans(hunk, drawable) : new Map<number, LineSpan[]>()),
+    [drawable, hunk],
+  );
+
+  if (drawable <= 0) {
     return null;
   }
 
@@ -304,16 +433,21 @@ function HunkView({ hunk, firstDrawnLine, actions }: HunkViewProps) {
           <span className="truncate text-2xs text-ink-muted">{hunk.heading}</span>
         )}
 
-        {actions !== undefined && <HunkButtons hunk={hunk} actions={actions} />}
+        {actions !== undefined && (
+          <HunkButtons hunk={hunk} firstDrawnLine={firstDrawnLine} actions={actions} />
+        )}
       </header>
 
       <div>
         {hunk.lines.map((line, offset) =>
-          firstDrawnLine + offset >= MAX_DRAWN_LINES ? null : (
+          offset >= drawable ? null : (
             <LineView
               key={line.index}
               line={line}
+              gutter={gutter}
+              spans={marked.get(line.index)}
               selected={actions?.selected.has(line.index) ?? false}
+              tabStop={actions?.tabStop === line.index}
               onToggle={actions?.onToggle}
             />
           ),
@@ -323,14 +457,40 @@ function HunkView({ hunk, firstDrawnLine, actions }: HunkViewProps) {
   );
 }
 
-function HunkButtons({ hunk, actions }: { hunk: DiffHunk; actions: HunkActions }) {
+/**
+ * Staging a whole hunk, from the hunk.
+ *
+ * Visible at rest rather than only on hover. Staging by hunk is the coarse
+ * grain of this screen's one feature and the grain most people reach for
+ * first; drawn at zero opacity it is a feature nothing on screen mentions, and
+ * a user who never happens to sweep the pointer across a hunk header concludes
+ * the pane stages whole files and single lines and nothing between. Quiet
+ * until the hunk is under the pointer or holds the focus, which is the same
+ * bargain the row actions in the change list and the reference sidebar strike.
+ *
+ * Quiet, and no quieter than 80%: a ghost button is --color-ink-muted, and
+ * against the header it stands on that reads 4.99:1 in the light theme at this
+ * opacity and 3.89 at 70%. Zero opacity was exempt from the floor because
+ * nothing invisible has to be read — the moment these are drawn at all, they
+ * are text, and the AA floor is the whole of what decides how faint they go.
+ */
+function HunkButtons({
+  hunk,
+  firstDrawnLine,
+  actions,
+}: {
+  hunk: DiffHunk;
+  firstDrawnLine: number;
+  actions: HunkActions;
+}) {
   const { primary, label, discardable } = actionsFor(actions.side);
-  const changedHere = changedIn(hunk);
+  const changedHere = changedIn(hunk, firstDrawnLine);
 
   return (
     <div
       className={cx(
-        'ml-auto flex shrink-0 items-center gap-0.5 opacity-0',
+        'ml-auto flex shrink-0 items-center gap-0.5 opacity-80',
+        'transition-opacity transition-instant',
         'group-hover/hunk:opacity-100 group-focus-within/hunk:opacity-100',
       )}
     >
@@ -356,10 +516,19 @@ function HunkButtons({ hunk, actions }: { hunk: DiffHunk; actions: HunkActions }
   );
 }
 
-const LINE_CLASSES: Record<DiffLine['kind'], string> = {
-  added: 'bg-added/10',
-  removed: 'bg-deleted/10',
-  context: '',
+/**
+ * The two tints a line's kind paints: the whole line, and the run inside it
+ * that actually moved.
+ *
+ * Kept as one table because they are one decision. The pale wash says which
+ * side of the diff the line is on; the stronger one says which characters of
+ * it are the change, and a colour picked for the second without the first
+ * beside it is how the two stop being read as the same colour.
+ */
+const KIND_TINTS: Record<DiffLine['kind'], { whole: string; changed: string }> = {
+  added: { whole: 'bg-added/10', changed: 'bg-added/25' },
+  removed: { whole: 'bg-deleted/10', changed: 'bg-deleted/25' },
+  context: { whole: '', changed: '' },
 };
 
 const MARKERS: Record<DiffLine['kind'], string> = {
@@ -369,38 +538,88 @@ const MARKERS: Record<DiffLine['kind'], string> = {
 };
 
 /**
- * One line of a diff.
- *
- * onToggle is what makes a line choosable, and its absence is what makes a
- * diff read-only — a commit's diff has nothing to stage. The line renders the
- * same either way, which is the point of it being one component.
- */
-/**
  * What a screen reader is told this line is.
  *
  * Built from the text the daemon sent, which is already bounded — the label of
  * a minified line used to be the whole line. The count is spoken when there is
  * one, because a name that simply stops is a name that lies about the line.
+ *
+ * The whitespace note is the same fact the glyphs draw. A line whose only
+ * change is an indent reads identically to the line above it in this name, and
+ * a reader who cannot see the dots has nothing else to go on.
  */
-function accessibleName(line: DiffLine): string {
+function accessibleName(line: DiffLine, spans: readonly LineSpan[] | undefined): string {
   const kind = line.kind === 'added' ? 'Added' : 'Removed';
   const rest =
     line.truncated !== undefined && line.truncated > 0
       ? `, and ${line.truncated.toLocaleString()} more characters not shown`
       : '';
-  return `${kind} line: ${line.text}${rest}`;
+  return `${kind} line: ${line.text}${rest}${whitespaceNote(spans) ?? ''}`;
 }
 
+/** The one sentence the glyphs are drawing, for a reader who cannot see them. */
+function whitespaceNote(spans: readonly LineSpan[] | undefined): string | undefined {
+  if (spans === undefined) {
+    return undefined;
+  }
+  if (spans.some((span) => span.glyphs && span.changed)) {
+    return ', where what changed is the whitespace';
+  }
+  return spans.some((span) => span.glyphs) ? ', with trailing whitespace' : undefined;
+}
+
+/**
+ * One line of a diff.
+ *
+ * onToggle is what makes a line choosable, and its absence is what makes a
+ * diff read-only — a commit's diff has nothing to stage. The line renders the
+ * same either way, which is the point of it being one component.
+ *
+ * Two elements carry backgrounds and they own different things: the row owns
+ * the STATE — hovered, chosen — and the span inside it owns the KIND. They
+ * used to be one element with two background utilities on it, which is not a
+ * choice at all but a question put to the cascade: `bg-accent-soft/60` sorts
+ * before `bg-added/10`, so a chosen added line painted as an ordinary added
+ * one and the only evidence of the choice was a 2px stripe at the left edge.
+ * Layered, a chosen line is an accent wash with the kind's colour still over
+ * it, and a hovered one keeps its green or its red instead of losing it to an
+ * opaque highlight.
+ *
+ * The two number columns sit OUTSIDE that span deliberately. Every wash the
+ * row can wear lightens what is under it, and the numbers are the faintest ink
+ * in the pane: measured against --color-ink-subtle, a hovered added line's
+ * numbers come to 4.34:1 with the kind tint over them and 5.29:1 without,
+ * which is the AA floor on the wrong side of a state a pointer produces by
+ * accident. Outside the tint they read against the row alone, and the coloured
+ * band starts where the diff's own +/- marker does.
+ */
 function LineView({
   line,
+  gutter,
+  spans,
   selected,
+  tabStop,
   onToggle,
 }: {
   line: DiffLine;
+  gutter: string;
+  spans: readonly LineSpan[] | undefined;
   selected: boolean;
+  tabStop: boolean;
   onToggle?: (line: DiffLine, extend: boolean) => void;
 }) {
   const changeable = line.kind !== 'context' && onToggle !== undefined;
+  const note = whitespaceNote(spans);
+
+  const body =
+    spans === undefined
+      ? line.text
+      : spans.map((span, at) => <Span key={at} span={span} tint={KIND_TINTS[line.kind].changed} />);
+
+  const number = cx(
+    gutter,
+    'shrink-0 pr-2 text-right text-2xs text-ink-subtle tabular select-none',
+  );
 
   const content = (
     <>
@@ -408,46 +627,61 @@ function LineView({
           no old number and a removed one has no new number; leaving the space
           empty rather than collapsing it is what keeps the two columns from
           jittering down the file. */}
-      <span className="w-10 shrink-0 pr-2 text-right text-2xs text-ink-subtle tabular select-none">
-        {line.old_line === 0 ? '' : line.old_line}
-      </span>
-      <span className="w-10 shrink-0 pr-2 text-right text-2xs text-ink-subtle tabular select-none">
-        {line.new_line === 0 ? '' : line.new_line}
-      </span>
-      <span
-        aria-hidden="true"
-        className={cx(
-          'w-4 shrink-0 text-center select-none',
-          line.kind === 'added' && 'text-added',
-          line.kind === 'removed' && 'text-deleted',
-          line.kind === 'context' && 'text-ink-subtle',
-        )}
-      >
-        {MARKERS[line.kind]}
-      </span>
+      <span className={number}>{line.old_line === 0 ? '' : line.old_line}</span>
+      <span className={number}>{line.new_line === 0 ? '' : line.new_line}</span>
 
-      {/* pre-wrap, not pre: a long line has to wrap rather than push a
-          horizontal scrollbar under the whole file, and the leading spaces of
-          indented code have to survive. */}
-      <span className="min-w-0 flex-1 pr-3 break-all whitespace-pre-wrap text-ink">
-        {line.text}
-        {line.truncated !== undefined && line.truncated > 0 && (
-          /* Said, not silently done. A line that stops with no sign of it
-             reads as the file having ended there. */
-          <span className="ml-2 text-2xs text-ink-subtle">
-            (+{line.truncated.toLocaleString()} more characters, not shown)
+      <span className={cx('flex min-w-0 flex-1 items-start', KIND_TINTS[line.kind].whole)}>
+        <span
+          aria-hidden="true"
+          className={cx(
+            'w-4 shrink-0 text-center select-none',
+            line.kind === 'added' && 'text-added',
+            line.kind === 'removed' && 'text-deleted',
+            line.kind === 'context' && 'text-ink-subtle',
+          )}
+        >
+          {MARKERS[line.kind]}
+        </span>
+
+        {/* A read-only row has no aria-label to carry the +/- through, and the
+            glyph beside it is aria-hidden precisely so it is not read as
+            punctuation: without this, an addition, a deletion and a context
+            line are the same text to a screen reader, which is the state a
+            patch is least readable in. select-none so a copy of the patch is
+            still the patch. */}
+        {!changeable && line.kind !== 'context' && (
+          <span className="sr-only select-none">
+            {line.kind === 'added' ? 'Added line: ' : 'Removed line: '}
           </span>
         )}
-        {line.no_newline && (
-          <span className="ml-2 text-2xs text-ink-subtle">(no newline at end of file)</span>
-        )}
+
+        {/* pre-wrap, not pre: a long line has to wrap rather than push a
+            horizontal scrollbar under the whole file, and the leading spaces of
+            indented code have to survive. wrap-anywhere, not break-all: both
+            keep a minified line from forcing that scrollbar, but break-all
+            takes the break at whatever character the edge falls on even when a
+            space sat three characters earlier, which cuts every wrapped line of
+            prose, Markdown and comments mid-word. */}
+        <span className="min-w-0 flex-1 pr-3 wrap-anywhere whitespace-pre-wrap text-ink">
+          {body}
+          {line.truncated !== undefined && line.truncated > 0 && (
+            /* Said, not silently done. A line that stops with no sign of it
+               reads as the file having ended there. */
+            <span className="ml-2 text-2xs text-ink-subtle">
+              (+{line.truncated.toLocaleString()} more characters, not shown)
+            </span>
+          )}
+          {line.no_newline && (
+            <span className="ml-2 text-2xs text-ink-subtle">(no newline at end of file)</span>
+          )}
+          {!changeable && note !== undefined && <span className="sr-only select-none">{note}</span>}
+        </span>
       </span>
     </>
   );
 
   const shared = cx(
     'flex w-full items-start border-l-2 text-left',
-    LINE_CLASSES[line.kind],
     selected ? 'border-accent bg-accent-soft/60' : 'border-transparent',
   );
 
@@ -458,14 +692,93 @@ function LineView({
   return (
     <button
       type="button"
+      // The pane's roving tab stop. Every other changed line stays reachable
+      // by arrow key rather than by Tab; see moveByKey.
+      tabIndex={tabStop ? 0 : -1}
+      data-diff-line={line.index}
       aria-pressed={selected}
-      aria-label={accessibleName(line)}
-      onClick={(event) => onToggle(line, event.shiftKey)}
-      className={cx(shared, 'cursor-pointer outline-none hover:bg-hover focus-visible:focus-ring')}
+      aria-label={accessibleName(line, spans)}
+      onClick={(event) => {
+        // A press, a drag and a release inside one line is a text selection,
+        // and the browser reports it as a click on the element both ends
+        // landed in. Without this, copying an identifier or an error string
+        // out of a diff silently arms a staging selection — and the header
+        // answers that by swapping the hint for a Stage button and a red
+        // Discard one. Enter from the keyboard arrives with nothing selected,
+        // so the keyboard path is untouched.
+        if ((window.getSelection()?.toString() ?? '') !== '') {
+          return;
+        }
+        onToggle(line, event.shiftKey);
+      }}
+      className={cx(
+        shared,
+        'cursor-pointer outline-none focus-visible:focus-ring',
+        // Not on a chosen line: --color-hover is opaque, so hovering one would
+        // paint over the accent wash and take away the only full-width mark
+        // the choice has. The other row lists in the workbench draw the same
+        // bargain the same way.
+        !selected && 'hover:bg-hover',
+      )}
     >
       {content}
     </button>
   );
+}
+
+/**
+ * One run of a line: the part that moved, the whitespace that cannot be seen,
+ * or ordinary text.
+ *
+ * The glyphs are drawn INSTEAD of the whitespace and the whitespace is kept
+ * beside them at zero width, which is the only arrangement that satisfies both
+ * halves of the problem. Replacing the characters outright would put a middle
+ * dot into every copy taken out of the pane, and pasting `····fmt.Println` into
+ * an editor is a worse day than not seeing the indent change; leaving them
+ * alone and tinting the run instead cannot distinguish a tab from the four
+ * spaces that replaced it, which is the commonest whitespace change there is.
+ * So the visible run is select-none and aria-hidden, and the twin beside it —
+ * clipped to no width, whitespace-pre so the copy keeps every character — is
+ * what a selection actually picks up. The line numbers in this same component
+ * have relied on select-none for a clean copy since the pane was written.
+ *
+ * A tab keeps its own character after the arrow rather than being replaced by
+ * a fixed number of spaces: the arrow occupies one column and the real tab
+ * then advances to the next tab stop, so the text after it lands exactly where
+ * it lands on every other line. An arrow alone would be one column wide where
+ * the tab was four, and the file would step in and out down the page.
+ *
+ * align-bottom on the twin is not decoration. An inline-block whose overflow
+ * is not visible takes its baseline from its bottom margin edge rather than
+ * from the line inside it, so the twin — a whole line-height tall, standing on
+ * the row's baseline — grows the line box above it and the row comes out
+ * taller than every row around it. Aligning it to the bottom of the line
+ * instead makes it fit inside the height the row already had. A pane whose
+ * rows change height wherever an indent changed is the jitter the fixed gutter
+ * exists to prevent, arrived at from the other direction.
+ */
+function Span({ span, tint }: { span: LineSpan; tint: string }) {
+  const marked = span.changed ? tint : undefined;
+
+  if (!span.glyphs) {
+    return marked === undefined ? <>{span.text}</> : <span className={marked}>{span.text}</span>;
+  }
+
+  return (
+    <span className={marked}>
+      <span aria-hidden="true" className="select-none">
+        {glyphsFor(span.text)}
+      </span>
+      <span className="inline-block w-0 overflow-hidden align-bottom whitespace-pre">
+        {span.text}
+      </span>
+    </span>
+  );
+}
+
+/** A middle dot per space, an arrow per tab — and the tab itself, for width. */
+function glyphsFor(text: string): string {
+  return [...text].map((character) => (character === '\t' ? '→\t' : '·')).join('');
 }
 
 /**
@@ -548,13 +861,47 @@ function Notice({ title, description }: { title: string; description: string }) 
 }
 
 /**
+ * Whether the cap bit.
+ *
+ * One comparison, so no view can draw a capped patch and fail to say so — and
+ * so the two notices that say it cannot disagree about when to appear.
+ */
+function overCap(drawn: number): boolean {
+  return drawn > MAX_DRAWN_LINES;
+}
+
+/**
+ * That the patch is cut, said where the reader begins.
+ *
+ * The paragraph at the foot of the pane is the honest full version and it is
+ * two thousand lines away: on a rewritten lockfile it sits fifty screens down,
+ * which is a sentence only somebody who already knows the patch is cut will
+ * ever reach. A reader staging from the top otherwise has no way to learn that
+ * the file continues.
+ */
+function Capped({ drawn, children }: { drawn: number; children?: ReactNode }) {
+  if (!overCap(drawn)) {
+    return null;
+  }
+
+  return (
+    <p className="border-b border-line bg-sunken px-3 py-2 font-sans text-2xs text-ink-muted">
+      <span className="text-ink">
+        Showing the first {MAX_DRAWN_LINES.toLocaleString('en-GB')} lines
+      </span>{' '}
+      of {drawn.toLocaleString('en-GB')}. {children}
+    </p>
+  );
+}
+
+/**
  * What the cap left out, or nothing when it was not reached.
  *
  * The comparison lives with the number rather than at each call site, so a
  * view cannot draw a truncated patch and forget to say that it did.
  */
 function Truncated({ drawn, children }: { drawn: number; children?: ReactNode }) {
-  if (drawn <= MAX_DRAWN_LINES) {
+  if (!overCap(drawn)) {
     return null;
   }
 
@@ -586,21 +933,30 @@ export function ReadOnlyPatch({
   onBlame?: (path: string) => void;
 }) {
   const starts = firstLineOfFile(files);
+  const drawn = countPatchLines(files);
+  // One width for the whole patch rather than one per file: the files are
+  // drawn into a single scroll region, and a gutter that resized at each
+  // header would step the whole page sideways as the reader went down it.
+  const gutter = gutterWidth(files);
 
   return (
     <>
+      <Capped drawn={drawn} />
+
       {files.map((file, position) => (
         <ReadOnlyDiff
           key={file.path}
           diff={file}
           drawnBefore={starts[position] ?? 0}
+          gutter={gutter}
           {...(onFileHistory === undefined ? {} : { onHistory: () => onFileHistory(file.path) })}
           {...(onBlame === undefined || file.binary || file.removed
             ? {}
             : { onBlame: () => onBlame(file.path) })}
         />
       ))}
-      <Truncated drawn={countPatchLines(files)} />
+
+      <Truncated drawn={drawn} />
     </>
   );
 }
@@ -621,11 +977,13 @@ export function ReadOnlyPatch({
 function ReadOnlyDiff({
   diff,
   drawnBefore,
+  gutter,
   onHistory,
   onBlame,
 }: {
   diff: FileDiff;
   drawnBefore: number;
+  gutter: string;
   onHistory?: () => void;
   onBlame?: () => void;
 }) {
@@ -668,6 +1026,7 @@ function ReadOnlyDiff({
               key={position}
               hunk={hunk}
               firstDrawnLine={drawnBefore + firstLineOfHunk(diff, position)}
+              gutter={gutter}
             />
           ))}
         </div>
@@ -676,17 +1035,41 @@ function ReadOnlyDiff({
   );
 }
 
-/** Every added and removed line of a hunk: what a selection can name. */
-export function changedIn(hunk: DiffHunk): number[] {
-  return hunk.lines.filter((line) => line.kind !== 'context').map((line) => line.index);
+/**
+ * Every added and removed line of a hunk that the cap let through: what a
+ * selection can name.
+ *
+ * Bounded rather than complete, and the discard is why. A 3,200-line patch
+ * draws its first 2,000 and the hunk header above them keeps a working
+ * "Discard hunk" — unbounded, that button destroys 1,200 lines the pane
+ * deliberately refused to show, and the only thing between it and silent loss
+ * is a confirmation naming a count nobody can check. `firstDrawnLine` is where
+ * this hunk starts in everything being drawn, which is what makes the answer
+ * the same one the renderer arrived at.
+ */
+export function changedIn(hunk: DiffHunk, firstDrawnLine: number): number[] {
+  const indices: number[] = [];
+  hunk.lines.forEach((line, offset) => {
+    if (line.kind !== 'context' && firstDrawnLine + offset < MAX_DRAWN_LINES) {
+      indices.push(line.index);
+    }
+  });
+  return indices;
 }
 
 /**
  * The same across a whole diff, in the order the lines are drawn — which is
- * the order a Shift+click range runs through.
+ * the order a Shift+click range runs through, and the order the arrow keys
+ * walk.
  */
 export function changedLines(diff: FileDiff): number[] {
-  return diff.hunks.flatMap(changedIn);
+  const indices: number[] = [];
+  let firstDrawnLine = 0;
+  for (const hunk of diff.hunks) {
+    indices.push(...changedIn(hunk, firstDrawnLine));
+    firstDrawnLine += hunk.lines.length;
+  }
+  return indices;
 }
 
 /** How many body lines the whole diff holds. */
@@ -723,4 +1106,296 @@ export function firstLineOfFile(files: readonly FileDiff[]): number[] {
 /** How many body lines a whole patch holds. */
 export function countPatchLines(files: readonly FileDiff[]): number {
   return files.reduce((total, file) => total + countDrawnLines(file), 0);
+}
+
+/**
+ * How wide both line-number columns are drawn, for the whole of what is drawn
+ * at once.
+ *
+ * One width for both columns and for every line, chosen from the largest
+ * number any of them will show. The fixed gutter is what keeps the +/- marker
+ * from stepping sideways down a file, and at the single width it used to have
+ * a six-digit number ran 2px into the column beside it — real, if only in a
+ * file of a hundred thousand lines. Sized in steps off the spacing scale
+ * rather than in `ch` through an inline style: a width invented in a component
+ * is the thing the token rule exists to stop, and three steps cover every file
+ * anybody has.
+ */
+export function gutterWidth(files: readonly FileDiff[]): string {
+  let widest = 0;
+  for (const file of files) {
+    for (const hunk of file.hunks) {
+      widest = Math.max(widest, hunk.old_start + hunk.old_lines, hunk.new_start + hunk.new_lines);
+    }
+  }
+
+  const digits = String(widest).length;
+  if (digits <= 4) {
+    return 'w-10';
+  }
+  return digits <= 6 ? 'w-14' : 'w-16';
+}
+
+/**
+ * One run of a line, and what is true of it.
+ *
+ * A line is a list of these or nothing at all — nothing being the ordinary
+ * case, where the text is drawn as it arrived and no span wraps it.
+ */
+export interface LineSpan {
+  text: string;
+  /** Part of what differs from the line this one is drawn against. */
+  changed: boolean;
+  /** Whitespace with nothing to show for itself: drawn as glyphs. */
+  glyphs: boolean;
+}
+
+/**
+ * What changed INSIDE each changed line of a hunk, where that can be said.
+ *
+ * A one-character change is otherwise two fully tinted lines and no mark on
+ * the character: the reader compares two long strings by eye, which is the
+ * work this screen exists to spare them. Comparing the two lines is only
+ * meaningful if they are versions of each other, and nothing on the wire says
+ * they are — `DiffLine` carries kind, text and numbers, and git's own output
+ * has no intra-line information in it at all. So the pairing is inferred, and
+ * inferred narrowly: a run of removed lines followed by a run of added ones,
+ * of the SAME length, is taken as line-for-line replacement. Three removed and
+ * five added is a rewrite whose lines do not correspond, and a confidently
+ * drawn highlight over the wrong pair is worse than the flat tint, which at
+ * least only claims the line changed.
+ *
+ * A word-level diff in the daemon is the larger version of this and would
+ * change the wire type. This is the frontend half of it: pure, cheap, and
+ * wrong about nothing it does not first check.
+ *
+ * `drawable` is how many of the hunk's lines the cap left room for, and the
+ * rest are not read at all: nothing past it is on screen to be marked, and the
+ * pane's whole defence against a sixty-thousand-line hunk is that it does no
+ * work per line it does not draw. A pair the boundary cuts in half stops being
+ * a pair — the two runs are no longer the same length — so the last lines
+ * before the drawing stops keep the flat tint, which is the same answer this
+ * function gives anywhere else it cannot see both sides.
+ */
+export function markedSpans(hunk: DiffHunk, drawable: number): Map<number, LineSpan[]> {
+  const marked = new Map<number, LineSpan[]>();
+  // Clamped rather than trusted. `drawable` is a subtraction at the call site,
+  // and a negative one handed to slice counts back from the END of the hunk —
+  // which would mark the lines the cap threw away and none of the ones on
+  // screen, silently and only on the largest patches in a repository.
+  const room = Math.min(Math.max(drawable, 0), hunk.lines.length);
+  const lines = room === hunk.lines.length ? hunk.lines : hunk.lines.slice(0, room);
+
+  const record = (line: DiffLine, against: string | undefined) => {
+    const spans = spansAgainst(line.text, against);
+    if (spans !== undefined) {
+      marked.set(line.index, spans);
+    }
+  };
+
+  let at = 0;
+  while (at < lines.length) {
+    if (lines[at]?.kind === 'context') {
+      at += 1;
+      continue;
+    }
+
+    const removed = runOf(lines, at, 'removed');
+    const added = runOf(lines, at + removed.length, 'added');
+    if (removed.length === 0 && added.length === 0) {
+      at += 1;
+      continue;
+    }
+
+    const paired = removed.length === added.length;
+    removed.forEach((line, index) => record(line, paired ? added[index]?.text : undefined));
+    added.forEach((line, index) => record(line, paired ? removed[index]?.text : undefined));
+    at += removed.length + added.length;
+  }
+
+  return marked;
+}
+
+/** A run of consecutive lines of one kind, starting where it is told to. */
+function runOf(lines: readonly DiffLine[], from: number, kind: DiffLine['kind']): DiffLine[] {
+  const run: DiffLine[] = [];
+  for (let at = from; at < lines.length; at += 1) {
+    const line = lines[at];
+    if (line === undefined || line.kind !== kind) {
+      break;
+    }
+    run.push(line);
+  }
+  return run;
+}
+
+/**
+ * One line split into what stayed, what moved, and the whitespace nobody can
+ * see — or nothing, when there is neither.
+ *
+ * `against` is the line this one replaced, where there is one. Without it only
+ * trailing whitespace can be marked, because everything else is a comparison.
+ *
+ * Which whitespace is drawn is a decision and not an omission. Always-on
+ * markers turn the indent of every added line in a Go or Python file into a
+ * field of dots, so the ones that matter are read as texture and skipped;
+ * behind a toggle they are off on the render that mattered, because nobody
+ * turns on a control to see something they do not yet know is there. So they
+ * are drawn exactly where they carry information: whitespace that DIFFERS from
+ * the line this one replaced, and trailing whitespace, which is invisible by
+ * construction and never deliberate. An ordinary indent is not news; an indent
+ * that changed is the whole of the news.
+ *
+ * Only spaces and tabs count as whitespace here. A carriage return is the
+ * third candidate and it is deliberately left out: a file with CRLF endings
+ * carries one on every line, and marking them would put a glyph at the end of
+ * every changed line in every repository written on Windows to say nothing at
+ * all.
+ */
+export function spansAgainst(text: string, against: string | undefined): LineSpan[] | undefined {
+  const mine = split(text);
+  const theirs = against === undefined ? undefined : split(against);
+
+  const leadChanged = theirs !== undefined && mine.lead !== theirs.lead;
+  const trailChanged = theirs !== undefined && mine.trail !== theirs.trail;
+
+  const spans: LineSpan[] = [];
+  if (mine.lead !== '') {
+    spans.push({ text: mine.lead, changed: leadChanged, glyphs: leadChanged });
+  }
+  spans.push(...bodySpans(mine.body, theirs?.body));
+  if (mine.trail !== '') {
+    spans.push({ text: mine.trail, changed: trailChanged, glyphs: true });
+  }
+
+  // Nothing to say about the line: it is drawn as the plain text it always
+  // was, which is also what keeps the ordinary line to a single text node.
+  return spans.some((span) => span.changed || span.glyphs) ? spans : undefined;
+}
+
+/**
+ * The body of a line against the body of the line it replaced.
+ *
+ * Tokens rather than characters, and the difference is what makes the result
+ * readable: `colour` against `color` shares the letters either side of the
+ * `u`, so a character-level answer highlights one letter in the middle of a
+ * word and leaves the reader to work out which word it was in. A token-level
+ * answer highlights `colour` and `color`, which is the word that changed.
+ *
+ * Two lines that share no token at all get no highlight. They are not versions
+ * of each other in any way this can see — `two` against `TWO` shares nothing —
+ * and a highlight over the whole line only restates the tint already under it.
+ */
+function bodySpans(body: string, against: string | undefined): LineSpan[] {
+  if (body === '') {
+    return [];
+  }
+
+  const flat = [{ text: body, changed: false, glyphs: false }];
+  if (against === undefined || against === '') {
+    return flat;
+  }
+
+  const mine = tokens(body);
+  const theirs = tokens(against);
+
+  let head = 0;
+  while (head < mine.length && head < theirs.length && mine[head] === theirs[head]) {
+    head += 1;
+  }
+
+  let tail = 0;
+  while (
+    tail < mine.length - head &&
+    tail < theirs.length - head &&
+    mine[mine.length - 1 - tail] === theirs[theirs.length - 1 - tail]
+  ) {
+    tail += 1;
+  }
+
+  if (head === 0 && tail === 0) {
+    return flat;
+  }
+
+  const middle = mine.slice(head, mine.length - tail).join('');
+  if (middle === '') {
+    // Everything this line holds is shared: the change is on the other side of
+    // the pair, which will mark it. Saying so twice would mark a line for
+    // holding what did not change.
+    return flat;
+  }
+
+  const before = mine.slice(0, head).join('');
+  const after = mine.slice(mine.length - tail).join('');
+
+  const spans: LineSpan[] = [];
+  if (before !== '') {
+    spans.push({ text: before, changed: false, glyphs: false });
+  }
+  spans.push({ text: middle, changed: true, glyphs: blank(middle) });
+  if (after !== '') {
+    spans.push({ text: after, changed: false, glyphs: false });
+  }
+  return spans;
+}
+
+/**
+ * A line's leading whitespace, its body, and its trailing whitespace.
+ *
+ * A line that is nothing but whitespace is all trailing: there is no body for
+ * it to lead, and trailing whitespace is the run that gets drawn whether or
+ * not there is a line to compare it with.
+ *
+ * Scanned from both ends rather than matched with `/[ \t]+$/`, which is the
+ * obvious way to write it and is quadratic on the input this pane is given.
+ * That pattern consumes a run of whitespace, fails the anchor, hands one
+ * character back, fails again — and starts over from the next position in the
+ * run. The daemon caps a line at two thousand runes, so a line that is two
+ * thousand spaces and a character costs two million steps, times every line of
+ * a file made of them. A scan is linear and says the same thing.
+ */
+function split(text: string): { lead: string; body: string; trail: string } {
+  let end = text.length;
+  while (end > 0 && isBlank(text[end - 1])) {
+    end -= 1;
+  }
+
+  let start = 0;
+  while (start < end && isBlank(text[start])) {
+    start += 1;
+  }
+
+  return { lead: text.slice(0, start), body: text.slice(start, end), trail: text.slice(end) };
+}
+
+/**
+ * The whitespace this pane draws, one character at a time.
+ *
+ * Spaces and tabs and nothing else, in one place, because `split` and `blank`
+ * asking the question two different ways is how a carriage return ends up
+ * dotted on one side of the pane and not the other.
+ */
+function isBlank(character: string | undefined): boolean {
+  return character === ' ' || character === '\t';
+}
+
+/**
+ * A line cut into words, whitespace and everything else.
+ *
+ * Unicode letters and digits, not `\w`: an identifier in a language people
+ * write in is `préférence` or `店舗名`, and a class that stops at ASCII would
+ * cut both into a run of single characters and mark the whole word as moved.
+ */
+function tokens(text: string): string[] {
+  return text.match(/[\p{L}\p{N}_]+|[ \t]+|[^\p{L}\p{N}_ \t]+/gu) ?? [];
+}
+
+/** Whitespace and nothing else — a run that would be drawn as blank. */
+function blank(text: string): boolean {
+  for (const character of text) {
+    if (!isBlank(character)) {
+      return false;
+    }
+  }
+  return text !== '';
 }

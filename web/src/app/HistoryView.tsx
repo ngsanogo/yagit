@@ -49,6 +49,40 @@ export type Inspected =
   | { kind: 'line-history'; path: string; revision: string; line: number };
 
 /**
+ * The height the panel under the list is given, in one place because all five
+ * of them are the same slot and a disagreement between them would be a panel
+ * that jumps when the kind of thing open in it changes.
+ *
+ * Two fifths of the column, with a floor. The ratio on its own reached zero:
+ * a commit's header — subject, author, parents, the files badge — is around a
+ * hundred and thirty pixels that cannot shrink, so on a short window the part
+ * that disappeared was the patch, which is the whole of what reading a commit
+ * means. The floor is that header plus a few lines of diff. The list above is
+ * `flex-1` over a virtualised scroller, so it is the half that can afford to
+ * give the pixels up.
+ */
+const INSPECT_PANEL = 'h-2/5 min-h-64 shrink-0';
+
+/**
+ * The magnifier on the search button.
+ *
+ * Here rather than in ThemeGlyphs, which is the theme control's own set and
+ * named for it; one glyph used in one place is not a shared module yet. It
+ * exists because of what sits beside it — a three-segment switch drawn in the
+ * same size, weight and colour as a ghost button, which left the door to the
+ * search dialog reading as a fourth, unselected setting. A glyph is the one
+ * mark a segment of a switch never carries.
+ */
+function SearchGlyph() {
+  return (
+    <svg width="13" height="13" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+      <circle cx="6" cy="6" r="4.25" stroke="currentColor" strokeWidth="1.3" />
+      <path d="M9.1 9.1 12.6 12.6" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+/**
  * The history: the graph and its commits, the references beside them, and what
  * the repository holds that is not a commit.
  *
@@ -77,7 +111,7 @@ export function HistoryView({
   // inspected leaves the history with nothing marked — which is correct: no
   // row on it is the thing on screen.
   const selected = inspected?.kind === 'commit' ? inspected.sha : undefined;
-  const onSelect = (sha: string) => onInspect({ kind: 'commit', sha });
+  const select = (sha: string) => onInspect({ kind: 'commit', sha });
 
   // The graph is drawn from the current branch until somebody asks for more.
   // Every ref is the picture that does not exist on a repository with enough
@@ -189,7 +223,7 @@ export function HistoryView({
    */
   const goTo = (sha: string) => {
     wanted.current = sha;
-    onSelect(sha);
+    select(sha);
     queryClient
       .fetchQuery(commitQuery(repository.id, sha, walkScope, chosenRefs))
       .then((located) => {
@@ -205,6 +239,34 @@ export function HistoryView({
       });
   };
 
+  /**
+   * A click on a row of the list.
+   *
+   * The first one costs the list two fifths of its height, because that is
+   * when the panel below opens — so a row clicked in the lower half of the
+   * screen is behind that panel by the time its patch arrives, with
+   * aria-current on a row nobody can see and no way back to it but the eye.
+   * Following it is the same courtesy goTo already does for a reference, out
+   * of the same cached answer: the panel below asks for exactly this query, so
+   * the row costs no request of its own.
+   *
+   * Only the opening click. With the panel already showing something the list
+   * keeps its height and the row keeps its place, and scrolling anyway would
+   * move the history under a reader who could see the row perfectly well.
+   */
+  const selectRow = (sha: string) => {
+    if (inspected === undefined) {
+      goTo(sha);
+      return;
+    }
+    // And it cancels a jump still in flight, for the reason `wanted` exists at
+    // all: the answer to the click before this one can land after it, and a
+    // scroll from an older click would take the list away from the row the
+    // reader has just chosen.
+    wanted.current = undefined;
+    select(sha);
+  };
+
   return (
     <div className="flex min-h-0 flex-1 gap-3 p-3">
       {/* The list above, the chosen commit below it. Stacked rather than in a
@@ -215,22 +277,34 @@ export function HistoryView({
           className="min-w-0 flex-1"
           title={`History${history.isPending || history.error ? '' : ` — ${history.total}`}`}
           actions={
-            <div className="flex items-center gap-2">
-              <Button size="sm" variant="ghost" onClick={() => openDialog({ kind: 'search' })}>
+            // Two things, spaced as two: the door to a dialog, then the
+            // controls that decide what the graph is drawn from. Search used
+            // to sit inside the same gap as the switch's own parts, in the
+            // same ghost type, which made a button that opens a dialog read
+            // as a setting that is currently off.
+            <div className="flex items-center gap-3">
+              <Button
+                size="sm"
+                variant="ghost"
+                leading={<SearchGlyph />}
+                onClick={() => openDialog({ kind: 'search' })}
+              >
                 Search…
               </Button>
-              <SegmentedControl
-                label="Refs the graph is drawn from"
-                segments={HISTORY_SCOPES}
-                value={scope}
-                onChange={chooseScope}
-              />
-              {/* Beside the switch rather than inside it: which references
-                  were picked is a second question, asked only of the scope
-                  that reads them. */}
-              {scope === 'refs' && (
-                <RefPicker refs={known} selected={chosenRefs} onChange={setSelectedRefs} />
-              )}
+              <div className="flex items-center gap-2">
+                <SegmentedControl
+                  label="Refs the graph is drawn from"
+                  segments={HISTORY_SCOPES}
+                  value={scope}
+                  onChange={chooseScope}
+                />
+                {/* Beside the switch rather than inside it: which references
+                    were picked is a second question, asked only of the scope
+                    that reads them. */}
+                {scope === 'refs' && (
+                  <RefPicker refs={known} selected={chosenRefs} onChange={setSelectedRefs} />
+                )}
+              </div>
             </div>
           }
           flush
@@ -264,13 +338,13 @@ export function HistoryView({
               scope={walkScope}
               refs={chosenRefs}
               selected={selected}
-              onSelect={onSelect}
+              onSelect={selectRow}
             />
           )}
         </Panel>
 
         {inspected?.kind === 'stash' && (
-          <div className="h-2/5 min-h-0 shrink-0">
+          <div className={INSPECT_PANEL}>
             <StashDetails
               // Keyed by the position, so choosing another stash starts from
               // nothing rather than showing the previous one's patch under the
@@ -284,7 +358,7 @@ export function HistoryView({
         )}
 
         {inspected?.kind === 'file-history' && (
-          <div className="h-2/5 min-h-0 shrink-0">
+          <div className={INSPECT_PANEL}>
             <FileHistoryPanel
               key={`${inspected.path}@${inspected.revision}`}
               repositoryId={repository.id}
@@ -297,7 +371,7 @@ export function HistoryView({
         )}
 
         {inspected?.kind === 'blame' && (
-          <div className="h-2/5 min-h-0 shrink-0">
+          <div className={INSPECT_PANEL}>
             <BlamePanel
               key={`${inspected.path}@${inspected.revision}`}
               repositoryId={repository.id}
@@ -318,7 +392,7 @@ export function HistoryView({
         )}
 
         {inspected?.kind === 'line-history' && (
-          <div className="h-2/5 min-h-0 shrink-0">
+          <div className={INSPECT_PANEL}>
             <LineHistoryPanel
               key={`${inspected.path}:${inspected.line}@${inspected.revision}`}
               repositoryId={repository.id}
@@ -332,7 +406,7 @@ export function HistoryView({
         )}
 
         {selected !== undefined && (
-          <div className="h-2/5 min-h-0 shrink-0">
+          <div className={INSPECT_PANEL}>
             <CommitDetails
               // Keyed by the commit, so choosing another one starts from
               // nothing rather than showing the previous commit's patch under
@@ -376,25 +450,63 @@ export function HistoryView({
         )}
       </div>
 
-      {/* A flex column, and it has to be one. The panel inside asks for
-          `flex-1` and `min-h-0`, and the list inside that for `h-full
-          overflow-auto` — none of which means anything in a plain block, where
-          the height is whatever the content comes to. The references then grew
-          the page instead of scrolling: yagit's own repository already
-          overflowed a 900-pixel window by five hundred, and the repository
-          this application exists to draw has a thousand tags. */}
-      <div className="flex w-72 shrink-0 flex-col gap-3">
+      {/* One scroller for the whole column, and every panel in it sized to
+          what it holds. The invariant is the one this column has always had —
+          a repository with a thousand tags must scroll something other than
+          the page, and yagit's own already overflowed a 900-pixel window by
+          five hundred — but the element that takes the overflow is the column
+          rather than each panel in turn.
+
+          What that replaces is a column in which the references were both the
+          only child that could grow and the only one that could shrink:
+          `flex-1` against four capped siblings. They took every spare pixel on
+          a tall window — five hundred of them, half of it empty bordered
+          surface, for five branches — and were the first thing crushed on a
+          short one, down past their own header while a panel listing two
+          filename patterns kept its full height. Sized to content they take
+          neither, and the cap on the references panel itself is what keeps the
+          thousand tags scrolling inside it instead of pushing the stash off
+          the bottom of the column. */}
+      {/* Twenty rem, and it was eighteen. The extra two are what the labels
+          in these panel headers now need: every one of them that opens a
+          dialog carries an ellipsis, and two of them sit beside a panel title
+          in 288 pixels. "References" was the part that gave way — the header
+          measured 262 pixels of room, the actions took 186 of it, and the
+          title needed 84 of the 64 that were left, so the one word naming the
+          panel was drawn as "REFERE…". The column is also where a branch name
+          is read, and those truncate first everywhere else too. What it costs
+          is 32 pixels of the history beside it, which is a column the commit
+          rows stopped needing when they stopped stacking. */}
+      <div className="flex w-80 shrink-0 flex-col gap-3 overflow-y-auto">
         {refs.isPending && (
-          <Panel title="References" className="h-full">
+          <Panel title="References" className="shrink-0">
             <Centered compact>
               <Spinner label="Reading the references" />
             </Centered>
           </Panel>
         )}
 
-        {refs.isError && (
-          <Panel title="References" className="h-full">
-            <QueryErrorState title="Could not read the references" error={refs.error} compact />
+        {/* Only where there is nothing to fall back on. A query that has
+            answered once keeps its data when a later read fails, so `isError`
+            and `data` are both true after a refetch that git refused — and
+            drawing both branches put two regions called "References" on the
+            screen at once, which is one landmark too many for anybody moving
+            between them by name.
+
+            The list wins that tie, for the reason CommitList states about a
+            failed page: a refetch that failed is no reason to take a list off
+            the screen that is still on it. The refusal is not lost with it —
+            the command, its exit code and its stderr are in the command log,
+            which is where every git failure lands whether or not a panel is
+            free to draw it. */}
+        {refs.isError && refs.data === undefined && (
+          <Panel title="References" className="shrink-0">
+            <QueryErrorState
+              title="Could not read the references"
+              error={refs.error}
+              compact
+              retry={refs}
+            />
           </Panel>
         )}
 
@@ -418,6 +530,14 @@ export function HistoryView({
             {...(ops.remotes.isFetched && configuredRemotes.length === 0
               ? { pushTagUnavailableReason: 'This repository has no remote configured.' }
               : {})}
+            // No HEAD is a repository with no commit yet, and `git tag` on one
+            // answers "fatal: Failed to resolve 'HEAD' as a valid ref". The
+            // button stays and says why, the way every other refusal on this
+            // screen does. New branch beside it is NOT refused: git points an
+            // unborn HEAD at a new branch quite happily.
+            {...(refs.data.head === undefined
+              ? { newTagUnavailableReason: 'There is no commit to tag yet.' }
+              : {})}
           />
         )}
 
@@ -425,14 +545,17 @@ export function HistoryView({
             rather than of things that happened. A bare repository has neither
             a work tree to save nor one to restore into, so it has no panel.
 
-            A direct child of the column, so the flex algorithm can shrink it:
-            wrapped in a shrink-0 box it was the page that overflowed instead
-            of the panel. */}
+            A direct child of the column, and sized to its own content like
+            every panel in it. What used to overflow the page was a column that
+            could not scroll, and making the panels give up rows was the
+            workaround for that; the column scrolls now, so a panel that keeps
+            its rows costs nothing and hides nothing. */}
         {canCheckOut && (
           <StashPanel
             stashes={ops.stash.stashes.data}
             loading={ops.stash.stashes.isPending}
             {...(ops.stash.stashes.error === null ? {} : { error: ops.stash.stashes.error })}
+            retry={ops.stash.stashes}
             {...(inspected?.kind === 'stash' ? { selected: inspected.index } : {})}
             onSelect={(chosen) => onInspect({ kind: 'stash', index: chosen.index })}
             onStash={() => proposals.proposeStash()}
@@ -451,6 +574,7 @@ export function HistoryView({
           worktrees={ops.worktrees.list.data?.worktrees}
           loading={ops.worktrees.list.isPending}
           {...(ops.worktrees.list.error === null ? {} : { error: ops.worktrees.list.error })}
+          retry={ops.worktrees.list}
           onAdd={() => openDialog({ kind: 'add-worktree', plan: undefined })}
           adding={ops.worktrees.plan.isPending && dialog?.kind !== 'add-worktree'}
           onRemove={proposals.proposeWorktreeRemove}
@@ -459,12 +583,13 @@ export function HistoryView({
         />
 
         {/* Under the worktrees, and drawn only where there is one: most
-            repositories pin nothing, and an empty panel would cost the
-            references height for a sentence saying so. */}
+            repositories pin nothing, and an empty panel would be one more
+            thing to scroll this column past for a sentence saying so. */}
         <SubmodulePanel
           submodules={ops.submodules.list.data?.submodules}
           loading={ops.submodules.list.isPending}
           {...(ops.submodules.list.error === null ? {} : { error: ops.submodules.list.error })}
+          retry={ops.submodules.list}
           onUpdate={(path) => ops.submodules.update.mutate(path)}
           updating={ops.submodules.update.isPending}
           onSync={() => ops.submodules.sync.mutate('')}
@@ -478,6 +603,7 @@ export function HistoryView({
             support={ops.lfs.support.data}
             loading={ops.lfs.support.isPending}
             {...(ops.lfs.support.error === null ? {} : { error: ops.lfs.support.error })}
+            retry={ops.lfs.support}
             onUntrack={proposals.proposeUntrackLFS}
           />
         )}

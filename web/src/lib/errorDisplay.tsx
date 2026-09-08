@@ -4,6 +4,55 @@ import { ApiError } from '../api/client';
 import { GitFailureDetail } from '../components/GitFailureDetail';
 
 /**
+ * What the daemon's message adds to git's own account of the failure.
+ *
+ * The daemon sends both: `message` is the error chain rendered as a string,
+ * and a git failure at the end of that chain renders itself as
+ * "<command>: exit code <n>: <stderr>" — the same three facts the `git`
+ * object beside it carries. Drawn as they arrive, every git failure in the
+ * product says everything twice: one failed fetch was a 406-pixel toast whose
+ * message paragraph and stderr block were the same sentence, and two of those
+ * covered the header.
+ *
+ * So the restatement is subtracted rather than the paragraph deleted. A route
+ * that wrapped the git error in a sentence of its own — "could not read the
+ * history: git log …" — has something to say that the block below cannot, and
+ * that half is what survives. When the message is the restatement and nothing
+ * else, there is nothing left to show.
+ *
+ * Exported because the two screens that hand-roll the same pair — clone and
+ * init, which draw a message and a GitFailureDetail themselves — have the
+ * same doubling, and one definition of "what git has already said" is what
+ * keeps their answer the same as this one.
+ */
+export function errorSummary(error: Error): string | undefined {
+  const git = error instanceof ApiError ? error.git : undefined;
+  if (git === undefined) {
+    return error.message;
+  }
+
+  // Rebuilt from the parts, not matched with a pattern. A command line holds
+  // whatever a branch name or a path can hold, and a pattern loose enough to
+  // cover that is a pattern that eventually eats a real sentence. The trim
+  // and the stand-in are the daemon's: it renders stderr with its whitespace
+  // stripped, and says so explicitly when git wrote nothing at all.
+  const stderr = git.stderr.trim();
+  const said = stderr === '' ? '(no error output)' : stderr;
+  const restatement = `${git.command}: exit code ${git.exit_code}: ${said}`;
+  if (!error.message.endsWith(restatement)) {
+    return error.message;
+  }
+
+  // Go joins a wrapped error to its cause with ": ", and that colon belongs to
+  // the join rather than to the sentence in front of it.
+  const context = error.message
+    .slice(0, error.message.length - restatement.length)
+    .replace(/:\s*$/, '')
+    .trim();
+  return context === '' ? undefined : context;
+}
+
+/**
  * Turns a query or mutation error into what the user should read.
  *
  * The message alone is enough for a daemon that stopped; git failures need the
@@ -11,9 +60,10 @@ import { GitFailureDetail } from '../components/GitFailureDetail';
  */
 export function errorDescription(error: Error): ReactNode {
   if (error instanceof ApiError && error.git !== undefined) {
+    const summary = errorSummary(error);
     return (
       <div className="flex flex-col items-center gap-3">
-        <p className="max-w-sm text-sm text-ink-muted">{error.message}</p>
+        {summary !== undefined && <p className="max-w-sm text-sm text-ink-muted">{summary}</p>}
         <GitFailureDetail failure={error.git} />
       </div>
     );

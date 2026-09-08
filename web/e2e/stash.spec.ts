@@ -75,6 +75,23 @@ function stashPanel(page: Page) {
   return page.getByRole('region', { name: /^Stashes/ });
 }
 
+/**
+ * Opens a stash row's menu.
+ *
+ * The trigger is drawn only for a row under the pointer or holding focus, and
+ * it takes clicks only then too — the pair moves together deliberately. An
+ * invisible control that still answered a click was how a press meant for the
+ * row opened the menu holding Drop, so hovering the row first is not a test
+ * convenience, it is the gesture.
+ */
+async function stashActions(page: Page, ref: string) {
+  const trigger = stashPanel(page).getByRole('button', { name: `Actions for ${ref}` });
+  // Two levels up from the trigger: its own wrapper is the box that fades, and
+  // the row above that is the group the hover is read from.
+  await trigger.locator('../..').hover();
+  await trigger.click();
+}
+
 test('stashes the work tree and puts it back', async ({ page }) => {
   const path = await openStashableRepository(page, 'st-round-trip');
   const git = gitIn(path);
@@ -82,7 +99,7 @@ test('stashes the work tree and puts it back', async ({ page }) => {
   const panel = stashPanel(page);
   await expect(panel).toContainText('Nothing stashed');
 
-  await panel.getByRole('button', { name: 'Stash the changes in the work tree' }).click();
+  await panel.getByRole('button', { name: /^Stash changes/ }).click();
 
   const dialog = page.getByRole('dialog');
   await expect(dialog).toBeVisible();
@@ -104,7 +121,7 @@ test('stashes the work tree and puts it back', async ({ page }) => {
   expect(git('status', '--porcelain').toString()).toBe('?? scratch.txt\n');
 
   // And back again. Pop is what the dialog opens on.
-  await stashPanel(page).getByRole('button', { name: 'Actions for stash@{0}' }).click();
+  await stashActions(page, 'stash@{0}');
   await page.getByRole('menuitem', { name: 'Put back…' }).click();
 
   const putBack = page.getByRole('dialog');
@@ -124,7 +141,7 @@ test('including untracked files changes both the count and what is left behind',
   const path = await openStashableRepository(page, 'st-untracked');
 
   await stashPanel(page)
-    .getByRole('button', { name: 'Stash the changes in the work tree' })
+    .getByRole('button', { name: /^Stash changes/ })
     .click();
 
   const dialog = page.getByRole('dialog');
@@ -161,7 +178,7 @@ test('a work tree with nothing tracked to save can still be stashed through the 
   await page.getByRole('tab', { name: /st-only-untracked/ }).click();
 
   await stashPanel(page)
-    .getByRole('button', { name: 'Stash the changes in the work tree' })
+    .getByRole('button', { name: /^Stash changes/ })
     .click();
 
   const dialog = page.getByRole('dialog');
@@ -186,7 +203,7 @@ test('a clean work tree refuses the button and says why', async ({ page }) => {
   await page.getByRole('tab', { name: /st-clean/ }).click();
 
   const button = stashPanel(page).getByRole('button', {
-    name: 'Stash the changes in the work tree',
+    name: /^Stash changes/,
   });
   await expect(button).toBeDisabled();
   await expect(
@@ -198,7 +215,7 @@ test('a stash shows what it holds', async ({ page }) => {
   await openStashableRepository(page, 'st-inspect');
 
   await stashPanel(page)
-    .getByRole('button', { name: 'Stash the changes in the work tree' })
+    .getByRole('button', { name: /^Stash changes/ })
     .click();
   const dialog = page.getByRole('dialog');
   await dialog.getByRole('textbox', { name: 'Message' }).fill('what it holds');
@@ -228,7 +245,7 @@ test('dropping names what it takes, and the position it acts on', async ({ page 
   await page.getByRole('tab', { name: /st-drop/ }).click();
   await expect(stashPanel(page)).toContainText('the older one');
 
-  await stashPanel(page).getByRole('button', { name: 'Actions for stash@{1}' }).click();
+  await stashActions(page, 'stash@{1}');
   await page.getByRole('menuitem', { name: 'Drop…' }).click();
 
   const dialog = page.getByRole('dialog');
@@ -265,7 +282,7 @@ test('a stash that no longer holds that position is refused rather than applied'
   await page.reload();
   await page.getByRole('tab', { name: /st-moved/ }).click();
 
-  await stashPanel(page).getByRole('button', { name: 'Actions for stash@{0}' }).click();
+  await stashActions(page, 'stash@{0}');
   await page.getByRole('menuitem', { name: 'Put back…' }).click();
 
   const dialog = page.getByRole('dialog');
@@ -279,7 +296,7 @@ test('a stash that no longer holds that position is refused rather than applied'
   await dialog.getByRole('button', { name: 'Pop' }).click();
 
   await expect(
-    page.getByRole('status').filter({ hasText: 'no longer at that position' }),
+    page.getByRole('alert').filter({ hasText: 'no longer at that position' }),
   ).toBeVisible();
   expect(git('stash', 'list').toString().split('\n').filter(Boolean)).toHaveLength(2);
 });

@@ -30,9 +30,10 @@ import {
  * reversible right up until the save.
  *
  * Distinct from taking a side of the WHOLE file, which is `git checkout --ours`
- * and does leave the browser. Both exist because they answer different
- * questions: one file where every region goes the same way is one command, and
- * a file where they do not is this.
+ * and does leave the browser — and which therefore shows its commands and asks
+ * first, where these buttons do neither and should not. Both exist because they
+ * answer different questions: one file where every region goes the same way is
+ * one command, and a file where they do not is this.
  */
 
 interface ConflictResolverProps {

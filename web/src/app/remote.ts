@@ -108,10 +108,20 @@ export function remoteOffers(
     // The status has not answered yet. Fetching is still true — it depends on
     // the remotes alone — and the other two wait rather than guessing, because
     // the guess would be a Push button on a detached HEAD.
+    //
+    // Written without a trailing "…", which is not a detail here. What the
+    // mark means everywhere else in this interface is that the control asks a
+    // question before it acts — Delete…, Force push…, Unset upstream…,
+    // Search… — and no spinner label in the application carries it, including
+    // the workbench's own "Reading the work tree" for this very wait.
+    // These two reasons wore it for "in progress" instead, so one mark carried
+    // two opposite promises, and one sentence appeared on one screen spelt two
+    // ways.
+    const reading = 'Reading the work tree';
     return {
       canFetch: true,
-      pull: { kind: 'unavailable', reason: 'Reading the working directory…' },
-      push: { kind: 'unavailable', reason: 'Reading the working directory…' },
+      pull: { kind: 'unavailable', reason: reading },
+      push: { kind: 'unavailable', reason: reading },
       diverged: false,
     };
   }

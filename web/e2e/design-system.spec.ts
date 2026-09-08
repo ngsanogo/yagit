@@ -175,7 +175,14 @@ test('the tablist owns nothing but tabs, and Delete is why that is enough', asyn
   // The other half of the same decision, asserted together on purpose. Hiding
   // the close button is only acceptable while the keyboard has its own way to
   // close a tab; remove the shortcut and this test says so.
-  await expect(tablist.getByRole('tab').first()).toHaveAttribute('aria-keyshortcuts', 'Delete');
+  //
+  // Both keys, because both are bound: an Apple keyboard's backspace position
+  // is labelled "delete" and reports `Backspace`, so promising only `Delete`
+  // named a chord those readers would have to work out.
+  await expect(tablist.getByRole('tab').first()).toHaveAttribute(
+    'aria-keyshortcuts',
+    'Delete Backspace',
+  );
 });
 
 test('the segmented control is one stop, and the arrows choose within it', async ({ page }) => {

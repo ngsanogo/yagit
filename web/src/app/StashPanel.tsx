@@ -1,14 +1,13 @@
 import type { Stash } from '../api/types';
 import { Badge } from '../components/Badge';
 import { Button } from '../components/Button';
-import { EmptyState } from '../components/EmptyState';
 import { Menu, menuItem, type MenuItem } from '../components/Menu';
 import { Panel } from '../components/Panel';
+import { QueryErrorState, type RetryableQuery } from '../components/PanelState';
 import { Spinner } from '../components/Spinner';
 import { Tooltip } from '../components/Tooltip';
 import { cx } from '../lib/cx';
-import { errorDescription } from '../lib/errorDisplay';
-import { formatAbsoluteTime, formatRelativeTime } from '../lib/format';
+import { formatExactTime, formatRelativeTime } from '../lib/format';
 import { stashRef } from './stash';
 
 /**
@@ -35,6 +34,8 @@ interface StashPanelProps {
   loading: boolean;
   /** Why the list is not on screen, or undefined when it is. */
   error?: Error;
+  /** The query behind that failure, so the panel can offer to ask again. */
+  retry?: RetryableQuery;
 
   /** The position being read below, so the row can say so. */
   selected?: number;
@@ -66,6 +67,7 @@ export function StashPanel({
   stashes,
   loading,
   error,
+  retry,
   selected,
   onSelect,
   onStash,
@@ -77,12 +79,13 @@ export function StashPanel({
   return (
     <Panel
       title={`Stashes${stashes === undefined || stashes.length === 0 ? '' : ` — ${stashes.length}`}`}
-      // Capped, and able to shrink below the cap. The references above want
-      // the height far more than a stack of three does — but a panel that
-      // could only ever be its content's height pushed the page itself into
-      // scrolling on a short window, which is the one thing this layout must
-      // not do. Bounded here and scrolled inside, exactly as the panel above.
-      className="max-h-48 min-h-0"
+      // Sized to what it holds and capped there: a stack of three takes three
+      // rows of height, and a stack of thirty scrolls inside this panel rather
+      // than pushing the worktrees off the column. Not shrinkable — the
+      // sidebar column is what scrolls when the panels together outgrow it,
+      // and a panel that gave up rows to spare the column was hiding them with
+      // nothing on screen to say so.
+      className="max-h-48 shrink-0"
       flush
       actions={
         onStash === undefined ? undefined : <StashAction {...{ onStash, stashing, stashRefusal }} />
@@ -96,12 +99,7 @@ export function StashPanel({
         )}
 
         {error !== undefined && (
-          <EmptyState
-            title="Could not read the stashes"
-            description=""
-            detail={errorDescription(error)}
-            className="py-6"
-          />
+          <QueryErrorState title="Could not read the stashes" error={error} compact retry={retry} />
         )}
 
         {stashes !== undefined && stashes.length === 0 && (
@@ -132,6 +130,33 @@ export function StashPanel({
  * pointer events, so the browser fires no hover on it and a `title` would be
  * readable by nobody — precisely when the sentence is needed. Tooltip hovers
  * the span around it and reaches the button through aria-describedby.
+ *
+ * The span carries a native `title` as well as the bubble, and the two are not
+ * belt and braces. This row is a Panel's header, Panel is `overflow-hidden`,
+ * and Tooltip's bubble hangs above its anchor in the normal flow — so the
+ * sentence explaining why stashing is refused was painted outside the panel
+ * and clipped away unread, which is the trap Tooltip's own comment names for
+ * scroll containers met from the other side. The bubble is the half a screen
+ * reader hears through aria-describedby, the only route into a control that
+ * has dropped its pointer events; the `title` is the half a pointer can read,
+ * because the browser draws it outside the page where nothing clips it.
+ * Neither reaches both readers alone. CommitDetails' refused actions are drawn
+ * the same way, six pixels from the same panel edge.
+ *
+ * The accessible name begins with the words on the button. It used to read
+ * "Stash the changes in the work tree" over a button saying "Stash changes",
+ * so somebody driving by voice said what they could see and matched nothing,
+ * and somebody hearing the name could not match it to what a colleague was
+ * pointing at — WCAG 2.5.3, which the axe gate cannot see because
+ * label-content-name-mismatch ships disabled. Naming the work tree still earns
+ * its place: this is the only control here that acts on the working directory
+ * rather than on the stack below it.
+ *
+ * The ellipsis is the promise the menus in this same panel already make: the
+ * click opens the dialog that asks what to keep, and does not stash on the
+ * press. It is left off the accessible name, where CommitDetails leaves it
+ * off too — a screen reader reading three dots aloud is noise, and the name
+ * has to stay a phrase a voice-control user can say.
  */
 function StashAction({
   onStash,
@@ -149,17 +174,53 @@ function StashAction({
       onClick={onStash}
       loading={stashing}
       disabled={stashRefusal !== undefined}
-      aria-label="Stash the changes in the work tree"
+      aria-label="Stash changes in the work tree"
     >
-      Stash changes
+      Stash changes…
     </Button>
   );
 
   if (stashRefusal === undefined) {
     return button;
   }
-  return <Tooltip label={stashRefusal}>{button}</Tooltip>;
+
+  // The span is what both of them hang on: it is the element that still has
+  // pointer events once the button has given them up.
+  return (
+    <span className="inline-flex" title={stashRefusal}>
+      <Tooltip label={stashRefusal}>{button}</Tooltip>
+    </span>
+  );
 }
+
+/**
+ * What keeps a row's menu out of the way until it is wanted.
+ *
+ * Opacity and pointer events move together, and that pairing is the whole
+ * point: transparent alone leaves a button nobody can see and everybody can
+ * click, floating over the right-hand end of a row whose own click opens the
+ * stash below. A press that landed in what reads as blank space opened a menu
+ * instead of the patch, and the menu that opened was the one holding Drop.
+ *
+ * The third pair is for the menu itself. Its popover is in the browser's top
+ * layer, nowhere near this row in the document, so `focus-within` is false for
+ * as long as the menu has focus — without it the trigger fades out from under
+ * the menu it opened, and the pointer heading for "Drop…" crosses a button
+ * that is no longer there.
+ *
+ * ChangeList and RefSidebar carry the same constant, written out rather than
+ * shared for the reason ChangeList's copy records: the three use different
+ * group names, and the shared home for it — web/src/lib — belongs to none of
+ * the three files. This is the third copy, which is the point at which it
+ * should be lifted out.
+ */
+const REVEALED_ON_ATTENTION = [
+  'pointer-events-none opacity-0 transition-opacity transition-instant',
+  'group-hover/row:pointer-events-auto group-hover/row:opacity-100',
+  'group-focus-within/row:pointer-events-auto group-focus-within/row:opacity-100',
+  'group-has-[[aria-expanded=true]]/row:pointer-events-auto',
+  'group-has-[[aria-expanded=true]]/row:opacity-100',
+].join(' ');
 
 /**
  * One entry.
@@ -189,11 +250,17 @@ function Row({
         type="button"
         onClick={onSelect}
         aria-current={current ? 'true' : undefined}
+        // The two tokens the design system keeps apart, kept apart here: this
+        // row painted both states with `bg-sunken`, so hovering any stash drew
+        // it exactly as the one whose patch is open below, and hovering the
+        // open one answered with nothing at all. `--color-hover` lightens and
+        // `--color-selected` lightens further, which is the direction every
+        // other list in the workbench moves in.
         className={cx(
           'flex w-full min-w-0 flex-col gap-0.5 px-3 py-2 text-left',
           'transition-colors transition-instant outline-none',
-          'hover:bg-sunken focus-visible:focus-ring',
-          current && 'bg-sunken',
+          'focus-visible:focus-ring',
+          current ? 'bg-selected' : 'hover:bg-hover',
         )}
       >
         <span className="flex min-w-0 items-center gap-2">
@@ -208,12 +275,16 @@ function Row({
 
         <span className="flex min-w-0 items-center gap-2 text-2xs text-ink-subtle">
           <code className="font-mono">{stashRef(stash.index)}</code>
-          <span title={formatAbsoluteTime(made)}>{formatRelativeTime(made, new Date())}</span>
+          {/* The clock the visible form drops. Past a week formatRelativeTime
+              is a bare date, so this hover used to hand back the string
+              underneath it; a stack of stashes made in one afternoon is the
+              ordinary case, and the hour is the only thing that orders them. */}
+          <span title={formatExactTime(made)}>{formatRelativeTime(made, new Date())}</span>
         </span>
       </button>
 
       {items.length > 0 && (
-        <div className="absolute top-1.5 right-2 opacity-0 transition-opacity transition-instant group-hover/row:opacity-100 focus-within:opacity-100">
+        <div className={cx('absolute top-1.5 right-2', REVEALED_ON_ATTENTION)}>
           <Menu label={`Actions for ${stashRef(stash.index)}`} items={items} />
         </div>
       )}

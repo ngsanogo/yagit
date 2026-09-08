@@ -191,7 +191,11 @@ test('names what a discard destroys, and shows the command', async ({ page }) =>
   await openChangedRepository(page, 'wd-discard');
 
   await fileRow(page, 'untracked.txt').hover();
-  await page.getByRole('button', { name: /Discard the changes to untracked\.txt/ }).click();
+  // "Delete", not "Discard": git has never seen this file, so what goes is the
+  // file itself — which is exactly what the dialog below has to say too.
+  await page
+    .getByRole('button', { name: /Delete untracked\.txt, which git has never seen/ })
+    .click();
 
   const dialog = page.getByRole('dialog');
   await expect(dialog).toBeVisible();
@@ -215,7 +219,7 @@ test('names what a discard destroys, and shows the command', async ({ page }) =>
 
   // The other half of the promise: what the dialog showed is what ran. The two
   // strings have one source, and this is where that stops being a claim.
-  await page.getByRole('button', { name: 'Git log' }).click();
+  await page.getByRole('button', { name: 'Command log' }).click();
   await expect(page.getByText(command).first()).toBeVisible();
 });
 
@@ -306,7 +310,7 @@ test('amends the last commit, after showing the command it will run', async ({ p
   await expect(page.getByText('first: the committed state')).toBeHidden();
 
   // And what the dialog promised is what ran.
-  await page.getByRole('button', { name: 'Git log' }).click();
+  await page.getByRole('button', { name: 'Command log' }).click();
   await expect(page.getByText(command).first()).toBeVisible();
 });
 
@@ -320,9 +324,9 @@ test('shows the git commands it ran', async ({ page }) => {
   await fileRow(page, 'edited.txt').click();
   await page.getByRole('button', { name: 'Stage edited.txt', exact: true }).click();
 
-  await page.getByRole('button', { name: 'Git log' }).click();
+  await page.getByRole('button', { name: 'Command log' }).click();
 
-  const log = page.getByRole('heading', { name: 'Git log' });
+  const log = page.getByRole('heading', { name: 'Command log' });
   await expect(log).toBeVisible();
   // first(): the log is the daemon's, not this test's, and the other specs
   // running beside it stage the same fixture file. One entry is the claim.

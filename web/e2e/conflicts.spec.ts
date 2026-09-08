@@ -209,7 +209,16 @@ test('takes one side of the whole file through git', async ({ page }) => {
 
   // `git checkout --ours`, then `git add` — the daemon runs both, because the
   // first writes the file and only the second ends the conflict.
+  //
+  // Behind a confirmation, which is the project's rule for anything that
+  // destroys work: this writes over the file in the work tree, markers, saved
+  // edits and all, and the merge holds no version left to restore it from.
   await page.getByRole('button', { name: 'Ours', exact: true }).click();
+
+  const confirmation = page.getByRole('dialog');
+  await expect(confirmation).toContainText('Take the whole file from ours?');
+  await expect(confirmation).toContainText('git checkout --ours');
+  await confirmation.getByRole('button', { name: 'Take ours' }).click();
 
   await expect.poll(() => readFileSync(join(path, 'notes.md'), 'utf8')).toBe('one\nMAIN\nthree\n');
   await expect(page.getByRole('status').filter({ hasText: 'Merging' })).toContainText(
@@ -235,7 +244,7 @@ test('offers git own message for the merge, in the box', async ({ page }) => {
   await expect(page.getByLabel('Commit message')).not.toHaveValue(/Conflicts:/);
 });
 
-test('suggests a summary from what is staged, and one key accepts it', async ({ page }) => {
+test('suggests a summary from what is staged, and Tab then Enter accepts it', async ({ page }) => {
   const path = await openConflictedRepository(page, 'cf-suggest');
   await page.getByRole('radio', { name: /Changes/ }).click();
 
@@ -251,8 +260,16 @@ test('suggests a summary from what is staged, and one key accepts it', async ({ 
 
   // Behind the glass until somebody takes it. A guess nobody read is not a
   // commit message.
+  //
+  // Tab moves on and the button after the box presses, which is two keys where
+  // it used to be one. The box no longer swallows Tab: while it was empty, the
+  // key every keyboard user presses to leave a field wrote a message they had
+  // not chosen, and a text box a keyboard cannot leave is the worse half of
+  // that trade.
   await box.click();
   await page.keyboard.press('Tab');
+  await expect(page.getByRole('button', { name: 'use the suggested summary' })).toBeFocused();
+  await page.keyboard.press('Enter');
   await expect(box).toHaveValue('Update notes.md');
 });
 

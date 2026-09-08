@@ -76,7 +76,7 @@ test('lists the main tree, then makes and removes a linked one', async ({ page }
   await expect(panel).toContainText('main tree');
   await expect(panel).toContainText('this tab');
 
-  await panel.getByRole('button', { name: /Check out another worktree/ }).click();
+  await panel.getByRole('button', { name: /^Add worktree/ }).click();
   const dialog = page.getByRole('dialog', { name: 'New worktree' });
   await expect(dialog).toBeVisible();
 

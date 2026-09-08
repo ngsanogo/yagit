@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useId, useRef, useState } from 'react';
 
 import type { MessageSource, WorkingDirectory } from '../api/types';
 import { Badge } from '../components/Badge';
@@ -6,9 +6,12 @@ import { Button } from '../components/Button';
 import { ConfirmDialog } from '../components/ConfirmDialog';
 import { GitFailureDetail } from '../components/GitFailureDetail';
 import { Kbd } from '../components/Kbd';
+import { useToast } from '../components/ToastHost';
 import { ApiError } from '../api/client';
 import { cx } from '../lib/cx';
+import { gitFailureLine } from '../lib/errorDisplay';
 import { pluralize, shortenSha } from '../lib/format';
+import { commandModifier } from '../lib/platform';
 import { emptyCoAuthor, isCompleteCoAuthor, withCoAuthors, type CoAuthor } from './coAuthors';
 import { suggestCommitMessage } from './commitMessage';
 import { usePreparedMessage } from './useWorkingDirectory';
@@ -36,7 +39,10 @@ import { usePreparedMessage } from './useWorkingDirectory';
  *   yagit's suggestion stays a PLACEHOLDER until somebody accepts it. It is
  *   read off the staged file list — "Add src/parser.ts" — and it is a guess.
  *   A guess nobody read is not a commit message, so no keystroke of the user's
- *   is needed to reject it and exactly one is needed to take it.
+ *   is needed to reject it, and taking it is the button under the box: Tab
+ *   reaches it, Enter presses it. It was one key — Tab, caught in the box —
+ *   until that turned out to mean a box a keyboard user could not pass
+ *   without writing a message they had not chosen. See the hint below.
  *
  * That line — git's words go in, ours stay behind the glass — is the whole
  * design of this box, and it is why the two never share a code path.
@@ -94,6 +100,11 @@ export function CommitBox({
 }: CommitBoxProps) {
   const [amend, setAmend] = useState(false);
   const [confirming, setConfirming] = useState(false);
+  const toast = useToast();
+
+  // Ties the sentence that says why the button is off to the button itself.
+  // Only one of the two is ever drawn, so one id covers both.
+  const refusalId = useId();
 
   // Co-authors are kept beside the message rather than typed into it, because
   // the trailer's shape is exact and its position in the message decides
@@ -118,7 +129,8 @@ export function CommitBox({
   const empty = message.trim() === '';
 
   // Read off the staged files, never off their contents. Shown as the
-  // placeholder and accepted with one key; see the note at the top.
+  // placeholder and taken from the button under the box; see the note at the
+  // top.
   const suggestion = suggestCommitMessage(staged);
 
   const subject = message.split('\n', 1)[0] ?? '';
@@ -132,11 +144,86 @@ export function CommitBox({
   // was impossible — answered by git's own "no changes added to commit".
   const canCommit = !empty && !nothingToRecord && conflicted.length === 0;
 
+  // Of the three reasons the button is off, two have a sentence under it that
+  // the button can point at. The third is an empty box, which says itself.
+  const refused = conflicted.length > 0 || nothingToRecord;
+
+  const modifier = commandModifier();
+
   // The trailers are added on the way out, never into the box. Writing them
   // into the draft would put text under somebody's cursor that they did not
   // type and cannot easily undo — and unticking a co-author afterwards would
   // then have to find its own line again and remove it.
   const recorded = () => withCoAuthors(message, coAuthors);
+
+  const messageBox = useRef<HTMLTextAreaElement>(null);
+
+  /**
+   * What a commit git accepted leaves behind — the empty box, and the focus.
+   *
+   * Called from the callback rather than from the click, because until git has
+   * answered the message in the box is the only copy of it there is.
+   *
+   * The focus half is the part with no visible symptom. The button that was
+   * pressed disables itself the moment the commit lands — nothing is staged
+   * any more, which is the third of the three reasons it goes off — and a
+   * browser blurs an element it disables, so focus falls to <body> and the
+   * next Tab starts again at the top of the document. A control that vanishes
+   * or refuses itself on success cannot report anything on itself; what it can
+   * do is hand the keyboard somewhere deliberate, and the box the next message
+   * gets typed into is where somebody who just committed is going.
+   *
+   * Only when it HAS fallen there, though. A pointer user who clicked Commit
+   * and moved on to the file list would otherwise be pulled back into a text
+   * area a second later, which is the trap every autofocus falls into.
+   */
+  function afterCommit() {
+    onDraftChange(undefined);
+    setCoAuthors([]);
+
+    const active = document.activeElement;
+    if (active === null || active === document.body) {
+      messageBox.current?.focus();
+    }
+  }
+
+  /*
+   * A refusal is said as well as drawn.
+   *
+   * The failure git answers with — a hook that exited non-zero, a signing key
+   * nobody unlocked, an identity that is not configured — is drawn under the
+   * box, where it belongs: the message is still in the box and the reason has
+   * to stay on screen while it is fixed. Drawn is not the same as noticed. The
+   * button that was pressed refuses itself the moment the request leaves, the
+   * paragraph appears below the fold of a 245-pixel panel, and nothing tells
+   * a reader who cannot see it that anything happened at all.
+   *
+   * Said through the host's live region rather than by giving the paragraph
+   * role="alert", and ToastHost's own comment is the reason: a region that
+   * arrives with its text already inside it is the case screen readers
+   * disagree about, and that region has existed since the page loaded. What
+   * is spoken is one line — git's own, through the same helper the log rows
+   * use — because the stderr block under it is a screenful and an
+   * announcement is a sentence.
+   */
+  useEffect(() => {
+    if (error === null) {
+      return;
+    }
+    // Two sentences, because two different things refuse a commit and only one
+    // of them is git. A hook that exited non-zero comes back with git's command
+    // and git's stderr; a daemon that has stopped, or a body over the cap,
+    // never reached git at all — and "git refused the commit" said over one of
+    // those sends the reader to look for a hook that never ran. Which of the
+    // two it was is the same question the paragraph below answers by drawing
+    // either the failure block or the bare message.
+    const failure = gitFailureLine(error);
+    if (failure === undefined) {
+      toast.announce(`Could not commit. ${error.message}`);
+      return;
+    }
+    toast.announce(`git refused the commit. ${failure}`);
+  }, [error, toast]);
 
   function submit() {
     if (!canCommit || busy) {
@@ -149,10 +236,7 @@ export function CommitBox({
       setConfirming(true);
       return;
     }
-    onCommit(recorded(), false, () => {
-      onDraftChange(undefined);
-      setCoAuthors([]);
-    });
+    onCommit(recorded(), false, afterCommit);
   }
 
   return (
@@ -162,6 +246,7 @@ export function CommitBox({
       </label>
       <textarea
         id="commit-message"
+        ref={messageBox}
         rows={3}
         value={message}
         onChange={(event) => onDraftChange(event.target.value)}
@@ -172,19 +257,25 @@ export function CommitBox({
           if (event.key === 'Enter' && (event.metaKey || event.ctrlKey)) {
             event.preventDefault();
             submit();
-            return;
           }
-          // Tab takes the suggestion, and only while the box is empty. Past
-          // the first character Tab has to go on moving to the next control:
-          // a text box that swallows Tab is one a keyboard user cannot leave.
-          if (event.key === 'Tab' && !event.shiftKey && empty && suggestion !== '') {
-            event.preventDefault();
-            onDraftChange(suggestion);
-          }
+          // Tab is not caught here, and it used to be: while the box was
+          // empty it took the suggestion instead of moving on. That is the
+          // one case where catching it is worst — somebody tabbing THROUGH
+          // the changes rather than composing in them cannot pass the box
+          // without writing a message they did not choose, and clearing it
+          // again costs a select-all. The button below is the keyboard path,
+          // and it is one stop away.
         }}
         placeholder={placeholderFor(amend, suggestion)}
+        // resize-y, so the box can be dragged taller. Three rows is where a
+        // message starts, not where every message fits: a subject, a blank
+        // line and a paragraph saying why is ten lines, and the panel is a
+        // flex column whose file list is the flexible child — so the height
+        // taken here comes out of the list above and nothing else moves. The
+        // grip is the browser's rather than this design system's, which is
+        // the price of the one control on the screen that costs no code.
         className={cx(
-          'w-full resize-none rounded-md border border-line-strong bg-sunken px-2.5 py-2',
+          'w-full resize-y rounded-md border border-line-strong bg-sunken px-2.5 py-2',
           'font-mono text-xs text-ink placeholder:text-ink-subtle',
           'transition-colors transition-instant outline-none',
           'focus-visible:focus-ring hover:border-ink-subtle',
@@ -192,11 +283,18 @@ export function CommitBox({
       />
 
       {/* Only while it is being offered. A control that fills in a box which
-          is no longer empty would overwrite what somebody has written. */}
+          is no longer empty would overwrite what somebody has written.
+
+          The two keys are a description of the page rather than a shortcut of
+          this box's own: the button is the next thing after the text area, so
+          Tab reaches it and Enter presses it. Saying so is what the box owes
+          somebody who was told there was one key and now finds two. */}
       {empty && suggestion !== '' && (
         <p className="flex items-center gap-1.5 text-2xs text-ink-subtle">
           <Kbd>Tab</Kbd>
-          <span>or</span>
+          <span>then</span>
+          <Kbd label="Enter">↵</Kbd>
+          <span>to</span>
           <Button
             size="sm"
             variant="ghost"
@@ -256,11 +354,29 @@ export function CommitBox({
         )}
 
         <span className="ml-auto flex items-center gap-2">
-          <span className="text-2xs text-ink-subtle">
-            <Kbd>⌘</Kbd>
-            <Kbd>↵</Kbd>
+          {/* The key the reader actually has. The handler takes either
+              modifier on every platform; only the hint was ever wrong, and it
+              was wrong for everybody not on an Apple keyboard. */}
+          <span className="flex items-center gap-1 text-2xs text-ink-subtle">
+            <Kbd label={modifier.name}>{modifier.label}</Kbd>
+            <Kbd label="Enter">↵</Kbd>
           </span>
-          <Button variant="primary" size="sm" loading={busy} disabled={!canCommit} onClick={submit}>
+          <Button
+            variant="primary"
+            size="sm"
+            loading={busy}
+            disabled={!canCommit}
+            // Both modifiers, because both fire it. aria-keyshortcuts is how
+            // the shortcut reaches a reader who cannot see the two keys drawn
+            // beside the button.
+            aria-keyshortcuts="Meta+Enter Control+Enter"
+            // The sentence saying why, tied to the control it is about. A
+            // refused button whose explanation is a loose paragraph is a dead
+            // end at the control, which is the trap Menu already refuses to
+            // ship.
+            aria-describedby={refused ? refusalId : undefined}
+            onClick={submit}
+          >
             {commitLabel(status, staged.length, amend)}
           </Button>
         </span>
@@ -268,15 +384,16 @@ export function CommitBox({
 
       {/* Why the button is off, said out loud. A disabled control with no
           explanation is a dead end, and these three are the reasons it is
-          ever disabled. */}
+          ever disabled. The id is what carries either sentence to the button
+          as its description; an empty box is the third reason and needs no
+          sentence, because the empty box is on screen saying it. */}
       {conflicted.length > 0 && (
-        <p className="text-2xs text-conflicted">
-          {pluralize(conflicted.length, 'file')} still conflicted. Resolve them and stage the result
-          before committing.
+        <p id={refusalId} className="text-2xs text-conflicted">
+          {conflictRefusal(conflicted.length)}
         </p>
       )}
       {conflicted.length === 0 && nothingToRecord && (
-        <p className="text-2xs text-ink-subtle">
+        <p id={refusalId} className="text-2xs text-ink-subtle">
           Nothing is staged. Stage a change, or amend to reword the last commit.
         </p>
       )}
@@ -290,10 +407,7 @@ export function CommitBox({
         onCancel={() => setConfirming(false)}
         onConfirm={() => {
           setConfirming(false);
-          onCommit(recorded(), true, () => {
-            onDraftChange(undefined);
-            setCoAuthors([]);
-          });
+          onCommit(recorded(), true, afterCommit);
         }}
         title="Replace the last commit?"
         command="git commit --file=- --cleanup=whitespace --amend"
@@ -405,6 +519,21 @@ const coAuthorFieldClass = cx(
   'transition-colors transition-instant outline-none',
   'focus-visible:focus-ring hover:border-ink-subtle',
 );
+
+/**
+ * Why the button is off while something is still conflicted.
+ *
+ * The pronoun is branched, and a counting helper cannot do it: `pluralize`
+ * agrees the noun it is given and knows nothing about the sentence after it,
+ * so "1 file still conflicted. Resolve them" is what it produces on its own.
+ * OperationBanner's refusal for `continue` branches the same word the same
+ * way, and on a stopped merge the two sentences are read within a screen of
+ * each other.
+ */
+function conflictRefusal(conflicted: number): string {
+  const those = conflicted === 1 ? 'it' : 'them';
+  return `${pluralize(conflicted, 'file')} still conflicted. Resolve ${those} and stage the result before committing.`;
+}
 
 /**
  * What an empty box says.

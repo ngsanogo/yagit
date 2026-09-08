@@ -1,12 +1,10 @@
 import type { Submodule } from '../api/types';
 import { Badge } from '../components/Badge';
 import { Button } from '../components/Button';
-import { EmptyState } from '../components/EmptyState';
 import { Menu, menuItem, type MenuItem } from '../components/Menu';
 import { Panel } from '../components/Panel';
-import { Spinner } from '../components/Spinner';
+import { QueryErrorState, type RetryableQuery } from '../components/PanelState';
 import { cx } from '../lib/cx';
-import { errorDescription } from '../lib/errorDisplay';
 import { shortenSha } from '../lib/format';
 
 /**
@@ -14,8 +12,10 @@ import { shortenSha } from '../lib/format';
  *
  * Drawn only where there is at least one, unlike the panels above it: every
  * repository has a working tree and a stash stack, and most have no
- * submodules at all — an empty panel in that column would cost height the
- * references want and say nothing.
+ * submodules at all — an empty panel here is height spent saying nothing, and
+ * one more panel to scroll past on the way to the ones with something to say.
+ * Nor is the wait drawn — see the early return, which is why nothing below it
+ * has a loading state.
  *
  * Which is why pinning one is NOT offered here. The button was, and it made
  * the operation unreachable for exactly the repositories that needed it: no
@@ -33,6 +33,8 @@ interface SubmodulePanelProps {
   submodules: Submodule[] | undefined;
   loading: boolean;
   error?: Error;
+  /** The query behind that failure, so the panel can offer to ask again. */
+  retry?: RetryableQuery;
 
   /** Checks out what this repository records — all of them, or one. */
   onUpdate?: (path: string) => void;
@@ -49,6 +51,7 @@ export function SubmodulePanel({
   submodules,
   loading,
   error,
+  retry,
   onUpdate,
   updating = false,
   onSync,
@@ -56,7 +59,13 @@ export function SubmodulePanel({
 }: SubmodulePanelProps) {
   // Nothing pinned and nothing to say: no panel. Adding is not lost with it:
   // see the doc above, and RepositoryAdditions.
-  if (!loading && error === undefined && submodules !== undefined && submodules.length === 0) {
+  //
+  // The wait counts as nothing to say. Most repositories pin nothing, so the
+  // only thing a spinner here ever did was draw a panel and take it away a few
+  // milliseconds later, moving everything under it in the column down and back
+  // up on the way. A repository that does have submodules gets this panel a
+  // moment later instead, which is the cheaper of the two surprises.
+  if (error === undefined && (loading || submodules === undefined || submodules.length === 0)) {
     return null;
   }
 
@@ -67,17 +76,28 @@ export function SubmodulePanel({
   return (
     <Panel
       title={`Submodules${submodules === undefined ? '' : ` — ${submodules.length}`}`}
-      className="max-h-48 min-h-0"
+      className="max-h-48 shrink-0"
       flush
       actions={
         <div className="flex items-center gap-1">
+          {/* The name begins with the words on the button, and the sentence
+              is a description rather than the name. An aria-label that
+              replaces the visible text breaks WCAG 2.5.3 (Label in Name,
+              level A) and with it voice control: somebody who says "click
+              Update all" is naming a control whose accessible name did not
+              contain those words. The explanation goes in a native `title`
+              for the reason CommitAction sets out — a Tooltip's bubble hangs
+              above its anchor and Panel is `overflow-hidden`, so a bubble on
+              a header button is painted outside the panel and clipped away
+              unread. */}
           {anyMissing && onUpdate !== undefined && (
             <Button
               size="sm"
               variant="ghost"
               onClick={() => onUpdate('')}
               loading={updating}
-              aria-label="Check out every submodule at the commit this repository records"
+              aria-label="Update all submodules"
+              title="Checks out every submodule at the commit this repository records."
             >
               Update all
             </Button>
@@ -87,7 +107,8 @@ export function SubmodulePanel({
               size="sm"
               variant="ghost"
               onClick={onSync}
-              aria-label="Copy the submodule URLs from .gitmodules into this repository's config"
+              aria-label="Sync URLs from .gitmodules"
+              title="Copies the submodule URLs from .gitmodules into this repository's config."
             >
               Sync URLs
             </Button>
@@ -96,18 +117,12 @@ export function SubmodulePanel({
       }
     >
       <div className="h-full overflow-auto">
-        {loading && (
-          <div className="grid place-items-center p-4">
-            <Spinner label="Reading the submodules" />
-          </div>
-        )}
-
         {error !== undefined && (
-          <EmptyState
+          <QueryErrorState
             title="Could not read the submodules"
-            description=""
-            detail={errorDescription(error)}
-            className="py-6"
+            error={error}
+            compact
+            retry={retry}
           />
         )}
 

@@ -2,6 +2,8 @@ import { describe, expect, it } from 'vitest';
 
 import {
   counted,
+  formatAbsoluteTime,
+  formatExactTime,
   formatRelativeTime,
   initialsFromName,
   pluralize,
@@ -42,6 +44,27 @@ describe('formatRelativeTime', () => {
   // A skewed clock is a fact worth showing, not an error to paper over.
   it('shows a future date as an absolute one rather than a negative duration', () => {
     expect(formatRelativeTime(new Date('2026-03-11T12:00:00Z'), now)).toBe('11 Mar 2026');
+  });
+});
+
+describe('formatExactTime', () => {
+  const value = new Date('2026-01-05T09:07:00Z');
+
+  it('is the short date with the clock time the short date leaves out', () => {
+    // Asserted as a relationship rather than as one pinned string: what has to
+    // hold is that a reader who hovers a date learns something the row did not
+    // already say. The punctuation between the two halves is the locale's
+    // business, and pinning it would make this test fail on an ICU update
+    // without anything having gone wrong.
+    expect(formatExactTime(value).startsWith(formatAbsoluteTime(value))).toBe(true);
+    expect(formatExactTime(value)).toContain('09:07');
+  });
+
+  it('shows the hour in twenty-four hour form', () => {
+    // An am/pm marker in a tool whose job is putting events in order is a
+    // source of off-by-twelve mistakes.
+    expect(formatExactTime(new Date('2026-01-05T21:07:00Z'))).toContain('21:07');
+    expect(formatExactTime(new Date('2026-01-05T00:30:00Z'))).toContain('00:30');
   });
 });
 

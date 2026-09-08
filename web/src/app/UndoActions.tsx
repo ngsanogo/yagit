@@ -47,7 +47,13 @@ export function UndoActions({ repositoryId }: { repositoryId: string }) {
           onClick={propose}
           title={offer.subject}
         >
-          {undoButtonLabel(offer)}
+          {/* The ellipsis is added here and not in undoButtonLabel, because
+              it is a fact about this control rather than about the reflog
+              entry the label names: pressing it opens a confirmation and runs
+              nothing. useUndo has no buttons in it, and the confirm inside
+              the dialog must stay bare — a button labelled "Undo checkout…"
+              in there would promise a third question that does not exist. */}
+          {`${undoButtonLabel(offer)}…`}
         </Button>
       )}
 
@@ -56,8 +62,18 @@ export function UndoActions({ repositoryId }: { repositoryId: string }) {
         busy={undo.run.isPending}
         onCancel={() => setPending(undefined)}
         onConfirm={(plan) => {
-          setPending(undefined);
-          undo.run.mutate(plan);
+          // Held until the mutation settles, rather than cleared in front of
+          // it. Closing first made `busy` below unreachable — the dialog was
+          // gone before the request left — so an undo of a large reset showed
+          // nothing at all between the click and the toast, on the one
+          // control in the header whose whole purpose is to reverse something
+          // that has already happened.
+          //
+          // Settled and not succeeded, for the reason the force-push
+          // confirmation gives: a refusal has said everything it has to say
+          // in its own toast, and leaving the box up would ask the same
+          // question again over a reflog entry that has not moved.
+          undo.run.mutate(plan, { onSettled: () => setPending(undefined) });
         }}
       />
     </>

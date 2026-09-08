@@ -138,7 +138,14 @@ export interface Worktree {
   /** git considers the administrative files stale: the directory is gone. */
   prunable: boolean;
   prunable_reason: string;
-  /** The working tree the repository was made in. `remove` refuses it. */
+  /**
+   * The work tree the repository was made in, which `remove` refuses.
+   *
+   * "Work tree" is the term the interface uses everywhere; git's own word for
+   * this one in particular is "main working tree", and that is the phrase its
+   * refusal prints, which is why the panel quotes it back rather than
+   * translating it.
+   */
   main: boolean;
   /** The checkout this tab is open on. */
   current: boolean;
@@ -685,7 +692,7 @@ export interface Repository {
   /**
    * A repository with no work tree — a mirror, a `--bare` clone.
    *
-   * There is no working directory to show for one and no file to stage, so the
+   * There is no work tree to show for one and no file to stage, so the
    * screens that assume both have to ask. The daemon has always sent this; the
    * omission here was the type quietly disagreeing with the wire.
    */

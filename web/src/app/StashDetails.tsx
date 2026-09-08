@@ -8,7 +8,7 @@ import { EmptyState } from '../components/EmptyState';
 import { Panel } from '../components/Panel';
 import { Spinner } from '../components/Spinner';
 import { errorDescription, refusalHeading } from '../lib/errorDisplay';
-import { formatAbsoluteTime, formatRelativeTime, pluralize, shortenSha } from '../lib/format';
+import { formatExactTime, formatRelativeTime, pluralize, shortenSha } from '../lib/format';
 import { ReadOnlyPatch } from './DiffView';
 import { stashRef } from './stash';
 import { stashQuery } from './useStash';
@@ -75,10 +75,13 @@ function Refusal({ error, index }: { error: Error; index: number }) {
       title={
         missing ? 'No longer in the stack' : (refusalHeading(error) ?? 'Could not read this stash')
       }
+      // A failed read names the command and git's own stderr instead, which
+      // is what `detail` carries below. The empty string this used to pass is
+      // gone with the prop's requirement.
       description={
         missing
           ? `${stashRef(index)} is not there any more. The list beside this one is what the repository holds now.`
-          : ''
+          : undefined
       }
       detail={missing ? undefined : errorDescription(error)}
     />
@@ -87,13 +90,24 @@ function Refusal({ error, index }: { error: Error; index: number }) {
 
 function Body({ detail }: { detail: StashDetail }) {
   const made = new Date(detail.date);
+  const message = detail.message === '' ? stashRef(detail.index) : detail.message;
 
   return (
     <div className="flex h-full min-h-0 flex-col">
-      <header className="flex shrink-0 flex-col gap-2 border-b border-line px-3 py-2.5">
+      {/* Three quarters of the panel at most and scrolling, for the reason
+          the commit panel's header is: one that holds its height inside a
+          Panel that clips what leaves it cuts off everything under it and
+          gives no sign it has, and one free to take every pixel it asks for
+          leaves the diff at nothing. */}
+      <header className="flex max-h-[75%] min-h-0 flex-col gap-2 overflow-y-auto border-b border-line px-3 py-2.5">
         <div className="flex min-w-0 items-start gap-2">
-          <p className="min-w-0 flex-1 text-sm font-medium text-ink">
-            {detail.message === '' ? stashRef(detail.index) : detail.message}
+          {/* Two lines, then an ellipsis, with the whole message on hover.
+              git writes this sentence itself — "On <branch>: <subject>" — so
+              its length is the branch's plus the commit's, and a stash made
+              on a long branch name wrapped the panel's own header off the
+              bottom of it. */}
+          <p className="line-clamp-2 min-w-0 flex-1 text-sm font-medium text-ink" title={message}>
+            {message}
           </p>
           {/* The position it is at NOW, from the answer. The row that opened
               this may have been drawn against a stack that has since moved. */}
@@ -114,7 +128,12 @@ function Body({ detail }: { detail: StashDetail }) {
               <Badge>{detail.branch}</Badge>
             </>
           )}
-          <span title={formatAbsoluteTime(made)}>{formatRelativeTime(made, new Date())}</span>
+          {/* The clock, which the visible form drops: past a week
+              formatRelativeTime is a bare date, so the hover used to hand back
+              the string it was attached to. A stash is made and put back
+              within a day more often than any other object here, and the hour
+              is what tells two of them apart. */}
+          <span title={formatExactTime(made)}>{formatRelativeTime(made, new Date())}</span>
           <code className="font-mono" title={detail.sha}>
             {shortenSha(detail.sha)}
           </code>
@@ -130,7 +149,6 @@ function Body({ detail }: { detail: StashDetail }) {
           <EmptyState
             title="This stash holds nothing"
             description="git makes no such stash, so this one was written by something else."
-            className="py-8"
           />
         ) : (
           <ReadOnlyPatch files={detail.files} />

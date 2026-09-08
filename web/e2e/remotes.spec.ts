@@ -139,8 +139,12 @@ function commitElsewhere(elsewhere: string, line: string) {
 test('fetches, then pulls what somebody else pushed', async ({ page }) => {
   const { work, elsewhere } = await openClone(page, 'rm-pull');
 
-  const pull = page.getByRole('button', { name: 'Pull' });
-  const fetch = page.getByRole('button', { name: 'Fetch' });
+  // Anchored, because these buttons carry their count in the label — "Pull ↓1"
+  // — and because a toast's dismiss button now names the toast it closes:
+  // "Dismiss Pulled" contains "Pull", and an unanchored name matched both the
+  // moment a pull succeeded.
+  const pull = page.getByRole('button', { name: /^Pull/ });
+  const fetch = page.getByRole('button', { name: /^Fetch/ });
 
   // Level to begin with, and the button is still live: `git pull` fetches
   // before it integrates, so it is the one of the three that always does
@@ -170,7 +174,7 @@ test('pushes a commit and stops offering to', async ({ page }) => {
   writeFileSync(join(work, 'notes.md'), 'second\n');
   git('commit', '-am', 'second');
 
-  const push = page.getByRole('button', { name: 'Push' });
+  const push = page.getByRole('button', { name: /^Push/ });
   // The commit was made outside yagit, so what brings it on screen is the
   // watch on the git directory and the status poll behind it.
   await expect(push).toContainText('↑1');
@@ -217,7 +221,7 @@ test('publishes a branch, showing the command and recording where it went', asyn
 
   // And the branch follows it now, which is what turns the next push into an
   // ordinary one.
-  await expect(page.getByRole('button', { name: 'Push', exact: false })).toBeVisible();
+  await expect(page.getByRole('button', { name: /^Push/ })).toBeVisible();
 });
 
 test('names what a force push overwrites before running it', async ({ page }) => {
@@ -232,7 +236,7 @@ test('names what a force push overwrites before running it', async ({ page }) =>
   git('commit', '--amend', '-m', 'second, reworded');
   const rewritten = localHas(work, 'main');
 
-  await expect(page.getByRole('button', { name: 'Push' })).toContainText('↑1');
+  await expect(page.getByRole('button', { name: /^Push/ })).toContainText('↑1');
 
   await page.getByRole('button', { name: 'More remote actions' }).click();
   await page.getByRole('menuitem', { name: 'Force push…' }).click();
@@ -314,9 +318,9 @@ test('refuses the network operations that have no meaning on a detached HEAD', a
 
   // Fetching still applies — it writes under refs/remotes and nowhere else —
   // and that is exactly why it is the one that stays.
-  await expect(page.getByRole('button', { name: 'Fetch' })).toBeEnabled();
-  await expect(page.getByRole('button', { name: 'Pull' })).toBeDisabled();
-  await expect(page.getByRole('button', { name: 'Push' })).toBeDisabled();
+  await expect(page.getByRole('button', { name: /^Fetch/ })).toBeEnabled();
+  await expect(page.getByRole('button', { name: /^Pull/ })).toBeDisabled();
+  await expect(page.getByRole('button', { name: /^Push/ })).toBeDisabled();
 });
 
 test('adds, renames and removes a remote through Manage remotes', async ({ page }) => {
@@ -478,7 +482,7 @@ test('a repository with no remote offers Add remote', async ({ page }) => {
   await page.getByRole('tab', { name: /rm-none/ }).click();
   await expect(page.getByRole('heading', { name: /^History/ })).toBeVisible();
 
-  await expect(page.getByRole('button', { name: 'Fetch' })).toHaveCount(0);
+  await expect(page.getByRole('button', { name: /^Fetch/ })).toHaveCount(0);
   await page.getByRole('button', { name: 'Add remote' }).click();
   await expect(page.getByRole('dialog', { name: 'Add remote' })).toBeVisible();
 });

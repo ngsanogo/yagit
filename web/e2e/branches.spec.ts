@@ -303,7 +303,7 @@ test('a branch name that is also a git option is refused, and nothing is renamed
   // run `git switch --create` with no name and `-m` read as an option — or, in
   // the create-only path, `git branch -m <start>`, which renames the branch the
   // person was standing on and reports success for one nobody created.
-  const refusal = page.getByRole('status').filter({ hasText: 'Could not create -m' });
+  const refusal = page.getByRole('alert').filter({ hasText: 'Could not create -m' });
   await expect(refusal).toBeVisible();
   await expect(refusal).toContainText('git switch --create -m');
   await expect(refusal.locator('pre')).toContainText("fatal: '-m' is not a valid branch name");
@@ -468,7 +468,7 @@ test('fast-forwards the current branch onto another after showing the command', 
   // Both halves of what a fast-forward is: no history rewritten, and every
   // file under the branch replaced anyway.
   await expect(dialog).toContainText('Nothing is replayed and no commit is rewritten');
-  await expect(dialog).toContainText("the files in your working directory become ahead's");
+  await expect(dialog).toContainText("the files in your work tree become ahead's");
   // And no red panel, because nothing goes: a warning over an operation that
   // loses nothing is how people learn to read past the one that does.
   await expect(dialog).not.toContainText('This will permanently discard');

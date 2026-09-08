@@ -18,6 +18,11 @@ import { branchMenuItems, checkOutRequestFor, RefSidebar } from './RefSidebar';
  * Rendered to markup rather than into a browser, like CommitList's tests: this
  * sidebar is a function of its props, and the end-to-end suite is where a
  * click actually lands.
+ *
+ * The last two groups are about the repository that has nothing yet, which is
+ * the screen the create flow lands on: what the panel says instead of drawing
+ * an empty box, and which of the two header buttons git can actually carry out
+ * before the first commit exists.
  */
 
 function reference(overrides: Partial<Ref> = {}): Ref {
@@ -337,5 +342,88 @@ describe('what a branch row offers behind its menu', () => {
 
     expect(menuOf({ reference: tag })).toEqual([]);
     expect(menuOf({ reference: remote })).toEqual([]);
+  });
+});
+
+describe('what the panel shows when it lists nothing', () => {
+  // A repository whose first commit has not happened has no HEAD and no
+  // reference of any kind, and this is the largest element on the screen the
+  // create flow lands on. An empty framed box reads as a panel that failed.
+  it('names the first commit as the thing that makes a reference', () => {
+    const markup = renderToStaticMarkup(<RefSidebar refs={[]} onGoTo={() => undefined} />);
+
+    expect(markup).toContain('No references yet');
+    expect(markup).toContain('This repository has no commits yet');
+  });
+
+  // The other way to draw nothing: refs/stash is the one reference the groups
+  // never show, so a repository holding only that one has a HEAD and an empty
+  // list. That is a repository which HAS commits, so the sentence is the other
+  // one — nothing to list rather than nothing yet made.
+  it('does not blame the missing first commit when there is a HEAD', () => {
+    const stashOnly = reference({ name: 'refs/stash', short_name: 'stash', kind: 'other' });
+    const markup = renderToStaticMarkup(
+      <RefSidebar refs={[stashOnly]} head={onMain} onGoTo={() => undefined} />,
+    );
+
+    expect(markup).toContain('Nothing to list');
+    expect(markup).not.toContain('No references yet');
+  });
+
+  // A detached HEAD draws a group of its own, so the panel is not empty even
+  // with nothing under refs/.
+  it('says nothing of the sort while HEAD is detached at a commit', () => {
+    const markup = renderToStaticMarkup(
+      <RefSidebar
+        refs={[]}
+        head={{ sha: onMain.sha, name: 'HEAD', detached: true }}
+        onGoTo={() => undefined}
+      />,
+    );
+
+    expect(markup).toContain('Detached HEAD');
+    expect(markup).not.toContain('No references yet');
+  });
+
+  it('says nothing of the sort as soon as one reference exists', () => {
+    expect(sidebar([reference()])).not.toContain('No references yet');
+  });
+});
+
+describe('which header buttons a repository with no commit is offered', () => {
+  // `git tag` on an unborn HEAD answers "fatal: Failed to resolve 'HEAD' as a
+  // valid ref", so the button is refused with the sentence rather than left to
+  // produce that. `git branch` on the same repository succeeds, which is why
+  // only one of the two takes a reason.
+  it('refuses New tag with a sentence, and leaves New branch alone', () => {
+    const markup = renderToStaticMarkup(
+      <RefSidebar
+        refs={[]}
+        onGoTo={() => undefined}
+        onNewBranch={() => undefined}
+        onNewTag={() => undefined}
+        newTagUnavailableReason="There is no commit to tag yet."
+      />,
+    );
+
+    expect(markup).toContain('There is no commit to tag yet.');
+    expect(markup).toContain('role="tooltip"');
+    // One refused button in the header and not two: the sentence is about the
+    // tag, and a branch is exactly what an unborn HEAD can still be pointed at.
+    expect(markup.match(/disabled=""/g)).toHaveLength(1);
+  });
+
+  it('offers New tag plainly once there is a commit to tag', () => {
+    const markup = renderToStaticMarkup(
+      <RefSidebar
+        refs={[reference()]}
+        head={onMain}
+        onGoTo={() => undefined}
+        onNewTag={() => undefined}
+      />,
+    );
+
+    expect(markup).toContain('New tag');
+    expect(markup).not.toContain('role="tooltip"');
   });
 });

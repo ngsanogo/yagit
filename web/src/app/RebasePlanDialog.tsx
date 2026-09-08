@@ -1,6 +1,7 @@
 import type { InteractiveRebasePlan, RebaseInstruction, RebaseStep } from '../api/types';
 import { ConfirmDialog } from '../components/ConfirmDialog';
 import { Select } from '../components/Select';
+import { useToast } from '../components/ToastHost';
 import { cx } from '../lib/cx';
 import { pluralize, shortenSha } from '../lib/format';
 import {
@@ -50,9 +51,30 @@ export function RebasePlanDialog({
   onConfirm: () => void;
   onSteps: (steps: RebaseStep[]) => void;
 }) {
+  const toast = useToast();
   const refusal = planRefusal(steps, plan.commits);
   const losses = planLosses(steps, plan.commits);
   const subjects = new Map(plan.commits.map((commit) => [commit.sha, commit.subject]));
+
+  /*
+   * Where the row went, said out loud.
+   *
+   * Reordering is the whole of what this dialog is for, and the only evidence
+   * a move happened is that the rows redrew — which is no evidence at all to
+   * somebody not looking at them. Position and length together, because
+   * "moved up" is not an answer on the screen that decides which history gets
+   * rewritten: "1 of 3" says it is now first, and says it without the reader
+   * having to walk the list to find out.
+   */
+  const move = (index: number, by: number) => {
+    const to = index + by;
+    const step = steps[index];
+    if (step === undefined || to < 0 || to >= steps.length) {
+      return;
+    }
+    onSteps(moveStep(steps, index, to));
+    toast.announce(`${shortenSha(step.commit)} is now ${to + 1} of ${steps.length}`);
+  };
 
   const editor = (
     <div className="flex flex-col gap-3">
@@ -65,7 +87,7 @@ export function RebasePlanDialog({
             position={index}
             last={index === steps.length - 1}
             disabled={busy}
-            onMove={(by) => onSteps(moveStep(steps, index, index + by))}
+            onMove={(by) => move(index, by)}
             onInstruction={(instruction) => onSteps(withInstruction(steps, index, instruction))}
           />
         ))}
@@ -228,6 +250,27 @@ function Legend({ steps }: { steps: readonly RebaseStep[] }) {
   );
 }
 
+/**
+ * One step of a reorder, refused at the ends of the list.
+ *
+ * `aria-disabled` and an onClick that returns, never the DOM attribute — the
+ * same choice SegmentedControl and Menu make, for a sharper reason. This is
+ * the button that refuses itself: two presses of "Move up" carry a row to the
+ * top of the plan, and the second press is what makes the top row's up button
+ * inapplicable. With the attribute, the browser took focus off the element
+ * that had just been activated and dropped it on <body> — so the keyboard
+ * user's reward for finishing the move was losing their place in the dialog
+ * that is about to rewrite history, with nothing said about where the row had
+ * gone. aria-disabled keeps the stop and refuses the press.
+ *
+ * The refusal is drawn in ink rather than in opacity. `disabled:opacity-30`
+ * over a token is a colour nobody chose, and Menu records what that costs:
+ * any ink at 45% over its own surface is about 1.7:1 in the light theme, and
+ * thirty is dimmer than forty-five — a control the reader can land on and
+ * cannot see. Subtle against the offered muted keeps both legible and still
+ * tells them apart, and the accessible state rather than the shade is what
+ * carries the fact.
+ */
 function MoveButton({
   direction,
   label,
@@ -242,13 +285,13 @@ function MoveButton({
   return (
     <button
       type="button"
-      onClick={onClick}
-      disabled={disabled}
+      onClick={disabled ? undefined : onClick}
+      aria-disabled={disabled || undefined}
       aria-label={label}
       className={cx(
-        'rounded-sm px-0.5 text-ink-subtle transition-colors transition-instant outline-none',
-        'hover:text-ink focus-visible:focus-ring',
-        'disabled:pointer-events-none disabled:opacity-30',
+        'rounded-sm px-0.5 transition-colors transition-instant outline-none',
+        'focus-visible:focus-ring',
+        disabled ? 'cursor-default text-ink-subtle' : 'text-ink-muted hover:text-ink',
       )}
     >
       <ChevronGlyph direction={direction} />
