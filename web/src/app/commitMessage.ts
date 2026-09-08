@@ -5,12 +5,12 @@ import type { FileStatus } from '../api/types';
  *
  * A commit that adds one file is "Add src/parser.ts" nine times in ten, and
  * typing that out is work the interface can do. So it does — as a PROPOSAL. It
- * is drawn in the box as placeholder text and one key accepts it; it is never
- * committed on the user's behalf. That line is deliberate, and it is where
- * this differs from the message git prepares for a merge: that one is git's
- * own sentence about the user's own operation and goes in as real text, while
- * this is a guess made from a file list, and a guess nobody read is not a
- * commit message.
+ * is drawn in the box as placeholder text and taken by pressing the button
+ * under it; it is never committed on the user's behalf. That line is
+ * deliberate, and it is where this differs from the message git prepares for
+ * a merge: that one is git's own sentence about the user's own operation and
+ * goes in as real text, while this is a guess made from a file list, and a
+ * guess nobody read is not a commit message.
  *
  * The rules below come from what the staged files ARE, never from their
  * content. Nothing here opens a diff: a summariser that read the patch would

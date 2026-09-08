@@ -3,8 +3,10 @@ import type { ReactNode } from 'react';
 import type { Head, Ref } from '../api/types';
 import { Badge, RefBadge } from '../components/Badge';
 import { Button } from '../components/Button';
+import { EmptyState } from '../components/EmptyState';
 import { Menu, menuItem, type MenuItem } from '../components/Menu';
 import { Panel } from '../components/Panel';
+import { Tooltip } from '../components/Tooltip';
 import { cx } from '../lib/cx';
 import { shortenSha } from '../lib/format';
 import type { CheckOutRequest } from './useCheckOut';
@@ -121,6 +123,14 @@ interface RefSidebarProps {
    * a property of that tag.
    */
   onNewTag?: () => void;
+  /**
+   * Why New tag is refused, when it is — a repository with no commit to tag.
+   *
+   * The sentence rather than a boolean, and the button rather than nothing at
+   * all, for the reason the stash panel gives: a control greyed with nothing
+   * to say reads as a screen that is broken.
+   */
+  newTagUnavailableReason?: string;
   /** Opens the delete-tag confirmation for this short name. */
   onDeleteTag?: (name: string) => void;
   /**
@@ -151,25 +161,36 @@ export function RefSidebar({
   onDeleteTag,
   onPushTag,
   pushTagUnavailableReason,
+  newTagUnavailableReason,
 }: RefSidebarProps) {
   const headerActions =
     onNewBranch === undefined && onNewTag === undefined ? undefined : (
       <div className="flex items-center gap-1">
         {onNewBranch !== undefined && (
           <Button size="sm" variant="ghost" onClick={onNewBranch}>
-            New branch
+            New branch…
           </Button>
         )}
         {onNewTag !== undefined && (
-          <Button size="sm" variant="ghost" onClick={onNewTag}>
-            New tag
-          </Button>
+          <NewTagAction onNewTag={onNewTag} refusal={newTagUnavailableReason} />
         )}
       </div>
     );
 
+  // Everything this list draws, in one pass: refs/stash is the one reference
+  // it never shows, and asking each group for it separately would leave the
+  // question of whether anything was drawn at all to a fifth filter that
+  // disagreed with the four above it.
+  const listed = refs.filter((ref) => ref.name !== STASH_REF);
+  const drewNothing = listed.length === 0 && head?.detached !== true;
+
+  // Sized to what it holds, and capped: 24rem is about a dozen rows and their
+  // headings, which is more than a sidebar is read at a glance. Past the cap
+  // the list scrolls inside the panel — which is what keeps a repository with
+  // a thousand tags from pushing the stash off the bottom of the column, and
+  // the reason this cannot simply be the column's own scrolling.
   return (
-    <Panel title="References" className="min-h-0 flex-1" flush actions={headerActions}>
+    <Panel title="References" className="max-h-96 shrink-0" flush actions={headerActions}>
       <div className="h-full overflow-auto">
         {/* A detached HEAD is on no branch, so `for-each-ref` never mentions
             it and every group below would leave the screen saying nothing
@@ -186,8 +207,26 @@ export function RefSidebar({
           </Group>
         )}
 
+        {/* The panel is the only place a branch, a remote or a tag is named,
+            so an empty one reads as a panel that failed to load rather than as
+            a repository with nothing in it. Which of the two sentences applies
+            is asked of HEAD and not of the list: no HEAD is a repository whose
+            first commit has not happened, and it is the case somebody lands on
+            straight out of the create flow. */}
+        {drewNothing && (
+          <EmptyState
+            title={head === undefined ? 'No references yet' : 'Nothing to list'}
+            description={
+              head === undefined
+                ? 'This repository has no commits yet, so nothing points anywhere. Make one and the branch it creates appears here.'
+                : 'Branches, remotes and tags are what this panel lists, and this repository has none of the three yet. The first one you make appears here.'
+            }
+            compact
+          />
+        )}
+
         {GROUPS.map(({ kind, title }) => {
-          const group = refs.filter((ref) => ref.kind === kind && ref.name !== STASH_REF);
+          const group = listed.filter((ref) => ref.kind === kind);
           if (group.length === 0) {
             return null;
           }
@@ -198,6 +237,23 @@ export function RefSidebar({
                 const current = isCurrent(ref, head);
                 const request = checkOutRequestFor(ref);
 
+                const actions = rowActions({
+                  reference: ref,
+                  current,
+                  detached: head?.detached === true,
+                  busy: checkingOut === request.ref,
+                  ...(onCheckOut === undefined ? {} : { onCheckOut: () => onCheckOut(request) }),
+                  ...(onRenameBranch === undefined ? {} : { onRename: onRenameBranch }),
+                  ...(onSetUpstream === undefined ? {} : { onSetUpstream }),
+                  ...(onUnsetUpstream === undefined ? {} : { onUnsetUpstream }),
+                  ...(onDeleteBranch === undefined ? {} : { onDelete: onDeleteBranch }),
+                  ...(onMergeBranch === undefined ? {} : { onMerge: onMergeBranch }),
+                  ...(onRebaseBranch === undefined ? {} : { onRebase: onRebaseBranch }),
+                  ...(onDeleteTag === undefined ? {} : { onDeleteTag }),
+                  ...(onPushTag === undefined ? {} : { onPushTag }),
+                  ...(pushTagUnavailableReason === undefined ? {} : { pushTagUnavailableReason }),
+                });
+
                 return (
                   <Row
                     key={ref.name}
@@ -206,26 +262,8 @@ export function RefSidebar({
                     sha={ref.sha}
                     current={current}
                     onSelect={() => onGoTo(ref.sha)}
-                    action={rowActions({
-                      reference: ref,
-                      current,
-                      detached: head?.detached === true,
-                      busy: checkingOut === request.ref,
-                      ...(onCheckOut === undefined
-                        ? {}
-                        : { onCheckOut: () => onCheckOut(request) }),
-                      ...(onRenameBranch === undefined ? {} : { onRename: onRenameBranch }),
-                      ...(onSetUpstream === undefined ? {} : { onSetUpstream }),
-                      ...(onUnsetUpstream === undefined ? {} : { onUnsetUpstream }),
-                      ...(onDeleteBranch === undefined ? {} : { onDelete: onDeleteBranch }),
-                      ...(onMergeBranch === undefined ? {} : { onMerge: onMergeBranch }),
-                      ...(onRebaseBranch === undefined ? {} : { onRebase: onRebaseBranch }),
-                      ...(onDeleteTag === undefined ? {} : { onDeleteTag }),
-                      ...(onPushTag === undefined ? {} : { onPushTag }),
-                      ...(pushTagUnavailableReason === undefined
-                        ? {}
-                        : { pushTagUnavailableReason }),
-                    })}
+                    action={actions.node}
+                    actionReachesTheName={actions.wide}
                     // A checkout in flight keeps its button on screen. It is
                     // the one moment the spinner inside it is the only thing
                     // saying the click was heard, and a pointer that drifted
@@ -286,6 +324,49 @@ function isCurrent(reference: Ref, head: Head | undefined): boolean {
 }
 
 /**
+ * The button that makes a tag, offered or refused.
+ *
+ * Two shapes for the reason the stash panel draws two: a disabled Button drops
+ * pointer events, so the browser fires no hover on it and a `title` would be
+ * readable by nobody — precisely when the sentence is needed. Tooltip hovers
+ * the span around it and reaches the button through aria-describedby.
+ *
+ * And a native `title` on that same span, which is not belt and braces. This
+ * button sits in a Panel header, and Panel is `overflow-hidden`; the bubble
+ * hangs `bottom-full`, above a header that is already at the top of its box,
+ * so it is clipped away entirely — the one control on the panel that has
+ * something to explain is the one whose explanation cannot be seen. The
+ * browser draws a `title` outside the page, where nothing clips it. The
+ * bubble stays because it is what carries aria-describedby, and the day
+ * Tooltip reaches the top layer (a new ADR against ADR 0018's third bullet)
+ * the `title` is what comes back off.
+ */
+function NewTagAction({
+  onNewTag,
+  refusal,
+}: {
+  onNewTag: () => void;
+  refusal: string | undefined;
+}) {
+  const button = (
+    <Button size="sm" variant="ghost" onClick={onNewTag} disabled={refusal !== undefined}>
+      New tag…
+    </Button>
+  );
+
+  if (refusal === undefined) {
+    return button;
+  }
+  return (
+    <span className="inline-flex" title={refusal}>
+      <Tooltip label={refusal} align="end">
+        {button}
+      </Tooltip>
+    </span>
+  );
+}
+
+/**
  * The button that moves the repository.
  *
  * One label for both outcomes, and the difference is in the accessible name
@@ -323,11 +404,17 @@ function CheckOutAction({
 }
 
 /**
- * Everything laid over a row's right edge, or nothing at all.
+ * Everything laid over a row's right edge, or nothing at all, and how far in
+ * it reaches.
  *
  * Nothing matters: the overlay it goes in is absolutely positioned over the
  * row, and one containing an empty fragment is an invisible box over the right
  * end of every tag in the list.
+ *
+ * `wide` is the check-out button, and it is a fact about width rather than
+ * about the action: the menu on its own sits over the sha, while the button
+ * beside it reaches on into the name. The row is what does something about
+ * that, and this is the only place that knows which shape a row got.
  */
 function rowActions({
   reference,
@@ -344,7 +431,7 @@ function rowActions({
   onDeleteTag,
   onPushTag,
   pushTagUnavailableReason,
-}: RowActions): ReactNode {
+}: RowActions): { node: ReactNode; wide: boolean } {
   // Nothing to check out on the branch already checked out, and a button that
   // ran `git switch` for it would be a button whose only outcome is "already
   // on 'main'".
@@ -368,17 +455,20 @@ function rowActions({
           onDelete,
         });
   if (checkOut === null && items.length === 0) {
-    return undefined;
+    return { node: undefined, wide: false };
   }
 
-  return (
-    <>
-      {checkOut}
-      {items.length > 0 && (
-        <Menu label={`More actions for ${reference.short_name}`} items={items} />
-      )}
-    </>
-  );
+  return {
+    node: (
+      <>
+        {checkOut}
+        {items.length > 0 && (
+          <Menu label={`More actions for ${reference.short_name}`} items={items} />
+        )}
+      </>
+    ),
+    wide: checkOut !== null,
+  };
 }
 
 /**
@@ -620,6 +710,25 @@ const REVEALED_ON_ATTENTION = [
   'group-has-[[aria-expanded=true]]/ref:opacity-100',
 ].join(' ');
 
+/**
+ * What the name gives up while a check-out button is over it.
+ *
+ * The overlay is opaque, so the tail of a truncated name does not go
+ * half-legible under it — it disappears, ellipsis included, and what is left
+ * reads as a whole branch name that happens to be shorter. That is the failure
+ * worth fixing: not that characters are hidden, but that nothing says they
+ * are. The padding is roughly what the check-out button reaches past the sha,
+ * so the same characters are visible either way and the truncation is drawn
+ * where the reader can see it. Only while the row is under attention, and only
+ * on the rows that get the button — the menu alone sits over the sha and
+ * covers no name at all.
+ */
+const NAME_YIELDS_TO_ACTION = [
+  'group-hover/ref:pr-16',
+  'group-focus-within/ref:pr-16',
+  'group-has-[[aria-expanded=true]]/ref:pr-16',
+].join(' ');
+
 interface RowProps {
   label: string;
   /** The whole name, for the tooltip: the label is truncated. */
@@ -632,6 +741,8 @@ interface RowProps {
   children?: ReactNode;
   /** The row's other clicks, laid over its right edge. */
   action?: ReactNode;
+  /** Whether that action is wide enough to cover the name. See rowActions. */
+  actionReachesTheName?: boolean;
   /** Keeps that action on screen whether or not the row is hovered. */
   actionPinned?: boolean;
 }
@@ -644,6 +755,7 @@ function Row({
   onSelect,
   children,
   action,
+  actionReachesTheName = false,
   actionPinned = false,
 }: RowProps) {
   return (
@@ -652,12 +764,23 @@ function Row({
         type="button"
         onClick={onSelect}
         aria-current={current ? true : undefined}
+        // A height rather than padding around a line box. The row that carries
+        // the HEAD badge is 2px taller than the rest of them, because the badge
+        // is bordered and the bare text beside it is not — and it is always the
+        // current branch, so the one row a reader looks for first is the one
+        // that puts the column of shas out of step.
         className={cx(
-          'flex w-full items-center gap-2 px-3 py-1.5 text-left outline-none',
+          'flex h-8 w-full items-center gap-2 px-3 text-left outline-none',
           'transition-colors transition-instant hover:bg-hover focus-visible:focus-ring',
         )}
       >
-        <span className="min-w-0 flex-1 truncate font-mono text-xs text-ink-muted" title={title}>
+        <span
+          className={cx(
+            'min-w-0 flex-1 truncate font-mono text-xs text-ink-muted',
+            actionReachesTheName && NAME_YIELDS_TO_ACTION,
+          )}
+          title={title}
+        >
           {label}
         </span>
 

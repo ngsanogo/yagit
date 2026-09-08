@@ -16,10 +16,17 @@ interface CommandLogPanelProps {
  * user has to be able to learn git by watching yagit work, so nothing is
  * hidden — not the read-only commands, not the failures, not git's raw
  * stderr.
+ *
+ * Titled "Command log" and not "Git log", which is what it used to say. The
+ * promise above is the reason: somebody learning git from this panel would
+ * have learned that `git log` names the transcript of commands rather than the
+ * command that prints history — and this application's central screen IS that
+ * history, two panels away. Every other name the project has given this thing
+ * already said command log.
  */
 export function CommandLogPanel({ executions, className }: CommandLogPanelProps) {
   return (
-    <Panel title="Git log" className={className} flush>
+    <Panel title="Command log" className={className} flush>
       {executions.length === 0 ? (
         <EmptyState
           title="No commands yet"

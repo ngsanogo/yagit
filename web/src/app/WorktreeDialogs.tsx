@@ -52,7 +52,7 @@ export function AddWorktreeDialog({
   onCreate,
 }: {
   busy: boolean;
-  /** The daemon root, for the placeholder. Undefined until a discover answers. */
+  /** The allowed root, for the placeholder. Undefined until a discover answers. */
   rootHint: string | undefined;
   /** The command the daemon answered with, once it has. */
   plan: { command: string; path: string } | undefined;
@@ -116,7 +116,7 @@ export function AddWorktreeDialog({
 
         <Field
           label="Folder"
-          hint="Absolute path inside the daemon root. The parent must exist; the folder itself must not."
+          hint="Absolute path inside the allowed root. The parent must exist; the folder itself must not."
           value={path}
           onChange={(event) => setPath(event.target.value)}
           placeholder={rootHint === undefined ? '/home/you/repo-side' : `${rootHint}/repo-side`}

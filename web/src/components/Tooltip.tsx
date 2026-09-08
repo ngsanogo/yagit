@@ -26,10 +26,24 @@ interface TooltipProps {
 /**
  * Tooltip on hover and on keyboard focus.
  *
- * Pure CSS: no measurement, no portal, no repositioning. That assumes it has
- * room to show above its anchor, which holds everywhere yagit uses it. The
- * day that stops being true, it will need real positioning — not before, and
- * ADR 0018 says where it would come from.
+ * Pure CSS: no measurement, no portal, no repositioning. What that buys is a
+ * component with no state and no lifecycle; what it costs is a bubble that
+ * stays in the normal flow, and the constraint is sharper than "there is room
+ * above the anchor". The bubble is clipped by the first `overflow: auto`
+ * above it, so the anchor must not be inside a scroll container — room or no
+ * room. A row at the top of a scrolling table hangs its bubble over the
+ * container's own edge, where it is cut in half or removed entirely, and
+ * scrolling cannot bring it back because the row is already at the top of the
+ * range. Menu.tsx walked into the same trap first and says so: it is on the
+ * top layer precisely because the references scroll inside their panel.
+ *
+ * So inside a scroll container, use a native `title` instead: the browser
+ * draws it outside the page and nothing clips it, and it is already this
+ * codebase's idiom for hover text that is worth reading and not worth
+ * blocking on. The day a bubble with real styling is needed inside a scroller,
+ * this needs the top layer and the measure-on-open Menu already implements —
+ * which reverses the third bullet of ADR 0018 and therefore starts with a new
+ * ADR saying the premise stopped holding.
  *
  * It is what a disabled control explains itself with, and the only thing that
  * can. A `title` attribute on a disabled Button never appears: Button drops

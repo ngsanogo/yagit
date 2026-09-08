@@ -42,10 +42,6 @@ export function useLFS(repositoryId: string, enabled: boolean) {
 
   const support = useQuery(lfsQuery(repositoryId, enabled));
 
-  const failed = (title: string) => (error: Error) => {
-    toast.push({ tone: 'danger', title, detail: errorDescription(error) });
-  };
-
   // No onError of its own, unlike run below. Every caller of this reaches it
   // through the dialog slot's `propose`, which reports a failed plan naming
   // what was asked — "what tracking *.psd would run" — and a second toast
@@ -77,7 +73,19 @@ export function useLFS(repositoryId: string, enabled: boolean) {
         detail: '.gitattributes is written, and not committed. That commit is yours to make.',
       });
     },
-    onError: failed('The LFS command failed'),
+    // Named after what was asked for, like every other failure in the
+    // application: "Could not untrack *.psd" and not "The LFS command
+    // failed". The pattern is what makes it useful — a repository tracking
+    // three of them fails one at a time, and a title that names none of them
+    // leaves the reader to guess which — and it is already in scope, because
+    // the success toast one line up is built from the same two values.
+    onError: (error, { action, pattern }) => {
+      toast.push({
+        tone: 'danger',
+        title: action === 'track' ? `Could not track ${pattern}` : `Could not untrack ${pattern}`,
+        detail: errorDescription(error),
+      });
+    },
   });
 
   return { support, plan, run };

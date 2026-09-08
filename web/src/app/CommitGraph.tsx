@@ -1,14 +1,6 @@
 import { ABSENT_ROW, type GraphEdge } from '../api/types';
 import { laneColor } from '../design/tokens';
-import {
-  columnCentre,
-  DOT_RADIUS,
-  edgePath,
-  edgeShape,
-  graphWidth,
-  ROW_HEIGHT,
-  rowCentre,
-} from './geometry';
+import { columnCentre, DOT_RADIUS, edgePath, edgeShape, ROW_HEIGHT, rowCentre } from './geometry';
 
 /**
  * The commit graph, drawn for the rows on screen and no others.
@@ -30,8 +22,17 @@ interface CommitGraphProps {
   first: number;
   /** How many rows are drawn. */
   count: number;
-  /** Columns the picture needs, over the whole history. */
-  columns: number;
+  /**
+   * The gutter the rows have left, in pixels.
+   *
+   * Given rather than derived from `columns`, because on a narrow window the
+   * two differ: the list bounds the gutter against its own width and the
+   * picture is clipped at that edge, which the rows announce. Coordinates are
+   * unchanged either way — a clipped graph is the same graph with less of it
+   * on screen, not a redrawn one, so a lane keeps its colour and its x as the
+   * window is resized.
+   */
+  width: number;
   /** Commits in the whole history, so a line with no parent knows where the
    * bottom of the picture is. */
   total: number;
@@ -40,12 +41,12 @@ interface CommitGraphProps {
   laneOf: (row: number) => number | undefined;
 }
 
-export function CommitGraph({ first, count, columns, total, edges, laneOf }: CommitGraphProps) {
+export function CommitGraph({ first, count, width, total, edges, laneOf }: CommitGraphProps) {
   return (
     <svg
       aria-hidden="true"
       className="pointer-events-none absolute left-0 top-0 overflow-hidden"
-      width={graphWidth(columns)}
+      width={width}
       height={count * ROW_HEIGHT}
       style={{ transform: `translateY(${first * ROW_HEIGHT}px)` }}
     >

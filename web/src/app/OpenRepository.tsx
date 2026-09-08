@@ -9,6 +9,7 @@ import { Field } from '../components/Field';
 import { GitFailureDetail } from '../components/GitFailureDetail';
 import { Spinner } from '../components/Spinner';
 import { cx } from '../lib/cx';
+import { errorSummary } from '../lib/errorDisplay';
 import { boundedScanDepth, scanDepthFromInput, scanSkipExplanation } from './discover';
 
 /**
@@ -242,8 +243,16 @@ export function OpenRepository({ onOpened }: { onOpened?: (id: string) => void }
         <div className="flex flex-wrap items-end gap-2">
           <Field
             label="Scan in"
-            hint="Only directories inside the daemon root are searched."
-            className="min-w-[14rem] flex-1"
+            // "The allowed root", not "the daemon root", which is what this
+            // said. The daemon refuses a path outside it with "path outside
+            // the allowed root", so that is the name a person meets at the
+            // moment they are most confused — and a hint that used a second
+            // name for the same limit invited the reading that there are two
+            // of them. Two limits is the doubt that ends with somebody
+            // widening YAGIT_ROOT to be safe, and this is the application's
+            // one security boundary.
+            hint="Only directories inside the allowed root are searched."
+            className="min-w-56 flex-1"
             value={scanDir}
             onChange={(event) => setTypedScanDir(event.target.value)}
             placeholder="/home/you"
@@ -374,7 +383,16 @@ export function OpenRepository({ onOpened }: { onOpened?: (id: string) => void }
             value={path}
             onChange={(event) => setPath(event.target.value)}
             placeholder="/home/you/project"
-            {...(formFailure !== null ? { error: formFailure.message } : {})}
+            // The summary, not the whole message: the daemon's sentence
+            // usually ENDS with the command, exit code and stderr that the
+            // block below the field already draws, so the field repeated the
+            // whole of git's output in red type above it. The fallback is not
+            // a nicety — `error` is what marks the field invalid, and a
+            // refusal whose message is the restatement and nothing else must
+            // still leave a field saying something is wrong with it.
+            {...(formFailure !== null
+              ? { error: errorSummary(formFailure) ?? formFailure.message }
+              : {})}
           />
           <Button type="submit" variant="primary" loading={open.isPending}>
             Open
@@ -404,6 +422,7 @@ function DiscoveredRow({
   onOpen: () => void;
 }) {
   const messageId = useId();
+  const summary = error === null ? undefined : errorSummary(error);
 
   return (
     <li className="flex flex-col">
@@ -411,7 +430,7 @@ function DiscoveredRow({
         type="button"
         disabled={alreadyOpen || opening}
         onClick={onOpen}
-        aria-describedby={error !== null ? messageId : undefined}
+        aria-describedby={summary === undefined ? undefined : messageId}
         className={cx(
           'flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-left transition-colors transition-instant',
           alreadyOpen ? 'cursor-default opacity-60' : 'hover:bg-hover focus-visible:focus-ring',
@@ -423,7 +442,7 @@ function DiscoveredRow({
         {repository.bare && <Badge tone="neutral">bare</Badge>}
         {repository.kind !== 'top-level' && <Badge tone="info">{kindLabel(repository.kind)}</Badge>}
         {alreadyOpen && <Badge tone="neutral">open</Badge>}
-        <span className="hidden max-w-[12rem] truncate font-mono text-2xs text-ink-subtle md:inline">
+        <span className="hidden max-w-48 truncate font-mono text-2xs text-ink-subtle md:inline">
           {repository.path}
         </span>
       </button>
@@ -438,12 +457,21 @@ function DiscoveredRow({
        * alone. The row disables itself while the request is in flight, which
        * hands focus back to the document, so by the time the failure lands
        * there is nobody on the row left to be told about it.
+       *
+       * On the wrapper rather than on the sentence, because the sentence is
+       * the half that can be missing. `errorSummary` subtracts what the block
+       * underneath already says — the daemon's message for a refused path
+       * ends with the same command, exit code and stderr — and when the
+       * message was that and nothing else there is no paragraph left to
+       * announce, only the block. The failure has to be heard either way.
        */}
       {error !== null && (
-        <div className="flex flex-col gap-1.5 px-2 pt-0.5 pb-1.5">
-          <p id={messageId} role="alert" className="text-2xs text-danger">
-            {error.message}
-          </p>
+        <div role="alert" className="flex flex-col gap-1.5 px-2 pt-0.5 pb-1.5">
+          {summary !== undefined && (
+            <p id={messageId} className="text-2xs text-danger">
+              {summary}
+            </p>
+          )}
           {error instanceof ApiError && error.git !== undefined && (
             <GitFailureDetail failure={error.git} />
           )}

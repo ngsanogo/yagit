@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { useState, type FormEvent } from 'react';
+import { useEffect, useRef, useState, type FormEvent } from 'react';
 
 import { api } from '../api/client';
 import type { HistoryScope, SearchField } from '../api/types';
@@ -7,10 +7,11 @@ import { Button } from '../components/Button';
 import { EmptyState } from '../components/EmptyState';
 import { Field } from '../components/Field';
 import { GitCommand } from '../components/GitCommand';
+import { QueryErrorState } from '../components/PanelState';
 import { SegmentedControl, type Segment } from '../components/SegmentedControl';
 import { Spinner } from '../components/Spinner';
-import { errorDescription } from '../lib/errorDisplay';
-import { shortenSha } from '../lib/format';
+import { useToast } from '../components/ToastHost';
+import { counted, shortenSha } from '../lib/format';
 import { refsKey } from './historyScope';
 
 /**
@@ -55,6 +56,7 @@ export function SearchHistory({
   refs?: readonly string[];
   onChoose: (sha: string) => void;
 }) {
+  const toast = useToast();
   const [field, setField] = useState<SearchField>('message');
   const [draft, setDraft] = useState('');
 
@@ -89,8 +91,76 @@ export function SearchHistory({
     setAsked({ query: draft.trim(), field });
   };
 
+  const { data, error, isFetching } = results;
+
+  /*
+   * The press this pane has already answered.
+   *
+   * Not a guard against saying the same thing twice — every press makes a new
+   * `asked`, so pressing Search twice is announced twice, and somebody who
+   * cannot see the list pressing again is somebody checking they pressed it
+   * at all. What it holds back is the settle nobody asked for. Every query in
+   * this application refetches when the window regains focus, because the
+   * repository is also being worked in a terminal and that is the only thing
+   * covering what happened while the tab was in the background; a search left
+   * open across that round trip would read its count out again the moment the
+   * user came back to the browser. An announcement that arrives without a
+   * press is how a live region teaches somebody to switch it off.
+   */
+  const announced = useRef<typeof asked>(undefined);
+
+  /*
+   * What the search did, in words.
+   *
+   * Pressing Search and then hearing nothing is the whole complaint: focus
+   * stays on the button, the spinner that replaces the list is decoration
+   * (its role="status" wraps an aria-hidden glyph and so has nothing to read
+   * out), and a query still running is indistinguishable from one that
+   * matched nothing. The count is the answer to both questions at once.
+   *
+   * Said through the host's region rather than a `role="status"` of this
+   * pane's own, and that is not tidiness: a live region only reliably
+   * announces a change made after it is in the document, and every region
+   * this pane could mount arrives at the same moment as the text inside it.
+   * The host's has been there since the page loaded.
+   *
+   * Settled rather than successful, so a query answered from the cache is
+   * still reported: an answer that arrives instantly is the one most likely
+   * to be mistaken for no answer at all.
+   */
+  useEffect(() => {
+    if (asked === undefined || isFetching || announced.current === asked) {
+      return;
+    }
+    if (error !== null) {
+      announced.current = asked;
+      toast.announce('Could not search the history');
+      return;
+    }
+    if (data === undefined) {
+      // Enabled and not yet in flight: the key changed on this render and the
+      // fetch has not been marked. Nothing has been answered, so nothing is
+      // remembered either and the next settle is still this press's first.
+      return;
+    }
+    announced.current = asked;
+    if (data.commits.length === 0) {
+      toast.announce('Nothing matched');
+      return;
+    }
+    const matched = counted(data.commits.length, 'commit', 'matches', 'match');
+    toast.announce(data.truncated ? `More than ${matched}` : matched);
+  }, [asked, data, error, isFetching, toast]);
+
   return (
-    <div className="flex min-h-0 flex-col gap-3">
+    <div
+      className="flex min-h-0 flex-col gap-3"
+      // The pane says it is working as well as saying what it found. A search
+      // walks the whole history, so the wait is long enough to be mistaken
+      // for a result — and a reader who cannot see the spinner has, until the
+      // announcement lands, no way to tell "still going" from "nothing here".
+      aria-busy={results.isFetching || undefined}
+    >
       <SegmentedControl
         label="Where to look"
         segments={FIELDS}
@@ -118,18 +188,30 @@ export function SearchHistory({
         </Button>
       </form>
 
-      {results.isFetching && (
+      {/* Not while a failure is on screen. The wait is carried there instead,
+          by the Retry button's own spinner: a second attempt that unmounted
+          the block it was pressed in would drop keyboard focus to the body,
+          and drawing both would put two spinners on one small pane saying the
+          same thing. */}
+      {results.isFetching && results.error === null && (
         <div className="flex justify-center py-6">
           <Spinner label="Searching the history" />
         </div>
       )}
 
+      {/* The shared failure state, so a search that could not run looks like
+          every other read that could not — and so it offers the way out, which
+          matters more here than in a panel: the pane is inside a dialog, and
+          the alternative recovery this application has (leaving the window and
+          coming back) is a gesture that dismisses the dialog on the way.
+          `compact` because the padding is a variant rather than a class from
+          outside; the `py-6` this used to pass never reached the element. */}
       {results.error !== null && asked !== undefined && (
-        <EmptyState
+        <QueryErrorState
           title="Could not search the history"
-          description=""
-          detail={errorDescription(results.error)}
-          className="py-6"
+          error={results.error}
+          compact
+          retry={results}
         />
       )}
 
@@ -146,7 +228,11 @@ export function SearchHistory({
                 <li key={commit.sha} className="border-b border-line last:border-b-0">
                   <button
                     type="button"
-                    className="flex w-full flex-col items-start gap-0.5 px-3 py-2 text-left hover:bg-sunken focus-visible:focus-ring"
+                    // `--color-hover` and not `--color-sunken`: a result row
+                    // darkened under the pointer where every other list in the
+                    // workbench lightens, and the token that darkens is the
+                    // one fields and input areas are painted with.
+                    className="flex w-full flex-col items-start gap-0.5 px-3 py-2 text-left transition-colors transition-instant hover:bg-hover focus-visible:focus-ring"
                     onClick={() => onChoose(commit.sha)}
                   >
                     <span className="w-full truncate text-xs text-ink">{commit.subject}</span>

@@ -5,9 +5,10 @@ import type { Commit } from '../api/types';
 import { CloseButton } from '../components/CloseButton';
 import { EmptyState } from '../components/EmptyState';
 import { Panel } from '../components/Panel';
+import { QueryErrorState } from '../components/PanelState';
 import { Spinner } from '../components/Spinner';
-import { errorDescription, refusalHeading } from '../lib/errorDisplay';
-import { formatRelativeTime, shortenSha } from '../lib/format';
+import { refusalHeading } from '../lib/errorDisplay';
+import { formatExactTime, formatRelativeTime, shortenSha } from '../lib/format';
 
 /**
  * Commits that touched one path, newest first, following renames.
@@ -53,12 +54,15 @@ export function FileHistoryPanel({
         </div>
       )}
 
+      {/* The shared failure state, so this read looks like every other read
+          that failed — and so it gets the Retry the hand-rolled version had no
+          room for. A path's history is walked with `git log --follow`, which is
+          exactly the command a rebase in another terminal interrupts. */}
       {history.error !== null && (
-        <EmptyState
+        <QueryErrorState
           title={refusalHeading(history.error) ?? `Could not read history of ${path}`}
-          description=""
-          detail={errorDescription(history.error)}
-          className="py-8"
+          error={history.error}
+          retry={history}
         />
       )}
 
@@ -66,7 +70,6 @@ export function FileHistoryPanel({
         <EmptyState
           title="No commits touch this path"
           description="Nothing in this walk changed the file — it may be untracked, or the revision does not reach it."
-          className="py-8"
         />
       )}
 
@@ -99,6 +102,8 @@ export function FileHistoryPanel({
  * what a row of the answer looks like.
  */
 export function HistoryRow({ commit, onSelect }: { commit: Commit; onSelect: () => void }) {
+  const when = new Date(commit.date);
+
   return (
     <li className="border-b border-line last:border-b-0">
       <button
@@ -110,7 +115,13 @@ export function HistoryRow({ commit, onSelect }: { commit: Commit; onSelect: () 
         <span className="flex flex-wrap gap-x-2 font-mono text-2xs text-ink-subtle">
           <span title={commit.sha}>{shortenSha(commit.sha)}</span>
           <span>{commit.author}</span>
-          <span>{formatRelativeTime(new Date(commit.date), new Date())}</span>
+          {/* The clock, on the one channel this row has room for. The visible
+              form is relative and past a week it is a bare date, so a list of
+              commits made on one afternoon reads as one day and nothing
+              orders them inside it — and this list, unlike the history, is
+              short enough that the missing hour is the whole question a
+              reader brought to it. */}
+          <span title={formatExactTime(when)}>{formatRelativeTime(when, new Date())}</span>
         </span>
       </button>
     </li>

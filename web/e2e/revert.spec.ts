@@ -136,6 +136,6 @@ test('a root commit is refused rather than offered', async ({ page }) => {
   // The toast first: it is what waits for the daemon's answer. Asserting the
   // absent dialog before the round trip has finished would pass on a dialog
   // that was still on its way.
-  await expect(page.getByRole('status').filter({ hasText: 'root' })).toBeVisible();
+  await expect(page.getByRole('alert').filter({ hasText: 'root' })).toBeVisible();
   await expect(page.getByRole('dialog')).toHaveCount(0);
 });

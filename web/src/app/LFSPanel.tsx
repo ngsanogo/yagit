@@ -1,9 +1,7 @@
 import type { LFSSupport } from '../api/types';
-import { EmptyState } from '../components/EmptyState';
 import { Panel } from '../components/Panel';
-import { Spinner } from '../components/Spinner';
+import { QueryErrorState, type RetryableQuery } from '../components/PanelState';
 import { cx } from '../lib/cx';
-import { errorDescription } from '../lib/errorDisplay';
 
 /**
  * Git LFS: which paths are kept outside the repository.
@@ -25,8 +23,11 @@ import { errorDescription } from '../lib/errorDisplay';
  *
  * Drawn only where this repository routes something through LFS, like the
  * submodules above it and unlike the stash and the worktrees: every repository
- * has those two and most have never heard of LFS, so an empty panel in that
- * column would cost the references forty pixels of height to say nothing.
+ * has those two and most have never heard of LFS, so an empty panel here is
+ * forty pixels of the sidebar spent saying nothing, and one more panel to
+ * scroll past on the way to the ones with something to say. Nor is the wait
+ * drawn — see the early return, which is why nothing below it has a loading
+ * state.
  *
  * What that used to cost was the feature. The form for the first pattern was
  * inside the panel a repository with no pattern is not given, so tracking one
@@ -41,35 +42,38 @@ interface LFSPanelProps {
   support: LFSSupport | undefined;
   loading: boolean;
   error?: Error;
+  /** The query behind that failure, so the panel can offer to ask again. */
+  retry?: RetryableQuery;
 
   /** Opens the confirmation, which shows the command the daemon answered. */
   onUntrack: (pattern: string) => void;
 }
 
-export function LFSPanel({ support, loading, error, onUntrack }: LFSPanelProps) {
-  // Nothing tracked and nothing to say: no panel. The error and the wait are
-  // still drawn — a repository whose .gitattributes could not be read is not
-  // one that tracks nothing, and saying so is the difference between a panel
-  // that is absent and one that is quiet.
-  if (support !== undefined && support.patterns.length === 0) {
+export function LFSPanel({ support, loading, error, retry, onUntrack }: LFSPanelProps) {
+  // Nothing tracked and nothing to say: no panel. The error is still drawn — a
+  // repository whose .gitattributes could not be read is not one that tracks
+  // nothing, and saying so is the difference between a panel that is absent
+  // and one that is quiet.
+  //
+  // The WAIT is not drawn, and that is the correction: almost no repository
+  // uses LFS, so a spinner here is a panel drawn only to be taken away again a
+  // few milliseconds later, with everything under it in the column moving down
+  // and back up while that happens. The cost is that a repository which does
+  // use LFS gets its panel late rather than early — `git lfs version` spawns a
+  // process — and arriving once beats arriving, leaving and arriving again.
+  if (error === undefined && (loading || support === undefined || support.patterns.length === 0)) {
     return null;
   }
 
   return (
-    <Panel title="Large files" className="max-h-48 min-h-0" flush>
+    <Panel title="Large files" className="max-h-48 shrink-0" flush>
       <div className="flex h-full flex-col overflow-auto">
-        {loading && (
-          <div className="grid place-items-center p-4">
-            <Spinner label="Asking git-lfs" />
-          </div>
-        )}
-
         {error !== undefined && (
-          <EmptyState
+          <QueryErrorState
             title="Could not read the LFS state"
-            description=""
-            detail={errorDescription(error)}
-            className="py-6"
+            error={error}
+            compact
+            retry={retry}
           />
         )}
 
