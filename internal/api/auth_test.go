@@ -1,6 +1,7 @@
 package api_test
 
 import (
+	"bytes"
 	"log/slog"
 	"net/http"
 	"net/http/httptest"
@@ -31,6 +32,18 @@ func testServer(t *testing.T) http.Handler {
 
 func testServerWithSecureCookies(t *testing.T, secureCookies bool) http.Handler {
 	t.Helper()
+	return newTestServer(t, secureCookies, slog.New(slog.DiscardHandler))
+}
+
+// testServerWithLogger is the same daemon with somewhere to read its log from,
+// for the tests that check what a refusal writes as well as what it answers.
+func testServerWithLogger(t *testing.T, logger *slog.Logger) http.Handler {
+	t.Helper()
+	return newTestServer(t, false, logger)
+}
+
+func newTestServer(t *testing.T, secureCookies bool, logger *slog.Logger) http.Handler {
+	t.Helper()
 
 	root, err := filepath.EvalSymlinks(t.TempDir())
 	if err != nil {
@@ -49,14 +62,14 @@ func testServerWithSecureCookies(t *testing.T, secureCookies bool) http.Handler 
 		Token:          testToken,
 		AllowedOrigins: []string{allowedOrigin},
 		SecureCookies:  secureCookies,
-		Logger:         slog.New(slog.DiscardHandler),
+		Logger:         logger,
 		// The real frontend has no business in an API test. This stand-in
 		// is enough to check that a non-API route does reach it once the
 		// token has been accepted.
 		Frontend: http.HandlerFunc(func(writer http.ResponseWriter, _ *http.Request) {
 			writer.WriteHeader(http.StatusOK)
 		}),
-		Events: api.NewEventStream(slog.New(slog.DiscardHandler)),
+		Events: api.NewEventStream(logger),
 	})
 	if err != nil {
 		t.Fatalf("NewServer: %v", err)
@@ -253,13 +266,20 @@ func TestMutatingCookieRequestDemandsAKnownOrigin(t *testing.T) {
 		name       string
 		origin     string
 		wantStatus int
+		// wantInBody is what the refusal has to name, so the reader learns
+		// which origin was refused instead of only that one was.
+		wantInBody string
 	}{
-		{"no origin", "", http.StatusForbidden},
-		{"foreign origin", "https://malicious-site.example", http.StatusForbidden},
+		{"no origin", "", http.StatusForbidden, ""},
+		{
+			"foreign origin", "https://malicious-site.example",
+			http.StatusForbidden, "https://malicious-site.example",
+		},
+		{"null origin", "null", http.StatusForbidden, "regular browser"},
 		// 400 and not 200: the body carries no path, so the request is
 		// rejected further along. What matters is that it got past the origin
 		// check.
-		{"yagit's own origin", allowedOrigin, http.StatusBadRequest},
+		{"yagit's own origin", allowedOrigin, http.StatusBadRequest, ""},
 	}
 
 	for _, testCase := range cases {
@@ -270,8 +290,14 @@ func TestMutatingCookieRequestDemandsAKnownOrigin(t *testing.T) {
 				request.Header.Set("Origin", testCase.origin)
 			}
 
-			if response := execute(handler, request); response.Code != testCase.wantStatus {
+			response := execute(handler, request)
+			if response.Code != testCase.wantStatus {
 				t.Fatalf("status = %d, want %d", response.Code, testCase.wantStatus)
+			}
+			if testCase.wantInBody != "" &&
+				!strings.Contains(response.Body.String(), testCase.wantInBody) {
+				t.Errorf("refusal must name %q, got: %s",
+					testCase.wantInBody, response.Body.String())
 			}
 		})
 	}
@@ -372,6 +398,56 @@ func TestSessionExchangeRefusesANullOrigin(t *testing.T) {
 	}
 	if !strings.Contains(response.Body.String(), "regular browser") {
 		t.Errorf("null Origin must say how to open yagit, got: %s", response.Body.String())
+	}
+}
+
+// An Origin longer than a log line is still answered, and neither the log nor
+// the response carries the whole of it.
+//
+// The session exchange decides the origin before it checks the token, so any
+// local process can drive this path without holding the secret. Without a
+// bound, one attempt writes as much as net/http will accept in a header.
+func TestARejectedOriginIsBoundedInTheRefusal(t *testing.T) {
+	var logBuf bytes.Buffer
+	logger := slog.New(slog.NewTextHandler(&logBuf, &slog.HandlerOptions{Level: slog.LevelWarn}))
+	handler := testServerWithLogger(t, logger)
+
+	padding := strings.Repeat("x", 64*1024)
+	request := httptest.NewRequest(http.MethodPost, "/api/session",
+		strings.NewReader(`{"token":"`+testToken+`"}`))
+	request.Header.Set("Content-Type", "application/json")
+	request.Header.Set("Origin", "https://evil.example/"+padding)
+
+	response := execute(handler, request)
+	if response.Code != http.StatusForbidden {
+		t.Fatalf("status = %d, want 403: %s", response.Code, response.Body)
+	}
+
+	// Both halves, and the first one is what keeps the bounds below from
+	// passing on an empty answer: a refusal that said nothing at all would
+	// satisfy every "not too long" check here.
+	body := response.Body.String()
+	if !strings.Contains(body, "https://evil.example/") {
+		t.Errorf("refusal must still name the origin it refused, got: %s", body)
+	}
+	if strings.Contains(body, padding) {
+		t.Errorf("refusal body carried the whole origin (%d bytes)", response.Body.Len())
+	}
+	// maxLoggedValue is 512; the wrapper around it is a short fixed phrase.
+	// Anything near a kilobyte means the bound was lost.
+	if response.Body.Len() > 1024 {
+		t.Errorf("refusal body is %d bytes: the origin was not bounded", response.Body.Len())
+	}
+
+	logged := logBuf.String()
+	if !strings.Contains(logged, "origin rejected") {
+		t.Errorf("the refusal must reach the log, got: %s", logged)
+	}
+	if strings.Contains(logged, padding) {
+		t.Errorf("log carried the whole origin (%d bytes)", len(logged))
+	}
+	if len(logged) > 2048 {
+		t.Errorf("log line is %d bytes: the origin was not bounded", len(logged))
 	}
 }
 

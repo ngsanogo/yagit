@@ -49,16 +49,26 @@ var (
 // sandboxed preview sends, and what browsers send on form POSTs when the
 // page was served under Referrer-Policy: no-referrer — both look the same
 // on the wire, so the message names the preview case the user can fix.
+//
+// The URL is named as the one the daemon printed rather than the one ./do
+// printed: a release install has no ./do, and this message is exactly what
+// somebody who installed from a release reaches.
 func originRejected(origin string) error {
-	if origin == "null" {
-		return fmt.Errorf(
-			"%w (got %q — open yagit in a regular browser at the URL ./do printed)",
-			errOriginRejected, origin)
-	}
-	if origin == "" {
+	switch origin {
+	case "":
 		return errOriginRejected
+	case "null":
+		return fmt.Errorf(
+			"%w (got %q — open yagit in a regular browser at the URL the daemon printed at startup)",
+			errOriginRejected, origin)
+	default:
+		// forLog, not the raw header. This value is the client's, and
+		// writeError puts the message it lands in through the logger: an
+		// Origin of a megabyte — which fits inside net/http's default header
+		// limit — is a megabyte of log line, once per attempt, on a route
+		// that answers before any token is checked. See maxLoggedValue.
+		return fmt.Errorf("%w (got %q)", errOriginRejected, forLog(origin))
 	}
-	return fmt.Errorf("%w (got %q)", errOriginRejected, origin)
 }
 
 // credentialSource says how a request authenticated. The distinction is not
@@ -138,10 +148,11 @@ func (s *Server) requireToken(next http.Handler) http.Handler {
 			return
 		}
 
-		if isMutating(request.Method) && source == credentialCookie && !s.originAllowed(request) {
-			writeError(writer, s.logger, http.StatusForbidden,
-				originRejected(request.Header.Get("Origin")))
-			return
+		if isMutating(request.Method) && source == credentialCookie {
+			if origin := request.Header.Get("Origin"); !s.originAllowed(origin) {
+				writeError(writer, s.logger, http.StatusForbidden, originRejected(origin))
+				return
+			}
 		}
 
 		if s.tokenMatches(request.URL.Query().Get(tokenQueryParameter)) &&
@@ -207,8 +218,10 @@ func redirectWithoutToken(writer http.ResponseWriter, request *http.Request) {
 	http.Redirect(writer, request, cleaned.RequestURI(), http.StatusFound)
 }
 
-func (s *Server) originAllowed(request *http.Request) bool {
-	origin := request.Header.Get("Origin")
+// originAllowed takes the header value rather than the request: every caller
+// needs the value anyway, to name it in the refusal, and reading one header in
+// three places is three chances for the check and the message to disagree.
+func (s *Server) originAllowed(origin string) bool {
 	if origin == "" {
 		// Every current browser sends Origin on a mutating request. Its
 		// absence therefore signals a client that is not a browser — and
