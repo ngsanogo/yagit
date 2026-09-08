@@ -15,23 +15,100 @@ const ACTIVE_KEY = 'yagit.active-path';
 const THEME_KEY = 'yagit.theme';
 const SCOPE_KEY = 'yagit.history-scope';
 
+/** What actually gets painted. `data-theme` is always one of these two. */
 export type Theme = 'dark' | 'light';
 
-export function readStoredTheme(): Theme {
-  try {
-    return localStorage.getItem(THEME_KEY) === 'light' ? 'light' : 'dark';
-  } catch {
-    // localStorage can throw in a private context; dark is the finished default.
+/**
+ * What the reader chose, which is not the same thing.
+ *
+ * The third state is the honest one and it was missing: a two-state toggle
+ * defaulting to dark serves dark to somebody whose desktop has said "light"
+ * for years, in every fresh profile and every private window, and offers no
+ * way to say "whichever the machine is using" — only "dark, always" or
+ * "light, always".
+ *
+ * `system` is stored as the ABSENCE of the key. A reader who never touched
+ * the control follows their desktop, an older `dark` or `light` still means
+ * what it meant, and there is no third string to keep two parsers agreeing on.
+ */
+export type ThemeChoice = Theme | 'system';
+
+/**
+ * Asked for light rather than for dark, so that everything else lands on dark.
+ *
+ * A browser with no opinion, and one too old to answer, both report `false`
+ * here — and dark is the theme that has had the proportional pass, so it is
+ * the right place for "I could not tell".
+ */
+const LIGHT_QUERY = '(prefers-color-scheme: light)';
+
+/**
+ * The colour preference the machine already holds.
+ *
+ * Guarded rather than assumed: this module is imported by tests that run under
+ * node, where there is no `window` at all, and a store that throws on import
+ * takes the suite with it.
+ */
+function systemTheme(): Theme {
+  if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') {
     return 'dark';
+  }
+  return window.matchMedia(LIGHT_QUERY).matches ? 'light' : 'dark';
+}
+
+/**
+ * What the reader chose, or `system` where they have not.
+ *
+ * `web/public/theme.js` reads the same key with the same three-state meaning,
+ * and it has to: it runs before any module can, which is what stamps the right
+ * theme on the frame this bundle has not painted yet. The two are a pair —
+ * change the key or the meaning here and change it there, or the first frame
+ * is the wrong theme rather than merely the default one.
+ */
+export function readStoredTheme(): ThemeChoice {
+  try {
+    const stored = localStorage.getItem(THEME_KEY);
+    return stored === 'light' || stored === 'dark' ? stored : 'system';
+  } catch {
+    // localStorage can throw in a private context. Following the system is
+    // the default there too — it is the answer that needs nothing stored.
+    return 'system';
   }
 }
 
-export function writeStoredTheme(theme: Theme): void {
+export function writeStoredTheme(choice: ThemeChoice): void {
   try {
-    localStorage.setItem(THEME_KEY, theme);
+    if (choice === 'system') {
+      localStorage.removeItem(THEME_KEY);
+    } else {
+      localStorage.setItem(THEME_KEY, choice);
+    }
   } catch {
     // Preference is lost on reload; the toggle still works for this session.
   }
+}
+
+/** The choice turned into the one of two themes that can be painted. */
+export function resolveTheme(choice: ThemeChoice): Theme {
+  return choice === 'system' ? systemTheme() : choice;
+}
+
+/**
+ * Calls back when the machine's colour preference changes.
+ *
+ * A desktop that switches on a schedule switches while yagit is open, and a
+ * preference read once at load is a preference that is wrong for the rest of
+ * the evening. Returns the unsubscribe, and returns one that does nothing
+ * where there is no `matchMedia` to unsubscribe from, so no caller has to ask
+ * which it got.
+ */
+export function watchSystemTheme(onChange: () => void): () => void {
+  if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') {
+    return () => undefined;
+  }
+  const query = window.matchMedia(LIGHT_QUERY);
+  query.addEventListener('change', onChange);
+  return () => query.removeEventListener('change', onChange);
 }
 
 export function applyTheme(theme: Theme): void {
