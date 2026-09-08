@@ -177,20 +177,25 @@ merge; it applies the same rule, so it cannot produce a different version.
 
 ## Repository settings
 
-These are configured on GitHub itself, not in the repository, but they are part
-of how this project is meant to run. A solo maintainer still benefits from
-them: they are guardrails against merging by accident, not bureaucracy.
+These live in the GitHub ruleset named `main`, not in the checkout, but they
+are part of how this project runs. A solo maintainer still benefits from them:
+they are guardrails against merging by accident, not bureaucracy. The posture
+and the Scorecard alerts it intentionally leaves open are spelled out in
+`SECURITY.md`.
 
-On `main`, enable branch protection with:
+On `main` the ruleset requires:
 
-- **Require status checks** before merging: `Lint`, `Test`, `Build`,
+- **A pull request** before merging (no direct pushes, no administrator
+  bypass).
+- **Status checks** against an up-to-date branch: `Lint`, `Test`, `Build`,
   `Analyze go`, `Analyze javascript-typescript`, `Dependency review`,
   `Go on macOS`, and `Go on Windows` — the job names in
   `.github/workflows/ci.yml`, `codeql.yml` and `supply-chain.yml` are stable
   on purpose so this list does not drift.
-- **Require a pull request** before merging, with at least one approval when
-  there is more than one contributor.
-- **Do not allow bypassing** the above settings, including for administrators.
+- **CODEOWNERS review** on other people's changes, resolved review threads,
+  and dismissal of stale reviews on new pushes.
+- **No minimum approval count** while there is one maintainer — raise it to 1
+  when a second person reviews regularly.
 
 Also worth having enabled on the repository:
 
