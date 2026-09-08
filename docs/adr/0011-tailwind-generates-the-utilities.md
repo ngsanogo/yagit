@@ -51,6 +51,42 @@ failure with no error attached.
 the canvas used to read lane colours back out of the document at runtime. The
 inline-style readers remain, so `static` remains.
 
+## What `static` does not reach: the `--shadow-*` namespace
+
+A note on the boundary of the guarantee above, not a change to it.
+
+`static` is a promise about **emission**: the variable is in the stylesheet
+whether or not a class mentions it. It says nothing about whether the utility
+bearing that token's name goes on to **read** the variable — and one namespace
+does not. Tailwind resolves `--shadow-*` at build time and inlines the value
+into the rule, so that a later `shadow-<colour>` can substitute a colour of its
+own:
+
+```css
+.shadow-dialog {
+  --tw-shadow: 0 24px 64px oklch(0% 0 0 / 0.55);
+}
+```
+
+The dark literal is baked in there. A `:root[data-theme='light']` block
+redefining `--shadow-dialog` therefore sets a custom property that nothing on
+the page ever reads, and no form of `@theme` fixes it: the failure is not a
+missing variable. The light theme wore the dark theme's shadows for a release
+because of it — a 45%-black drop shadow drawn for a near-black page, which on
+white is a grey smear under every menu, toast, tooltip and dialog.
+
+The three shadows now sit outside `@theme`, beside the durations, and reach an
+element through an `@utility` that dereferences them at paint time. That is the
+cost paragraph below, paid deliberately: outside `@theme` there is no
+build-time failure to catch a deleted token, and the utility paints nothing
+instead. `web/src/design/tokens.test.ts` is what replaces the build error — it
+asserts the shadows stay out of `@theme`, and that each one reaches an element
+through a `var()` rather than a literal.
+
+Nothing above changes. Tailwind still projects the utility surface from the
+tokens, and `static` is still what keeps the lane and avatar colours — read
+through inline styles, named by no class anywhere — in the stylesheet at all.
+
 ## What it costs
 
 Every token ships whether or not anything uses it. The whole stylesheet is
