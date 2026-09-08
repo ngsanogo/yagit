@@ -36,7 +36,7 @@ func (s *Server) handleCreateSession(writer http.ResponseWriter, request *http.R
 	// it must be allowed — otherwise a page that phished the token could plant
 	// the HttpOnly cookie via a form aimed at this host. curl and other tools
 	// send no Origin and keep working.
-	if origin := request.Header.Get("Origin"); origin != "" && !s.originAllowed(request) {
+	if origin := request.Header.Get("Origin"); origin != "" && !s.originAllowed(origin) {
 		writeError(writer, s.logger, http.StatusForbidden, originRejected(origin))
 		return
 	}
@@ -79,7 +79,13 @@ func readSessionToken(request *http.Request) (string, error) {
 
 	var body sessionRequest
 	if err := decoder.Decode(&body); err != nil {
-		return "", fmt.Errorf("%w: %w", errInvalidSessionBody, err)
+		// forLog, and a %s rather than a second %w: DisallowUnknownFields
+		// quotes the offending field name back, and this route answers before
+		// any token is checked. An unknown field of 64 KiB — which is what
+		// maxRequestBody lets through — is 64 KiB of response body and of log
+		// line, once per attempt, from a caller holding no secret at all. See
+		// maxLoggedValue.
+		return "", fmt.Errorf("%w: %s", errInvalidSessionBody, forLog(err.Error()))
 	}
 	return strings.TrimSpace(body.Token), nil
 }
