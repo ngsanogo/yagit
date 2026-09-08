@@ -141,9 +141,9 @@ hundred npm packages which ship inside the executable.
 
 ## Repository protections
 
-These are what this repository is set up to run. Enable the GitHub-side toggles
-on the repository settings page when the project is published; the workflows
-live in `.github/workflows/`.
+These are what this repository runs today. The workflows live in
+`.github/workflows/`; the branch rules live in the GitHub ruleset named
+`main` (Settings → Rules), not in classic branch protection.
 
 - Private vulnerability reporting (the form above).
 - Secret scanning and push protection.
@@ -156,9 +156,49 @@ live in `.github/workflows/`.
   (`.github/workflows/supply-chain.yml`).
 - The install scripts, run end to end on Linux, macOS and Windows whenever they
   change and weekly (`.github/workflows/installers.yml`). They are how a release
-  reaches a machine, and the checksum check inside them is the step that has to
-  keep working — including its refusal path, which by definition only runs when
-  something is already wrong, and so is the half that rots unwatched.
+  reaches a machine: each job downloads a published release, checks that the
+  launcher it writes really runs the binary, and removes it again. Beside that
+  it runs the refusal — a version that does not exist must fail without
+  installing anything — because a path that only runs when something is already
+  wrong is the half that rots unwatched. That refusal stops at the download; a
+  corrupted asset reaching the checksum comparison is not yet exercised, and
+  wants a fixture the scripts cannot be pointed at today.
+
+### Ruleset on `main`
+
+The `main` ruleset requires a pull request, forbids force-push and deletion,
+requires CODEOWNERS review on other people's changes, requires review threads
+to be resolved, dismisses stale reviews on new pushes, and requires the named
+status checks below to pass against an up-to-date branch. Nobody — including
+administrators — has a bypass. The required checks are the job names in
+`.github/workflows/ci.yml`, `codeql.yml` and `supply-chain.yml`: `Lint`,
+`Test`, `Build`, `Go on macOS`, `Go on Windows`, `Analyze go`,
+`Analyze javascript-typescript`, and `Dependency review`.
+
+It does **not** require a minimum number of approving reviews. There is one
+maintainer; GitHub will not count a self-approval, and inventing a second
+account only to satisfy the counter would be theatre. When a second person
+reviews regularly, raise `required_approving_review_count` to 1. Until then
+Scorecard's Branch-Protection and Code-Review findings that ask for approvers
+are accepted risk, not a missing toggle.
+
+### What Scorecard is expected to keep complaining about
+
+Scorecard grades the repository and opens code-scanning alerts for low scores.
+Some of those alerts are real gaps; some are the wrong shape for a
+one-maintainer project that is days old. Treat them as follows:
+
+| Check | Expected | Why |
+| --- | --- | --- |
+| Branch-Protection | Partial | Ruleset covers force-push, deletion, PRs, status checks, up-to-date branches, and CODEOWNERS. It does not require N approvers while there is only one person who can review. |
+| Code-Review | Low until there are other reviewers | Merges by the sole maintainer have no external approval. That is honest, not an oversight. |
+| Maintained | Low for the first 90 days | Scorecard refuses to credit a repository younger than ninety days. Revisit after that window; commit activity is already there. |
+| CII-Best-Practices | Low until a badge is earned | The OpenSSF Best Practices badge is a separate questionnaire at bestpractices.dev. Fill it when the project has enough history to answer in substance, not to silence the alert. |
+
+A banner that says Scorecard is "reporting errors" on the code-scanning tools
+page usually means those findings (SARIF level `error`), not that the workflow
+failed. The Scorecard job in `supply-chain.yml` is the place to look if the
+upload itself is broken.
 
 ## Design consequences
 
