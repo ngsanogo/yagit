@@ -153,7 +153,7 @@ Work proceeded in phases; each ended with something runnable and testable.
 | 9 | Interactive rebase, stash, cherry-pick, revert, reset. | ✅ |
 | 10 | Undo, on the reflog. | ✅ |
 | 11 | Conflicts, worktrees, submodules, LFS, signature verdicts. | ✅ |
-| 12 | What the phases deferred: remote URL editing, upstream set and unset, NDJSON progress on fetch/pull/push, the theme toggle and the finished light theme, tabs and scope remembered across reloads, and the merge-commit preference where a fast-forward is possible. | ✅ |
+| 12 | What the phases deferred: remote URL editing, upstream set and unset, NDJSON progress on fetch/pull/push, the theme toggle and the light theme, tabs and scope remembered across reloads, and the merge-commit preference where a fast-forward is possible. | ✅ |
 
 Further work is not numbered. Unit tests stay mandatory on parsing and on lane
 assignment — the two places where bugs are silent — and both carry a fuzz

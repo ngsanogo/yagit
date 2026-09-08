@@ -6,6 +6,8 @@ import {
   readStoredPaths,
   readStoredScope,
   readStoredTheme,
+  resolveTheme,
+  watchSystemTheme,
   writeStoredActivePath,
   writeStoredPaths,
   writeStoredScope,
@@ -53,12 +55,49 @@ afterEach(() => {
 });
 
 describe('sessionStore', () => {
-  it('defaults theme to dark and round-trips light', () => {
-    expect(readStoredTheme()).toBe('dark');
+  it('follows the system until the reader chooses, and stores that as no key at all', () => {
+    expect(readStoredTheme()).toBe('system');
+
     writeStoredTheme('light');
     expect(readStoredTheme()).toBe('light');
-    applyTheme('light');
+    applyTheme(resolveTheme('light'));
     expect(documentElement.dataset.theme).toBe('light');
+
+    // Going back to "system" removes the key rather than writing a third
+    // string: absence is what a reader who never touched the control has, and
+    // the two have to mean the same thing or a reset would not be one.
+    writeStoredTheme('system');
+    expect(localStorage.getItem('yagit.theme')).toBeNull();
+    expect(readStoredTheme()).toBe('system');
+  });
+
+  it('resolves "system" through the colour preference, and dark where there is none', () => {
+    // Vitest runs this file under node, where there is no window to ask — the
+    // same shape as a browser too old to answer, and dark is the theme that
+    // has had the proportional pass.
+    expect(resolveTheme('system')).toBe('dark');
+
+    const listeners: (() => void)[] = [];
+    vi.stubGlobal('window', {
+      matchMedia: (query: string) => ({
+        matches: query === '(prefers-color-scheme: light)',
+        addEventListener: (_event: string, listener: () => void) => {
+          listeners.push(listener);
+        },
+        removeEventListener: () => {
+          listeners.pop();
+        },
+      }),
+    });
+
+    expect(resolveTheme('system')).toBe('light');
+    // A choice is a choice: a light desktop does not get to reinterpret it.
+    expect(resolveTheme('dark')).toBe('dark');
+
+    const stop = watchSystemTheme(() => undefined);
+    expect(listeners).toHaveLength(1);
+    stop();
+    expect(listeners).toHaveLength(0);
   });
 
   it('round-trips open paths and the active one', () => {
