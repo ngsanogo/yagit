@@ -24,6 +24,11 @@
  * attribute, and no class name mentions them anywhere in the source. Those
  * tokens would then be missing and their colors merely transparent: a silent
  * visual failure with no error message anywhere. See docs/adr/0011.
+ *
+ * Two families are not in this block at all — durations and shadows — and the
+ * one immediately after it says why. `static` rescues a token Tailwind never
+ * saw used; nothing inside @theme rescues a token Tailwind reads once at build
+ * time and then stops referring to.
  */
 @theme static {
   /* ---------------------------------------------------------------------
@@ -104,12 +109,26 @@
    * Every status has a solid color, for text and icons, and a soft variant,
    * for backgrounds. Status text on a status background of the same
    * intensity would be unreadable.
+   *
+   * Danger carries two more, in the accent's order — base, hover, active,
+   * soft — because it is the one status that is also a button, and a button
+   * owes a pressed state a name. Nothing else here is ever the fill under a
+   * pointer.
    * ------------------------------------------------------------------- */
   --color-success: oklch(76% 0.15 150);
   --color-success-soft: oklch(28% 0.06 150);
   --color-warning: oklch(82% 0.14 85);
   --color-warning-soft: oklch(30% 0.06 85);
   --color-danger: oklch(70% 0.17 25);
+
+  /* The lift is six lightness points, the accent's own step, and it costs
+   * chroma rather than keeping it: at 25° sRGB has 0.143 left by L 76%, so a
+   * hover that asked for the base's 0.17 would be handed back 0.143 at a
+   * lightness nobody chose. It asks for what it can be given — the same
+   * discipline the light lane palette is derived under, further down. */
+  --color-danger-hover: oklch(76% 0.14 25);
+  --color-danger-active: oklch(64% 0.165 25);
+
   --color-danger-soft: oklch(28% 0.08 25);
   --color-info: oklch(74% 0.12 245);
   --color-info-soft: oklch(29% 0.06 245);
@@ -192,17 +211,6 @@
   --radius-xl: 0.875rem; /* dialogs */
 
   /* ---------------------------------------------------------------------
-   * Shadows
-   *
-   * On a dark background a drop shadow on its own goes unnoticed: every
-   * level pairs a shadow with a light inner edge, and that edge is what
-   * actually lifts the surface off its background.
-   * ------------------------------------------------------------------- */
-  --shadow-raised: 0 1px 2px oklch(0% 0 0 / 0.4), inset 0 1px 0 oklch(100% 0 0 / 0.04);
-  --shadow-popover: 0 8px 24px oklch(0% 0 0 / 0.45), 0 0 0 1px oklch(100% 0 0 / 0.06);
-  --shadow-dialog: 0 24px 64px oklch(0% 0 0 / 0.55), 0 0 0 1px oklch(100% 0 0 / 0.08);
-
-  /* ---------------------------------------------------------------------
    * Scrim
    *
    * What a dialog puts between itself and the application. Two values, not
@@ -222,13 +230,42 @@
 }
 
 /*
- * Durations. Outside @theme because Tailwind has no namespace for them; the
- * dedicated utilities just below expose them instead.
+ * The values Tailwind cannot hold on our behalf. The utilities at the bottom
+ * of this file are what put them on an element.
+ *
+ * Durations are here because Tailwind has no namespace for them, and that is
+ * the mild case. Shadows are here for a sharper one, and it took a whole
+ * release to notice: `--shadow-*` IS a Tailwind namespace, but the utility it
+ * generates does not refer to the variable — it inlines the value, to leave
+ * room for `shadow-<color>` to substitute a color of its own. So the shipped
+ * rule reads `.shadow-dialog { --tw-shadow: 0 24px 64px oklch(0% 0 0 / 0.55) }`
+ * with the dark literal baked in, and the light theme's override further down
+ * set a custom property that nothing on the page ever read. Every menu, toast,
+ * tooltip and dialog in the light theme wore a 45%-black drop shadow drawn for
+ * a near-black page: on white, a grey smear.
+ *
+ * Declared here and dereferenced by an @utility, the browser resolves them per
+ * theme at paint time — which is what the file's opening claim ("the utilities
+ * follow without any component having to know") already promised, and is how
+ * every color token has always worked.
+ *
+ * The price is the one ADR 0011 names, and it already applies to the durations:
+ * delete one of these and the utility paints nothing instead of failing the
+ * build. That is the trade for a token a theme can override at all.
+ *
+ * On a dark background a drop shadow on its own goes unnoticed: every level
+ * pairs one with a light inner edge, and that edge is what actually lifts the
+ * surface off its background. The light theme does the opposite, for reasons
+ * argued beside its own three values.
  */
 :root {
   --duration-instant: 90ms; /* hovers, presses */
   --duration-fast: 150ms; /* things appearing in place */
   --duration-slow: 260ms; /* dialogs, panels */
+
+  --shadow-raised: 0 1px 2px oklch(0% 0 0 / 0.4), inset 0 1px 0 oklch(100% 0 0 / 0.04);
+  --shadow-popover: 0 8px 24px oklch(0% 0 0 / 0.45), 0 0 0 1px oklch(100% 0 0 / 0.06);
+  --shadow-dialog: 0 24px 64px oklch(0% 0 0 / 0.55), 0 0 0 1px oklch(100% 0 0 / 0.08);
 }
 
 /*
@@ -238,33 +275,82 @@
  * is current — that is the whole point of naming tokens after their role
  * rather than after their color.
  *
- * This theme is structurally complete but has not had the proportional pass
- * the dark theme got — the product screens do not exist yet to judge it
- * against.
+ * The proportional pass this theme spent a release without has now been done,
+ * over the surfaces and the inks, and measured rather than judged by eye. It
+ * is a mirror and not an inversion, and the difference is the whole of the
+ * work: a dark surface lifts by getting lighter and has room to keep going, a
+ * light one lifts by getting whiter and runs out at white. So elevation is
+ * compressed here and the interaction states are placed the other way up —
+ * the same OKLCH distance from --color-surface as the dark ones, measured
+ * downward. Surface is the ground nearly every hoverable row actually sits
+ * on, which is why the mirror is taken from there rather than from the page.
  *
- * Contrast is not part of what is deferred, and it used to be. The reasoning
- * was that tuning contrast against screens that do not exist is work you do
- * twice; the flaw in it is that contrast is not taste, it is a ratio with a
- * threshold, and it can be measured on the components alone. When it finally
- * was, this theme failed in ten places — and the dark one, the finished one,
- * failed too. Both are now checked by an assertion rather than by eye.
+ * Contrast was never part of what got deferred, though it used to be. The
+ * reasoning was that tuning contrast against screens that do not exist is work
+ * you do twice; the flaw in it is that contrast is not taste, it is a ratio
+ * with a threshold, and it can be measured on the components alone. When it
+ * finally was, this theme failed in ten places — and the dark one, the
+ * finished one, failed too. Both are now checked by an assertion rather than
+ * by eye.
+ *
+ * One pairing is measured and still fails, and it is written down here rather
+ * than left for somebody to rediscover: the status palette on a highlighted
+ * row. A hovered or a selected row draws a file mark, a ref badge and an
+ * author chip in these colors, and over --color-selected the best of them
+ * reaches 3.76:1. It was under the floor there before the interaction states
+ * moved as well. Dark clears the same pairing only because its statuses sit at
+ * L 70-82% over grounds at 29-32%, where this theme's sit at L 48-54% over
+ * 88-91% — the narrower half of the same bargain. No choice of highlight fixes
+ * it either: at the old values the palette still missed the floor there, and a
+ * highlight pale enough to save it is a highlight nobody can see on a panel.
+ * Closing it means re-deriving every solid status against a highlighted row
+ * rather than against the page — every badge and every label in the theme, and
+ * a change to be looked at rather than only computed. tokens.test.ts holds the
+ * four base surfaces under them in the meantime, so the ground cannot slide
+ * any further while that waits.
  */
 :root[data-theme='light'] {
   color-scheme: light;
 
   --color-canvas: oklch(97.5% 0.004 200);
   --color-sunken: oklch(94.5% 0.006 200);
-  --color-surface: oklch(100% 0 0);
+
+  /* White is the top of this ramp and the one step on it that cannot carry the
+   * 200° tint the whole ramp is supposed to have — every chroma at L 100%
+   * clips back to the same white — which is the argument for spending it on
+   * the topmost surface rather than on the panels underneath. Surface used to
+   * be white as well, so a dialog sat zero steps above the panel it covered
+   * while the design system page printed "each surface sits one step above the
+   * one it rests on" directly over the two identical swatches. */
+  --color-surface: oklch(98.5% 0.003 200);
   --color-raised: oklch(100% 0 0);
-  --color-hover: oklch(95% 0.007 200);
-  --color-selected: oklch(92% 0.02 200);
+
+  /* Mirrored from --color-surface rather than inverted from the dark values.
+   * Dark puts hover 7.5 lightness points above surface and selected 10.5;
+   * these sit the same distance below, which lands hover ΔE 0.076 from a panel
+   * against dark's 0.077, and selected 0.108 against 0.106. The old pair was
+   * less than half that, and hover was worse than merely faint: at 95% it sat
+   * BETWEEN sunken (94.5%) and canvas (97.5%), so a row highlight inside any
+   * sunken container moved the ground by ΔE 0.005 — a quarter of a
+   * just-noticeable difference, and correctly reported as no highlight at all.
+   * Below sunken it is a step against every base surface, and its 3.5 points
+   * over sunken are what dark's hover has over raised: the tightest pairing in
+   * each theme, and the same size in both. */
+  --color-hover: oklch(91% 0.008 200);
+  --color-selected: oklch(88% 0.022 200);
 
   --color-line: oklch(90% 0.008 200);
   --color-line-strong: oklch(78% 0.012 200);
 
   --color-ink: oklch(24% 0.02 200);
   --color-ink-muted: oklch(38% 0.02 200);
-  --color-ink-subtle: oklch(50% 0.018 200);
+
+  /* 47% rather than 50% because --color-selected moved down. A refused menu
+   * item draws its reason in this ink on that highlight, and Menu's comment
+   * promises that pairing clears AA in both themes: over the new selected, 50%
+   * gives 4.15 and 47% gives 4.76 — which is the margin dark has for the same
+   * two tokens (4.77). Every other ground this ink meets only gains from it. */
+  --color-ink-subtle: oklch(47% 0.018 200);
 
   --color-accent: oklch(50% 0.13 168);
   --color-accent-hover: oklch(45% 0.13 168);
@@ -277,12 +363,28 @@
   --color-warning: oklch(52% 0.13 70);
   --color-warning-soft: oklch(95% 0.05 85);
   --color-danger: oklch(52% 0.19 25);
+
+  /* Down where dark goes up, which is the whole of the difference: on a light
+   * page a control confirms a press by deepening towards the ink, which is
+   * what the accent ladder above this one already does. Five lightness points
+   * to the hover and ten to the press, its spacing too. */
+  --color-danger-hover: oklch(47% 0.185 25);
+  --color-danger-active: oklch(42% 0.165 25);
+
   --color-danger-soft: oklch(95% 0.04 25);
   --color-info: oklch(52% 0.14 245);
   --color-info-soft: oklch(95% 0.04 245);
 
   --color-added: oklch(50% 0.14 150);
-  --color-modified: oklch(56% 0.13 70);
+
+  /* 52% and not 56%, which makes this --color-warning exactly — and being
+   * exactly it is the point. Four of these six are a status under a second
+   * name: added is success, deleted is danger, renamed is info, modified is
+   * warning, and the dark theme declares each pair identically. Only this one
+   * drifted, four lightness points, and the drift was the difference between
+   * reading and not: 4.46:1 on the page and 4.07:1 on a sunken panel, under
+   * the floor for an 11px letter, on the mark the changes panel draws most. */
+  --color-modified: oklch(52% 0.13 70);
   --color-deleted: oklch(52% 0.19 25);
   --color-renamed: oklch(52% 0.14 245);
   --color-untracked: oklch(52% 0.12 285);
@@ -298,20 +400,63 @@
   --color-ref-remote: oklch(50% 0.13 285);
   --color-ref-tag: oklch(51% 0.13 70);
 
-  --color-lane-1: oklch(46% 0.15 168);
-  --color-lane-2: oklch(46% 0.15 264);
-  --color-lane-3: oklch(46% 0.15 55);
-  --color-lane-4: oklch(46% 0.15 340);
-  --color-lane-5: oklch(46% 0.15 205);
-  --color-lane-6: oklch(46% 0.15 110);
-  --color-lane-7: oklch(46% 0.15 300);
-  --color-lane-8: oklch(46% 0.15 140);
-  --color-lane-9: oklch(46% 0.15 235);
-  --color-lane-10: oklch(46% 0.15 25);
+  /* The same invariant as the dark palette — equal L, equal C, so no branch
+   * looks more important than another — but met rather than declared. At
+   * L = 46% the sRGB gamut runs out at C = 0.0786 near 205°, so asking every
+   * hue for 0.15 got 264° painted at the full 0.15 and 205° clipped back to
+   * 0.087 at L 49%: a 1.7x chroma spread across a palette whose entire purpose
+   * is not to have one. Dark gets away with the same declaration because at
+   * L = 74% its tightest hue caps at 0.126 and the drift is 0.003. Light does
+   * not, so light asks for what it can be given.
+   *
+   * The cost is 60% of dark's chroma, because a mid-lightness cyan is the
+   * narrowest part of sRGB and ten equal hues have to meet the narrowest one.
+   * The order buys it back: screen-neighbours stay at least 75° apart, which
+   * is ΔE 0.096 even at this chroma — several times a just-noticeable
+   * difference, and the only separation a reader of the graph ever needs.
+   *
+   * L stays at 46% and does not climb to buy chroma, because these ten are not
+   * only strokes. Avatar tints its initials with them over a 14% wash of the
+   * same color, and initials are text: at L 58% they fall to 3.4:1 on a
+   * panel, under the AA floor. At 46% they read 5.3. */
+  --color-lane-1: oklch(46% 0.078 168);
+  --color-lane-2: oklch(46% 0.078 264);
+  --color-lane-3: oklch(46% 0.078 55);
+  --color-lane-4: oklch(46% 0.078 340);
+  --color-lane-5: oklch(46% 0.078 205);
+  --color-lane-6: oklch(46% 0.078 110);
+  --color-lane-7: oklch(46% 0.078 300);
+  --color-lane-8: oklch(46% 0.078 140);
+  --color-lane-9: oklch(46% 0.078 235);
+  --color-lane-10: oklch(46% 0.078 25);
 
-  --shadow-raised: 0 1px 2px oklch(0% 0 0 / 0.08), inset 0 1px 0 oklch(100% 0 0 / 0.8);
-  --shadow-popover: 0 8px 24px oklch(0% 0 0 / 0.12), 0 0 0 1px oklch(0% 0 0 / 0.06);
-  --shadow-dialog: 0 24px 64px oklch(0% 0 0 / 0.18), 0 0 0 1px oklch(0% 0 0 / 0.08);
+  /* The one place this theme is not a mirror, and the first time any of it has
+   * been drawn: until the utilities at the foot of this file learned to
+   * dereference these, the light theme painted the dark literals.
+   *
+   * No inner edge. Dark pairs every level with a light hairline because a drop
+   * shadow on a near-black page is invisible; on white the drop shadow is the
+   * entire effect, and the 80%-white hairline this theme used to declare would
+   * have drawn nothing at all on a white panel and a hard white rule across the
+   * top of every accent and danger button.
+   *
+   * The 1px rings are black for the same reason, and they are set at roughly
+   * the weight of --color-line rather than at a value chosen to be tasteful on
+   * white — 6% black is rgb(240,240,240), lighter than any border in this
+   * theme. That matters for one component: Menu, Toast and Dialog each carry a
+   * real border and would not miss the ring, and Tooltip carries none, so the
+   * ring is the only edge it has.
+   *
+   * So each level is a step of black where dark's is a step of light, and the
+   * drops are a ladder rather than three separate opinions: 10% under a
+   * button, 14% under a popover, 18% under a dialog. Regular on purpose —
+   * these three do more work here than their counterparts do in dark, because
+   * there are 1.5 lightness points between --color-surface and white to say
+   * "above" with, against dark's 4, and a ladder is what is left to say it
+   * with. */
+  --shadow-raised: 0 1px 2px oklch(0% 0 0 / 0.1);
+  --shadow-popover: 0 8px 24px oklch(0% 0 0 / 0.14), 0 0 0 1px oklch(0% 0 0 / 0.12);
+  --shadow-dialog: 0 24px 64px oklch(0% 0 0 / 0.18), 0 0 0 1px oklch(0% 0 0 / 0.12);
 
   /* Lighter on a light theme: the same opacity over a white page reads as a
      gray sheet rather than as depth. */
@@ -339,6 +484,26 @@
 @utility transition-slow {
   transition-duration: var(--duration-slow);
   transition-timing-function: var(--ease-out-quart);
+}
+
+/*
+ * The three elevation levels. Written out rather than left to Tailwind's own
+ * shadow-* utilities for the reason argued beside the tokens: Tailwind inlines
+ * a --shadow-* value into the rule it generates, so the theme override never
+ * reached the screen. A var() in the declaration is resolved by the browser,
+ * per theme, at paint time — and no component has to know which theme is up.
+ */
+
+@utility shadow-raised {
+  box-shadow: var(--shadow-raised);
+}
+
+@utility shadow-popover {
+  box-shadow: var(--shadow-popover);
+}
+
+@utility shadow-dialog {
+  box-shadow: var(--shadow-dialog);
 }
 
 /*
