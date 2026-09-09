@@ -99,7 +99,7 @@ function Body({ detail }: { detail: StashDetail }) {
           Panel that clips what leaves it cuts off everything under it and
           gives no sign it has, and one free to take every pixel it asks for
           leaves the diff at nothing. */}
-      <header className="flex max-h-[75%] min-h-0 flex-col gap-2 overflow-y-auto border-b border-line px-3 py-2.5">
+      <header className="flex max-h-3/4 min-h-0 flex-col gap-2 overflow-y-auto border-b border-line px-3 py-2.5">
         <div className="flex min-w-0 items-start gap-2">
           {/* Two lines, then an ellipsis, with the whole message on hover.
               git writes this sentence itself — "On <branch>: <subject>" — so

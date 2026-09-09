@@ -1,4 +1,4 @@
-import { expect, test, type Page } from '@playwright/test';
+import { expect, test, type Locator, type Page } from '@playwright/test';
 
 import { execFileSync } from 'node:child_process';
 import { existsSync, mkdirSync, rmSync, writeFileSync } from 'node:fs';
@@ -67,6 +67,23 @@ async function openWithASideBranch(
   return { root, path };
 }
 
+/**
+ * Opens a row's actions menu.
+ *
+ * The trigger is drawn only for a row under the pointer or holding focus, and
+ * it takes clicks only then too — the pair moves together deliberately. An
+ * invisible control that still answered a click was how a press meant for the
+ * row opened the menu holding Remove, so hovering the row first is not a test
+ * convenience, it is the gesture. StashPanel's rows are read the same way.
+ */
+async function rowActions(panel: Locator, name: string) {
+  const trigger = panel.getByRole('button', { name });
+  // Two levels up from the trigger: its own wrapper is the box that fades, and
+  // the row above that is the group the hover is read from.
+  await trigger.locator('../..').hover();
+  await trigger.click();
+}
+
 test('lists the main tree, then makes and removes a linked one', async ({ page }) => {
   const { root } = await openWithASideBranch(page, 'wt-panel');
   const destination = join(root, 'wt-panel-side');
@@ -100,7 +117,7 @@ test('lists the main tree, then makes and removes a linked one', async ({ page }
   expect(existsSync(destination)).toBe(true);
 
   // And unmaking it, through the confirmation that names what goes.
-  await panel.getByRole('button', { name: 'Actions for the worktree on side' }).click();
+  await rowActions(panel, 'Actions for the worktree on side');
   await page.getByRole('menuitem', { name: 'Remove…' }).click();
   const confirm = page.getByRole('dialog');
   await expect(confirm).toContainText('git worktree remove --');
@@ -117,7 +134,7 @@ test('refuses to remove the main working tree, and says why', async ({ page }) =
   await openWithASideBranch(page, 'wt-main');
 
   const panel = page.getByRole('region', { name: /^Worktrees/ });
-  await panel.getByRole('button', { name: 'Actions for the worktree on main' }).click();
+  await rowActions(panel, 'Actions for the worktree on main');
 
   const refused = page.getByRole('menuitem', { name: 'Remove…' });
   await expect(refused).toBeDisabled();

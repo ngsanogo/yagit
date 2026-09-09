@@ -1,4 +1,4 @@
-import { expect, test, type Page } from '@playwright/test';
+import { expect, test, type Locator, type Page } from '@playwright/test';
 
 import { execFileSync } from 'node:child_process';
 import { existsSync, mkdirSync, rmSync, writeFileSync } from 'node:fs';
@@ -109,11 +109,28 @@ test('shows what is pinned, and says when a checkout is missing', async ({ page 
   // written, in internal/api/submodules_test.go.
 });
 
+/**
+ * Opens a row's actions menu.
+ *
+ * The trigger is drawn only for a row under the pointer or holding focus, and
+ * it takes clicks only then too — the pair moves together deliberately. An
+ * invisible control that still answered a click was how a press meant for the
+ * row opened the menu holding Remove, so hovering the row first is not a test
+ * convenience, it is the gesture. StashPanel's rows are read the same way.
+ */
+async function rowActions(panel: Locator, name: string) {
+  const trigger = panel.getByRole('button', { name });
+  // Two levels up from the trigger: its own wrapper is the box that fades, and
+  // the row above that is the group the hover is read from.
+  await trigger.locator('../..').hover();
+  await trigger.click();
+}
+
 test('removes a submodule through the pair of commands git needs', async ({ page }) => {
   const path = await openSuperproject(page, 'sm-remove');
   const panel = page.getByRole('region', { name: /^Submodules/ });
 
-  await panel.getByRole('button', { name: 'Actions for the submodule vendor/lib' }).click();
+  await rowActions(panel, 'Actions for the submodule vendor/lib');
   await page.getByRole('menuitem', { name: 'Remove…' }).click();
 
   const dialog = page.getByRole('dialog');

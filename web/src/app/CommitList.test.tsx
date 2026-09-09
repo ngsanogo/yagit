@@ -259,6 +259,23 @@ describe('rowForKey', () => {
     }
   });
 
+  it('answers nothing for the names every object already has', () => {
+    // Not reachable from a KeyboardEvent, and the point is that it should not
+    // depend on that. Looked up in an object literal these six inherit from
+    // Object.prototype and answer with a function, which the undefined check
+    // lets through and Math.min turns into NaN.
+    for (const key of [
+      'constructor',
+      'toString',
+      'valueOf',
+      'hasOwnProperty',
+      '__proto__',
+      'isPrototypeOf',
+    ]) {
+      expect(rowForKey(key, 10, total, page)).toBeUndefined();
+    }
+  });
+
   it('never leaves the history, even on a repository with one commit', () => {
     expect(rowForKey('End', 0, 1, page)).toBe(0);
     expect(rowForKey('PageDown', 0, 1, page)).toBe(0);

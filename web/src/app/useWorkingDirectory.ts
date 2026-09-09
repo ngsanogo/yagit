@@ -9,7 +9,8 @@ import type {
   RepositoryState,
   WorkingDirectory,
 } from '../api/types';
-import { countDrawnLines, MAX_DRAWN_LINES } from './DiffView';
+import { countDrawnLines } from './DiffView';
+import { overCap } from './drawnLines';
 
 /**
  * Reading and changing the working directory.
@@ -62,7 +63,7 @@ export function useWorkingDirectory(repositoryId: string, enabled: boolean) {
  * is a line selection the daemon will refuse, which is the right refusal but a
  * poor way to find out.
  *
- * The poll stops at the point the view stops drawing. Past MAX_DRAWN_LINES the
+ * The poll stops at the point the view stops drawing. Over the cap the
  * pane shows the first two thousand lines and says so, so a re-read buys
  * nothing that reaches the screen while costing a diff of up to the daemon's
  * ten-megabyte cap, transferred and parsed on the main thread, every two
@@ -102,7 +103,7 @@ export function useFileDiff(
         return false;
       }
       const drawn = query.state.data;
-      if (drawn !== undefined && countDrawnLines(drawn) > MAX_DRAWN_LINES) {
+      if (drawn !== undefined && overCap(countDrawnLines(drawn))) {
         return false;
       }
       return STATUS_POLL_MS;

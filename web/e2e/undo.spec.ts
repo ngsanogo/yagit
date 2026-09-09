@@ -72,7 +72,7 @@ test('undoes the tip commit and leaves its changes staged', async ({ page }) => 
   await expect(dialog.getByText(/reset --soft/)).toBeVisible();
   await dialog.getByRole('button', { name: 'Undo commit' }).click();
 
-  await expect(page.getByText(/Undid/)).toBeVisible();
+  await expect(page.getByRole('status').getByText(/Undid/)).toBeVisible();
   await page.getByRole('radio', { name: 'Changes' }).click();
   await expect(page.getByText('notes.md').first()).toBeVisible();
 });

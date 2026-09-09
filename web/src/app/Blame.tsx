@@ -9,7 +9,7 @@ import { QueryErrorState } from '../components/PanelState';
 import { Spinner } from '../components/Spinner';
 import { refusalHeading } from '../lib/errorDisplay';
 import { formatRelativeTime, shortenSha } from '../lib/format';
-import { MAX_DRAWN_LINES } from './DiffView';
+import { Capped, MAX_DRAWN_LINES, Truncated } from './drawnLines';
 
 /**
  * Who last touched each line of a path at a revision.
@@ -90,52 +90,10 @@ export function BlamePanel({
               ))}
             </tbody>
           </table>
-          <Truncated lines={blame.data.lines.length} />
+          <Truncated lines={blame.data.lines.length} subject="file" />
         </div>
       )}
     </Panel>
-  );
-}
-
-/**
- * That the attribution is cut, said where the reader begins.
- *
- * The paragraph at the foot of the panel is two thousand rows away — forty
- * thousand pixels on an ordinary row height — so it is read only by somebody
- * who already knows the file continues. The same pair, in the same words, is
- * what the patch pane draws over a capped diff: blame and a patch open in the
- * same slot, and a reader who has learned the sentence in one should not have
- * to learn it again in the other.
- *
- * The numbers are grouped. Four digits of line count run together as `2000`,
- * and the two numbers this sentence compares are read against each other.
- */
-function Capped({ lines }: { lines: number }) {
-  if (lines <= MAX_DRAWN_LINES) {
-    return null;
-  }
-
-  return (
-    <p className="border-b border-line bg-sunken px-3 py-2 font-sans text-2xs text-ink-muted">
-      <span className="text-ink">
-        Showing the first {MAX_DRAWN_LINES.toLocaleString('en-GB')} lines
-      </span>{' '}
-      of {lines.toLocaleString('en-GB')}.
-    </p>
-  );
-}
-
-/** The same fact where the rows stop, for the reader who scrolled to the end. */
-function Truncated({ lines }: { lines: number }) {
-  if (lines <= MAX_DRAWN_LINES) {
-    return null;
-  }
-
-  return (
-    <p className="border-t border-line px-3 py-2 font-sans text-2xs text-ink-subtle">
-      {lines.toLocaleString('en-GB')} lines in this file; the first{' '}
-      {MAX_DRAWN_LINES.toLocaleString('en-GB')} are shown.
-    </p>
   );
 }
 

@@ -348,7 +348,7 @@ function Body({
           this panel takes, so the ceiling only meets the commit with a long
           body or a dozen references, and the quarter it holds back is what
           keeps a diff on the screen when it does. */}
-      <header className="flex max-h-[75%] min-h-0 flex-col gap-2 overflow-y-auto border-b border-line px-3 py-2.5">
+      <header className="flex max-h-3/4 min-h-0 flex-col gap-2 overflow-y-auto border-b border-line px-3 py-2.5">
         <div className="flex min-w-0 items-start gap-2">
           {/* Two lines, then an ellipsis, with the whole subject on hover.
               Reverts and merges write long ones, and beside a sha that holds

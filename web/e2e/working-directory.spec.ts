@@ -240,7 +240,12 @@ test('commits what is staged, and the history says so', async ({ page }) => {
   // danger toast — which stays on purpose, because it carries the stderr —
   // would do it permanently. Waited out rather than dismissed: the timer is
   // the behaviour under test.
-  const committed = page.getByText('Committed', { exact: true });
+  //
+  // Asked of the card and not of the page, because the sentence is in two
+  // places on purpose: the card that is drawn, and the live region every
+  // toast is also said through, which never goes away. It is the card whose
+  // four seconds are being counted here.
+  const committed = page.getByRole('status').getByText('Committed', { exact: true });
   await expect(committed).toBeVisible();
   await expect(committed).toBeHidden({ timeout: 10_000 });
 
