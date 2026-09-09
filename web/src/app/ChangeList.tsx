@@ -6,6 +6,7 @@ import { Button } from '../components/Button';
 import { describeKind, FileStatusMark } from '../components/FileStatusMark';
 import { cx } from '../lib/cx';
 import { pluralize } from '../lib/format';
+import { REVEALED_ON_ATTENTION } from '../lib/reveal';
 
 /**
  * The files that differ, in two lists.
@@ -30,26 +31,6 @@ export interface Selection {
   path: string;
   row: ChangeRow;
 }
-
-/**
- * What keeps a row's destructive action out of the way until it is wanted.
- *
- * Opacity and pointer events move together, and that pairing is the whole
- * point: transparent alone leaves a button nobody can see and everybody can
- * click, sitting in what reads as blank space on a row whose own click means
- * something else. Here the invisible button was Discard, so a click that
- * landed in the gap destroyed work.
- *
- * RefSidebar carries the same constant for the same reason. It is written out
- * twice rather than shared because the two use different group names and the
- * shared home for it — web/src/lib — belongs to neither file; the next person
- * to touch either should lift it out.
- */
-const REVEALED_ON_ATTENTION = [
-  'pointer-events-none opacity-0',
-  'group-hover/row:pointer-events-auto group-hover/row:opacity-100',
-  'group-focus-within/row:pointer-events-auto group-focus-within/row:opacity-100',
-].join(' ');
 
 /**
  * A discard, coloured rather than filled — and coloured differently in the two
@@ -163,6 +144,17 @@ export function ChangeList({
    * "Stage all", a pointer user who has moved on to the commit box — is left
    * exactly where it is; a list that grabbed the keyboard back a second after
    * the click would be the trap every autofocus falls into.
+   *
+   * And only for as long as the press is still going on, which is the other
+   * half and the one with no symptom until much later. A press git refused —
+   * an index.lock a terminal is holding, a discard the user cancelled — ends
+   * with the row exactly where it was, so the check below finds it listed and
+   * leaves. The press stayed recorded for the rest of the session, and the
+   * next time that path left the list for any reason at all, minutes later
+   * and by somebody else's hand, this list took the keyboard for it. `busy`
+   * is what says the press is over: ChangesView counts a confirmation still
+   * on screen as part of the act, so a discard is one press from the button
+   * to git's answer rather than two with a gap in the middle.
    */
   useEffect(() => {
     const pressed = acted.current;
@@ -171,6 +163,9 @@ export function ChangeList({
     }
     // Still listed: the mutation has not landed, or it did not move this row.
     if (files.some((file) => file.path === pressed.path)) {
+      if (!busy) {
+        acted.current = undefined;
+      }
       return;
     }
     acted.current = undefined;
@@ -185,7 +180,7 @@ export function ChangeList({
     }
     setFocusedPath(heir.path);
     rowButtons.current.get(heir.path)?.focus();
-  }, [files]);
+  }, [files, busy]);
 
   if (files.length === 0) {
     return null;

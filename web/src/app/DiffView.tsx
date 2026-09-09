@@ -1,10 +1,11 @@
-import { useMemo, useState, type KeyboardEvent, type ReactNode } from 'react';
+import { useMemo, useState, type KeyboardEvent } from 'react';
 
 import type { DiffHunk, DiffLine, DiffSide, FileDiff } from '../api/types';
 import { Badge } from '../components/Badge';
 import { Button } from '../components/Button';
 import { EmptyState } from '../components/EmptyState';
 import { cx } from '../lib/cx';
+import { Capped, MAX_DRAWN_LINES, Truncated } from './drawnLines';
 import { pointerNote, type PointerNote as PointerNoteText } from './lfsDiff';
 
 /**
@@ -20,21 +21,6 @@ import { pointerNote, type PointerNote as PointerNoteText } from './lfsDiff';
  * every changed line in that hunk, a click on a line names that one. There is
  * no third path and no separate "hunk staging" anywhere in the daemon.
  */
-
-/**
- * How many lines are drawn before the view says it is not drawing the rest.
- *
- * A generated file, a lockfile, a vendored dependency: diffs of tens of
- * thousands of lines exist and nobody reads them line by line. Past this the
- * lines stop and the number is named, the way the graph names the width it
- * will not draw — the whole-file actions still work, because they are `git
- * add` and need no patch at all.
- *
- * Counted across everything drawn at once, not per file: a commit's patch is
- * every file it touched, and a cap granted to each of five hundred files is no
- * cap at all.
- */
-export const MAX_DRAWN_LINES = 2000;
 
 export type DiffAction = 'stage' | 'unstage' | 'discard';
 
@@ -78,10 +64,22 @@ export function DiffView({ diff, side, onApply, busy }: DiffViewProps) {
   // and toggling wants the line itself. Built once per diff rather than
   // searched per keystroke: a rewritten lockfile is two thousand rows, and a
   // linear scan of them on every press is a key that feels stuck.
+  //
+  // It stops where the drawing stops, which is the rule the rest of this file
+  // keeps: a regenerated lockfile arrives as one hunk of sixty thousand lines,
+  // and the pane's whole defence against it is that it does no work per line
+  // it does not draw. Nothing past the cap can be reached anyway — `changed`
+  // is the only source of the indices looked up here, and it is bounded the
+  // same way — so the entries beyond it were a map of lines nobody can select.
   const lineAt = useMemo(() => {
     const byIndex = new Map<number, DiffLine>();
+    let drawn = 0;
     for (const hunk of diff.hunks) {
       for (const line of hunk.lines) {
+        if (drawn >= MAX_DRAWN_LINES) {
+          return byIndex;
+        }
+        drawn += 1;
         if (line.kind !== 'context') {
           byIndex.set(line.index, line);
         }
@@ -228,7 +226,7 @@ export function DiffView({ diff, side, onApply, busy }: DiffViewProps) {
       />
 
       <div className="min-h-0 flex-1 overflow-auto font-mono text-xs" onKeyDown={moveByKey}>
-        <Capped drawn={drawn}>Hunk buttons act on the lines drawn, not on the rest.</Capped>
+        <Capped lines={drawn}>Hunk buttons act on the lines drawn, not on the rest.</Capped>
 
         {pointer !== undefined && <PointerNote note={pointer} />}
 
@@ -252,7 +250,7 @@ export function DiffView({ diff, side, onApply, busy }: DiffViewProps) {
           />
         ))}
 
-        <Truncated drawn={drawn}>
+        <Truncated lines={drawn} subject="patch">
           Staging the whole file still works — it is <code className="text-ink">git add</code>, and
           needs no patch.
         </Truncated>
@@ -861,59 +859,6 @@ function Notice({ title, description }: { title: string; description: string }) 
 }
 
 /**
- * Whether the cap bit.
- *
- * One comparison, so no view can draw a capped patch and fail to say so — and
- * so the two notices that say it cannot disagree about when to appear.
- */
-function overCap(drawn: number): boolean {
-  return drawn > MAX_DRAWN_LINES;
-}
-
-/**
- * That the patch is cut, said where the reader begins.
- *
- * The paragraph at the foot of the pane is the honest full version and it is
- * two thousand lines away: on a rewritten lockfile it sits fifty screens down,
- * which is a sentence only somebody who already knows the patch is cut will
- * ever reach. A reader staging from the top otherwise has no way to learn that
- * the file continues.
- */
-function Capped({ drawn, children }: { drawn: number; children?: ReactNode }) {
-  if (!overCap(drawn)) {
-    return null;
-  }
-
-  return (
-    <p className="border-b border-line bg-sunken px-3 py-2 font-sans text-2xs text-ink-muted">
-      <span className="text-ink">
-        Showing the first {MAX_DRAWN_LINES.toLocaleString('en-GB')} lines
-      </span>{' '}
-      of {drawn.toLocaleString('en-GB')}. {children}
-    </p>
-  );
-}
-
-/**
- * What the cap left out, or nothing when it was not reached.
- *
- * The comparison lives with the number rather than at each call site, so a
- * view cannot draw a truncated patch and forget to say that it did.
- */
-function Truncated({ drawn, children }: { drawn: number; children?: ReactNode }) {
-  if (!overCap(drawn)) {
-    return null;
-  }
-
-  return (
-    <p className="border-t border-line px-3 py-2 text-2xs text-ink-muted">
-      {drawn.toLocaleString('en-GB')} lines in this patch; the first{' '}
-      {MAX_DRAWN_LINES.toLocaleString('en-GB')} are shown. {children}
-    </p>
-  );
-}
-
-/**
  * A commit's patch: every file it touched, drawn once and capped once.
  *
  * The cap is the patch's rather than each file's, which is the only version
@@ -941,7 +886,7 @@ export function ReadOnlyPatch({
 
   return (
     <>
-      <Capped drawn={drawn} />
+      <Capped lines={drawn} />
 
       {files.map((file, position) => (
         <ReadOnlyDiff
@@ -956,7 +901,7 @@ export function ReadOnlyPatch({
         />
       ))}
 
-      <Truncated drawn={drawn} />
+      <Truncated lines={drawn} subject="patch" />
     </>
   );
 }

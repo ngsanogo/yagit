@@ -49,6 +49,9 @@ interface ToastHostContextValue {
    * the pointer redrew itself. Drawing a card for that would be a card in
    * front of the work every time the work succeeds, so it is said and not
    * drawn.
+   *
+   * Every toast goes through here too, on its way to being drawn. See the
+   * regions themselves for why the saying cannot be left to the card.
    */
   announce: (message: string) => void;
 }
@@ -148,7 +151,7 @@ export function ToastHost({ children }: { children: ReactNode }) {
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
 
   /*
-   * What announce() says, in two regions rather than one.
+   * What is said, in two regions rather than one.
    *
    * A screen reader announces a CHANGE to a live region, and writing the text
    * a region already holds is not one: "Staged 3 files" twice in a row — two
@@ -157,6 +160,12 @@ export function ToastHost({ children }: { children: ReactNode }) {
    * each time, both land. The other region is cleared rather than left
    * standing, so nothing is re-read when the tree is walked; a removal is not
    * an addition, and clearing announces nothing by itself.
+   *
+   * The same alternation is what makes a repeat of a toast land. The stack
+   * collapses "Could not fetch from origin" into the card above it and shows a
+   * count, which is right on screen and is no change at all to a region
+   * holding that sentence already — so the second refusal, and the third,
+   * would be the ones nothing said.
    */
   const [announcements, setAnnouncements] = useState<readonly [string, string]>(['', '']);
   const spokenLast = useRef(0);
@@ -189,29 +198,41 @@ export function ToastHost({ children }: { children: ReactNode }) {
     setToasts((current) => current.filter((toast) => toast.id !== id));
   }, []);
 
-  const push = useCallback((message: ToastRequest) => {
-    // Allocated outside the updater, which React may run twice: the id has to
-    // come from somewhere that is not asked the same question twice. A
-    // collapsed toast keeps the id it already had and this one goes unused,
-    // which costs a gap in a sequence nobody reads.
-    const id = nextId.current;
-    nextId.current += 1;
-    setToasts((current) => nextStack(current, message, id));
-    setArrivals((count) => count + 1);
-  }, []);
-
   const announce = useCallback((message: string) => {
     const region = spokenLast.current === 0 ? 1 : 0;
     spokenLast.current = region;
     setAnnouncements(region === 0 ? [message, ''] : ['', message]);
   }, []);
 
+  const push = useCallback(
+    (message: ToastRequest) => {
+      // Allocated outside the updater, which React may run twice: the id has
+      // to come from somewhere that is not asked the same question twice. A
+      // collapsed toast keeps the id it already had and this one goes unused,
+      // which costs a gap in a sequence nobody reads.
+      const id = nextId.current;
+      nextId.current += 1;
+      setToasts((current) => nextStack(current, message, id));
+      setArrivals((count) => count + 1);
+      // Said as well as drawn, from a region that is not the one being drawn
+      // into. See the stack's own note: the element the cards live in leaves
+      // the top layer and comes back to climb over a dialog, and a live
+      // region that can be taken out of the document is a live region that
+      // will one day be out of it on the frame that mattered. The title is
+      // the sentence that names the operation and what it was aimed at; the
+      // detail is git's stderr, which reaches a reader from the card, where
+      // it is also selectable and still on screen a minute later.
+      announce(message.title);
+    },
+    [announce],
+  );
+
   /*
    * Claims the top layer, and claims it back when a modal has taken it.
    *
-   * The stack is shown while it is still empty, because this element is the
-   * live region the toasts are announced from, and a region that arrives with
-   * its text already inside it is one some readers never announce at all.
+   * The stack is shown while it is still empty, so that a card is drawn into
+   * an element that is already where it belongs rather than one arriving with
+   * the card inside it.
    *
    * After that it stays where it is, with one exception. The top layer is
    * ordered by when each element entered it, so a dialog opened later sits
@@ -220,13 +241,25 @@ export function ToastHost({ children }: { children: ReactNode }) {
    * scrim, which is the failure this popover exists to end. Leaving and
    * re-entering puts the newest one back on top.
    *
-   * Only then, and not on every arrival, because hiding this element costs
-   * twice over: it takes the live region out of the document a frame after
-   * the text landed in it, which is how an announcement is cut in half, and
-   * hiding a popover that holds focus hands focus back to wherever it came
-   * from — so a second failure would throw the user off the first one's
-   * Dismiss button as they reached for it. Neither is worth paying while
-   * there is nothing above us to climb over.
+   * Only then, and not on every arrival, because hiding a popover that holds
+   * focus hands focus back to wherever it came from: a second failure would
+   * throw the user off the first one's Dismiss button as they reached for it.
+   * Not worth paying while there is nothing above us to climb over.
+   *
+   * What this used to cost as well was the announcement — the cards are the
+   * only copy of a notification's text, and taking them out of the document
+   * on the frame one landed is a sentence a reader never hears. That is why
+   * push() says the title through the regions below instead, which no part of
+   * this dance can reach. The two ways a toast reports itself are now the
+   * card, for as long as it is on screen, and a sentence in a region that has
+   * been in the document since the page loaded.
+   *
+   * `:popover-open` and `:modal` are both inside the floor ADR 0018 already
+   * put under this project. An engine that cannot parse the first cannot run
+   * showPopover() either — they shipped together in all three — and `:modal`
+   * is older than both. So there is no browser that reaches this line and
+   * fails at it; a try/catch here would be catching a case that would already
+   * have failed a line earlier, and silencing it.
    */
   useEffect(() => {
     const element = stack.current;
@@ -260,15 +293,14 @@ export function ToastHost({ children }: { children: ReactNode }) {
         // usually the retry — which would take the explanation away as they
         // reached for it. Escape is not wanted here either; the cross is.
         popover="manual"
-        // Kept even though every toast inside declares a region of its own,
-        // and the two do overlap: a failure can be read twice, once from here
-        // and once as the alert it is. That is the trade taken on purpose.
-        // This region has existed since the page loaded, so an insertion into
-        // it is announced by everything, while a region that appears with its
-        // text already inside it is the case readers disagree about. A
-        // failure read twice is a nuisance; a failure read never is what this
-        // whole component exists to prevent.
-        aria-live="polite"
+        // No aria-live of its own. It used to carry one, as the always-present
+        // region an insertion is reliably announced from — and then it became
+        // the element that leaves the top layer and re-enters it to climb over
+        // a dialog, which is a region that can be out of the document on the
+        // one frame a sentence landed in it. A region has to be somewhere
+        // nothing moves, so it is the pair below. What is left here is paint
+        // and the two controls a card carries, and each card still declares
+        // the status or alert it is.
         className={cx(
           // A popover comes with a UA rule of its own — `inset: 0`, a border,
           // padding, `overflow: auto` and an opaque background. The offsets
@@ -300,9 +332,11 @@ export function ToastHost({ children }: { children: ReactNode }) {
         ))}
       </div>
 
-      {/* Outside the popover on purpose: a popover is display:none until it is
-          shown, and a live region that is not in the document is a live region
-          nothing is announced from. */}
+      {/* Outside the popover on purpose, and it is now the only place anything
+          is announced from: a popover is display:none until it is shown, and
+          a live region that is not in the document is a live region nothing is
+          announced from. Everything the host says goes through here — what
+          announce() was asked to say, and the title of every toast. */}
       <div className="sr-only">
         <p aria-live="polite" aria-atomic="true">
           {announcements[0]}

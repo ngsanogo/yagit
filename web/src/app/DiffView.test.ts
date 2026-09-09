@@ -1,14 +1,8 @@
 import { describe, expect, it } from 'vitest';
 
 import type { DiffHunk, DiffLine, FileDiff } from '../api/types';
-import {
-  changedIn,
-  changedLines,
-  gutterWidth,
-  markedSpans,
-  MAX_DRAWN_LINES,
-  spansAgainst,
-} from './DiffView';
+import { changedIn, changedLines, gutterWidth, markedSpans, spansAgainst } from './DiffView';
+import { MAX_DRAWN_LINES } from './drawnLines';
 
 /**
  * What the diff pane says about a line before anything is drawn.

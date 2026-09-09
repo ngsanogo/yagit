@@ -8,6 +8,7 @@ import { Spinner } from '../components/Spinner';
 import { Tooltip } from '../components/Tooltip';
 import { cx } from '../lib/cx';
 import { formatExactTime, formatRelativeTime } from '../lib/format';
+import { REVEALED_ON_ATTENTION } from '../lib/reveal';
 import { stashRef } from './stash';
 
 /**
@@ -192,35 +193,6 @@ function StashAction({
     </span>
   );
 }
-
-/**
- * What keeps a row's menu out of the way until it is wanted.
- *
- * Opacity and pointer events move together, and that pairing is the whole
- * point: transparent alone leaves a button nobody can see and everybody can
- * click, floating over the right-hand end of a row whose own click opens the
- * stash below. A press that landed in what reads as blank space opened a menu
- * instead of the patch, and the menu that opened was the one holding Drop.
- *
- * The third pair is for the menu itself. Its popover is in the browser's top
- * layer, nowhere near this row in the document, so `focus-within` is false for
- * as long as the menu has focus — without it the trigger fades out from under
- * the menu it opened, and the pointer heading for "Drop…" crosses a button
- * that is no longer there.
- *
- * ChangeList and RefSidebar carry the same constant, written out rather than
- * shared for the reason ChangeList's copy records: the three use different
- * group names, and the shared home for it — web/src/lib — belongs to none of
- * the three files. This is the third copy, which is the point at which it
- * should be lifted out.
- */
-const REVEALED_ON_ATTENTION = [
-  'pointer-events-none opacity-0 transition-opacity transition-instant',
-  'group-hover/row:pointer-events-auto group-hover/row:opacity-100',
-  'group-focus-within/row:pointer-events-auto group-focus-within/row:opacity-100',
-  'group-has-[[aria-expanded=true]]/row:pointer-events-auto',
-  'group-has-[[aria-expanded=true]]/row:opacity-100',
-].join(' ');
 
 /**
  * One entry.

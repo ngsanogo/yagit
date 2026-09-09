@@ -134,7 +134,7 @@ test('checking out a branch moves HEAD, and says which command did it', async ({
   // The header, the toast and the sidebar's own marker all move together, and
   // they are read from three different places: the polled status, the answer
   // to the switch, and the reference list the answer replaced.
-  await expect(page.getByText('Now on side')).toBeVisible();
+  await expect(page.getByRole('status').getByText('Now on side')).toBeVisible();
   await expect(branchLabel(page)).toHaveText('on side');
   await expect(page.locator('button[aria-current="true"]')).toContainText('side');
 

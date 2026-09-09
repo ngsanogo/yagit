@@ -416,16 +416,36 @@ export function rowForKey(
   total: number,
   page: number,
 ): number | undefined {
-  const target = {
-    ArrowUp: from - 1,
-    ArrowDown: from + 1,
-    PageUp: from - page,
-    PageDown: from + page,
-    Home: 0,
-    End: total - 1,
-  }[key];
-  if (target === undefined) {
-    return undefined;
+  // A switch and not a lookup in an object literal. Every such literal
+  // inherits Object.prototype, so `constructor`, `toString` and `valueOf`
+  // answer with a function rather than with undefined — the guard below then
+  // passes, and Math.min of a function is NaN, which is what would be handed
+  // to the virtualiser and stored as the row being chased. No KeyboardEvent
+  // spells its key that way, so nothing on screen could reach it; this
+  // function is exported and tested, and a guard that reads as "every other
+  // key" should be that.
+  let target: number;
+  switch (key) {
+    case 'ArrowUp':
+      target = from - 1;
+      break;
+    case 'ArrowDown':
+      target = from + 1;
+      break;
+    case 'PageUp':
+      target = from - page;
+      break;
+    case 'PageDown':
+      target = from + page;
+      break;
+    case 'Home':
+      target = 0;
+      break;
+    case 'End':
+      target = total - 1;
+      break;
+    default:
+      return undefined;
   }
   return Math.min(Math.max(target, 0), Math.max(total - 1, 0));
 }
