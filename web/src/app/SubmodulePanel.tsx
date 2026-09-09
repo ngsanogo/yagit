@@ -6,6 +6,7 @@ import { Panel } from '../components/Panel';
 import { QueryErrorState, type RetryableQuery } from '../components/PanelState';
 import { cx } from '../lib/cx';
 import { shortenSha } from '../lib/format';
+import { REVEALED_ON_ATTENTION } from '../lib/reveal';
 
 /**
  * The repositories this one pins, under the worktrees.
@@ -169,8 +170,14 @@ function Row({ submodule, items }: { submodule: Submodule; items: MenuItem[] }) 
         </span>
       </div>
 
+      {/* Its own paragraph in web/src/lib/reveal.ts: `opacity-0` alone left a
+          menu nobody could see and everybody could click, over the right end
+          of a row whose own click means something else — and this menu holds
+          Remove. The same constant keeps the trigger drawn while the menu it
+          opened is open, which `focus-within` cannot do across the top
+          layer. */}
       {items.length > 0 && (
-        <div className="absolute top-1.5 right-2 opacity-0 transition-opacity transition-instant group-hover/row:opacity-100 focus-within:opacity-100">
+        <div className={cx('absolute top-1.5 right-2', REVEALED_ON_ATTENTION)}>
           <Menu label={`Actions for the submodule ${submodule.path}`} items={items} />
         </div>
       )}

@@ -39,6 +39,18 @@ import { useEvents, type StreamState } from './useEvents';
 import { useWorkingDirectory } from './useWorkingDirectory';
 
 /**
+ * No repositories, as one value rather than one per render.
+ *
+ * `repositories.data ?? []` writes a fresh empty array every time the query has
+ * not answered yet, and three effects below take the list as a dependency: a
+ * new array each render is a dependency that changed, so each of them would run
+ * on every render for as long as the daemon is being waited for. Once the
+ * answer arrives the query hands back the same array until it actually
+ * changes, and this stands in for it before that.
+ */
+const NONE: Repository[] = [];
+
+/**
  * The application.
  *
  * One repository at a time, chosen by a tab, and one face of it at a time,
@@ -77,6 +89,28 @@ export function Workbench() {
     queryFn: api.listRepositories,
   });
 
+  const open = repositories.data ?? NONE;
+
+  /*
+   * Which repository is on screen, resolved once.
+   *
+   * The tab a repository was selected into may be gone — the daemon restarted,
+   * or the repository was replaced underneath — and nothing may be selected at
+   * all, which is where every load starts and where closing the active tab
+   * ends. Falling back to the first keeps the screen showing something real
+   * rather than an empty pane whose cause is invisible.
+   *
+   * Resolved HERE rather than beside the markup, because the mirror below has
+   * to write down the same repository the user is looking at. It used to
+   * resolve `activeId` for itself and stop at `undefined`, so every state that
+   * reached the screen through the fallback was a state the store was never
+   * told about: close the active tab of two and the other one is drawn, named
+   * nowhere, and the next load lands on whichever the daemon happens to list
+   * first. Two resolutions of one value is the shape of that bug, so there is
+   * one.
+   */
+  const active = open.find((repository) => repository.id === activeId) ?? open[0];
+
   // Not gated on sessionReady: `./do up --restart` empties the daemon's
   // registry while the tab stays open, and refetch-on-focus is what tells the
   // interface. A one-shot restore would leave the user looking at "No
@@ -89,7 +123,6 @@ export function Workbench() {
     if (restoring.current || repositories.isPending) {
       return;
     }
-    const open = repositories.data ?? [];
     if (open.length > 0) {
       sessionReady.current = true;
       return;
@@ -158,13 +191,12 @@ export function Workbench() {
         });
       }
     })();
-  }, [repositories.data, repositories.isPending, queryClient, toast]);
+  }, [open, repositories.isPending, queryClient, toast]);
 
   useEffect(() => {
     if (!sessionReady.current || restoring.current || repositories.isPending) {
       return;
     }
-    const open = repositories.data ?? [];
     if (open.length === 0 && readStoredPaths().length > 0) {
       // The daemon holds nothing while the store still remembers something.
       // That is a restarted daemon, not a closed tab — closing writes the
@@ -175,13 +207,12 @@ export function Workbench() {
       return;
     }
     writeStoredPaths(open.map((repository) => repository.path));
-  }, [repositories.data, repositories.isPending]);
+  }, [open, repositories.isPending]);
 
   useEffect(() => {
     if (restoredActive.current) {
       return;
     }
-    const open = repositories.data ?? [];
     if (open.length === 0) {
       return;
     }
@@ -196,7 +227,7 @@ export function Workbench() {
       // the effect that runs when the repository list first answers.
       queueMicrotask(() => setActiveId(match.id));
     }
-  }, [repositories.data]);
+  }, [open]);
 
   useEffect(() => {
     // Two guards, one bug — and it is the bug that made phase 12's promise
@@ -215,16 +246,16 @@ export function Workbench() {
     // "nothing is selected" is never written at all. Forgetting is a gesture,
     // and it is done where the gesture is — in onClosed, below — which is the
     // same distinction the paths mirror above draws for the same reason.
-    if (!restoredActive.current) {
-      return;
-    }
-    const open = repositories.data ?? [];
-    const active = open.find((repository) => repository.id === activeId);
-    if (active === undefined) {
+    //
+    // `active` is the repository the render resolved, fallback included, so
+    // what is written down is what is on screen. It is undefined only when
+    // nothing is open at all, which is the one state this effect still
+    // refuses to record.
+    if (!restoredActive.current || active === undefined) {
       return;
     }
     writeStoredActivePath(active.path);
-  }, [activeId, repositories.data]);
+  }, [active]);
 
   if (repositories.isPending) {
     return (
@@ -267,13 +298,6 @@ export function Workbench() {
       </Centered>
     );
   }
-
-  const open = repositories.data;
-  // The tab a repository was selected into may be gone — the daemon restarted,
-  // or the repository was replaced underneath. Falling back to the first keeps
-  // the screen showing something real rather than an empty pane whose cause is
-  // invisible.
-  const active = open.find((repository) => repository.id === activeId) ?? open[0];
 
   return (
     <div className="flex h-dvh flex-col bg-canvas">
@@ -386,6 +410,17 @@ function Header({
   const close = useMutation({
     mutationFn: (id: string) => api.closeRepository(id),
     onSuccess: async (_result, id) => {
+      // Dropped from the cache before anything is told, rather than left to
+      // the refetch. git has already answered: the repository is gone, and
+      // between here and the list coming back the tab bar would go on drawing
+      // it, the fallback would go on resolving to it, and the mirror that
+      // writes down what is on screen would write the name of a repository
+      // nobody has open. A refetch that says the same thing costs nothing;
+      // a frame of the interface disagreeing with the daemon costs a reload
+      // landing on the wrong tab.
+      queryClient.setQueryData<Repository[]>(['repositories'], (current) =>
+        current?.filter((repository) => repository.id !== id),
+      );
       onClosed(id);
       await queryClient.invalidateQueries({ queryKey: ['repositories'] });
     },

@@ -29,6 +29,7 @@ import { Tooltip } from '../components/Tooltip';
 import { cx } from '../lib/cx';
 import { shortenPath } from '../lib/path';
 import { commandModifier } from '../lib/platform';
+import { REVEALED_ON_ATTENTION } from '../lib/reveal';
 import { LANE_COLOR_COUNT } from './tokens';
 import { MoonGlyph, SunGlyph, SystemGlyph } from '../components/ThemeGlyphs';
 
@@ -1053,9 +1054,10 @@ function GroundRow({ path, selected }: { path: string; selected?: boolean }) {
         size="sm"
         variant="ghost"
         className={cx(
-          'pointer-events-none opacity-0',
-          'group-hover/row:pointer-events-auto group-hover/row:opacity-100',
-          'group-focus-within/row:pointer-events-auto group-focus-within/row:opacity-100',
+          // The product's own constant rather than a copy of it, for the
+          // reason the band below states about the history's rows: a copy
+          // agrees with itself whatever the product does.
+          REVEALED_ON_ATTENTION,
           // The tint arrives with a ground of its own rather than resting on
           // the row's. That is measured, not aesthetic: this ink over
           // --color-selected is under the floor, and over --color-danger-soft

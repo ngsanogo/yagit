@@ -159,33 +159,80 @@ export function CommitBox({
   const messageBox = useRef<HTMLTextAreaElement>(null);
 
   /**
+   * Whoever held the keyboard when the commit landed, until the question of
+   * where it should go can actually be answered. Null when there is nothing
+   * outstanding.
+   */
+  const pressedOnCommit = useRef<Element | null>(null);
+
+  /**
    * What a commit git accepted leaves behind — the empty box, and the focus.
    *
    * Called from the callback rather than from the click, because until git has
    * answered the message in the box is the only copy of it there is.
    *
    * The focus half is the part with no visible symptom. The button that was
-   * pressed disables itself the moment the commit lands — nothing is staged
-   * any more, which is the third of the three reasons it goes off — and a
-   * browser blurs an element it disables, so focus falls to <body> and the
-   * next Tab starts again at the top of the document. A control that vanishes
-   * or refuses itself on success cannot report anything on itself; what it can
-   * do is hand the keyboard somewhere deliberate, and the box the next message
+   * pressed disables itself once the commit lands — nothing is staged any
+   * more, which is the third of the three reasons it goes off — and a browser
+   * blurs an element it disables, so focus falls to <body> and the next Tab
+   * starts again at the top of the document. A control that vanishes or
+   * refuses itself on success cannot report anything on itself; what it can do
+   * is hand the keyboard somewhere deliberate, and the box the next message
    * gets typed into is where somebody who just committed is going.
    *
-   * Only when it HAS fallen there, though. A pointer user who clicked Commit
-   * and moved on to the file list would otherwise be pulled back into a text
-   * area a second later, which is the trap every autofocus falls into.
+   * Which is why the answer is not read HERE. This runs inside the mutation's
+   * callback, before React has re-rendered anything: the button is still
+   * enabled and still holds the caret, so a check for <body> at this instant
+   * reports "somebody else has it" on every commit and the keyboard is never
+   * handed anywhere. What is recorded is who had it; the effect below reads
+   * where it ended up, after the render that refuses the button.
    */
   function afterCommit() {
     onDraftChange(undefined);
     setCoAuthors([]);
+    pressedOnCommit.current = document.activeElement;
+  }
+
+  /*
+   * Where the keyboard goes once the commit has taken it.
+   *
+   * After every render rather than off a dependency list: the button goes off
+   * when the draft empties, or when the status comes back with nothing staged,
+   * or not at all on an amend that left something there — and a list of those
+   * causes is a list that will one day be missing the fourth. The ref makes
+   * every other render free.
+   *
+   * Still on the control that was pressed, while git is still answering, means
+   * the render that refuses it has not happened yet: there is nothing to
+   * reclaim and nothing to give up on either. Anywhere else means somebody has
+   * moved: on <body> the browser put it there by disabling the button, and on
+   * anything else a pointer user has chosen it — pulling them back into a text
+   * area a second later is the trap every autofocus falls into.
+   *
+   * `busy` is what ends the wait, and without it the wait had no end. Clicking
+   * a button does not focus it on every platform: where it does not, the
+   * keyboard never left the message box, the first test above was true on
+   * every render afterwards, and the question was never answered or dropped.
+   * A press outstanding for the rest of the session is a press that answers
+   * the next time focus happens to fall to <body> — a dialog closing an hour
+   * later, and the caret jumps into a commit message nobody was writing.
+   */
+  useEffect(() => {
+    const pressed = pressedOnCommit.current;
+    if (pressed === null) {
+      return;
+    }
 
     const active = document.activeElement;
+    if (busy && active === pressed && active !== document.body) {
+      return;
+    }
+
+    pressedOnCommit.current = null;
     if (active === null || active === document.body) {
       messageBox.current?.focus();
     }
-  }
+  });
 
   /*
    * A refusal is said as well as drawn.

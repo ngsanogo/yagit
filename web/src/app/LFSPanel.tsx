@@ -2,6 +2,7 @@ import type { LFSSupport } from '../api/types';
 import { Panel } from '../components/Panel';
 import { QueryErrorState, type RetryableQuery } from '../components/PanelState';
 import { cx } from '../lib/cx';
+import { REVEALED_ON_ATTENTION } from '../lib/reveal';
 
 /**
  * Git LFS: which paths are kept outside the repository.
@@ -103,10 +104,13 @@ export function LFSPanel({ support, loading, error, retry, onUntrack }: LFSPanel
                       type="button"
                       onClick={() => onUntrack(glob)}
                       className={cx(
-                        'rounded-sm px-1 text-2xs text-ink-subtle opacity-0',
-                        'transition-opacity transition-instant outline-none',
-                        'group-hover/row:opacity-100 focus-visible:opacity-100 focus-visible:focus-ring',
-                        'hover:text-danger',
+                        'rounded-sm px-1 text-2xs text-ink-subtle outline-none',
+                        // Pointer events with the opacity, which this row
+                        // used to reveal without: an untracked glob is a
+                        // line removed from .gitattributes, and it was one
+                        // click into what reads as blank space away.
+                        REVEALED_ON_ATTENTION,
+                        'focus-visible:focus-ring hover:text-danger',
                       )}
                     >
                       Untrack

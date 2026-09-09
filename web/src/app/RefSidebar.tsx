@@ -9,6 +9,7 @@ import { Panel } from '../components/Panel';
 import { Tooltip } from '../components/Tooltip';
 import { cx } from '../lib/cx';
 import { shortenSha } from '../lib/format';
+import { REVEALED_ON_ATTENTION } from '../lib/reveal';
 import type { CheckOutRequest } from './useCheckOut';
 
 /**
@@ -692,25 +693,6 @@ function Group({ title, children }: { title: string; children: ReactNode }) {
 }
 
 /**
- * What keeps an action out of the way until it is wanted.
- *
- * Opacity and pointer events move together on purpose. Transparent alone
- * leaves a button nobody can see and everybody can click, at the right edge of
- * a row whose own click means something else.
- */
-const REVEALED_ON_ATTENTION = [
-  'pointer-events-none opacity-0',
-  'group-hover/ref:pointer-events-auto group-hover/ref:opacity-100',
-  'group-focus-within/ref:pointer-events-auto group-focus-within/ref:opacity-100',
-  // And while this row's menu is open. Its popover is in the browser's top
-  // layer, which is nowhere near the row in the document — so focus-within is
-  // false the whole time the menu has focus, and without this the button that
-  // opened it would fade out from under the menu it opened.
-  'group-has-[[aria-expanded=true]]/ref:pointer-events-auto',
-  'group-has-[[aria-expanded=true]]/ref:opacity-100',
-].join(' ');
-
-/**
  * What the name gives up while a check-out button is over it.
  *
  * The overlay is opaque, so the tail of a truncated name does not go
@@ -724,9 +706,9 @@ const REVEALED_ON_ATTENTION = [
  * covers no name at all.
  */
 const NAME_YIELDS_TO_ACTION = [
-  'group-hover/ref:pr-16',
-  'group-focus-within/ref:pr-16',
-  'group-has-[[aria-expanded=true]]/ref:pr-16',
+  'group-hover/row:pr-16',
+  'group-focus-within/row:pr-16',
+  'group-has-[[aria-expanded=true]]/row:pr-16',
 ].join(' ');
 
 interface RowProps {
@@ -759,7 +741,7 @@ function Row({
   actionPinned = false,
 }: RowProps) {
   return (
-    <li className="group/ref relative">
+    <li className="group/row relative">
       <button
         type="button"
         onClick={onSelect}

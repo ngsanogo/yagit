@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 
 import type {
   ConflictSide,
@@ -113,8 +113,21 @@ export function ChangesView({
   const toast = useToast();
   const operations = useWorktreeOperations(repository.id);
 
-  const staged = status.files.filter((file) => file.staged);
-  const unstaged = status.files.filter((file) => file.unstaged);
+  /*
+   * The four lists the panel is made of, derived once per status rather than
+   * once per render.
+   *
+   * `status.files` keeps its identity between polls — the query only builds a
+   * new array when the answer actually changed — so memoising here is what
+   * carries that identity down to everything derived from it. Filtered afresh
+   * each render, five hundred rows were re-filtered on every keystroke in the
+   * filter box, every diff arrival and every two-second poll; worse, each pass
+   * handed the lists below a new array, which is a dependency that changes
+   * whether or not anything did. The auto-open effect below is the one that
+   * paid for it, and ChangeList's own effects read `files` the same way.
+   */
+  const staged = useMemo(() => status.files.filter((file) => file.staged), [status.files]);
+  const unstaged = useMemo(() => status.files.filter((file) => file.unstaged), [status.files]);
 
   // A third list, cut out of the unstaged one.
   //
@@ -125,8 +138,11 @@ export function ChangesView({
   // reads, and nothing else in the list can stop a commit. Putting it under
   // "Changed" with the rest is the panel filing an emergency under
   // housekeeping.
-  const conflicted = status.files.filter((file) => file.kind === 'unmerged');
-  const changed = unstaged.filter((file) => file.kind !== 'unmerged');
+  const conflicted = useMemo(
+    () => status.files.filter((file) => file.kind === 'unmerged'),
+    [status.files],
+  );
+  const changed = useMemo(() => unstaged.filter((file) => file.kind !== 'unmerged'), [unstaged]);
 
   /*
    * What the filter narrows, and what it deliberately does not.
@@ -172,7 +188,10 @@ export function ChangesView({
    * request on entry, which for a lockfile as the first row is a real one; the
    * daemon's cap and the drawn-line limit both still apply to it.
    */
-  const opening = firstToShow(conflicted, changed, staged);
+  const opening = useMemo(
+    () => firstToShow(conflicted, changed, staged),
+    [conflicted, changed, staged],
+  );
   const opened = useRef(false);
   useEffect(() => {
     if (opened.current || selected !== undefined || opening === undefined) {
@@ -182,13 +201,31 @@ export function ChangesView({
     onSelect(opening);
   }, [opening, selected, onSelect]);
 
+  /*
+   * Whether an act the user started is still going on.
+   *
+   * The confirmation counts, and that is the part worth writing down. A
+   * discard is two mutations with a question between them: the plan lands, the
+   * dialog opens, and until it is answered nothing is pending — so a `busy`
+   * built only out of `isPending` reads false in the middle of the one
+   * operation on this screen that destroys work. Nothing is drawn differently
+   * for it, because the dialog is modal and the panel behind it is inert
+   * either way; what changes is that the lists can tell "the press is over"
+   * from "the press is being asked about", which is what ChangeList needs to
+   * know before it decides the keyboard is owed anywhere.
+   *
+   * `pendingDeletion` is the other confirmation on this screen and it is not
+   * counted, because it is not started from a row: the button that opens it is
+   * in the pane on the right, so no press in either list is waiting on it.
+   */
   const busy =
     operations.stage.isPending ||
     operations.unstage.isPending ||
     operations.discard.isPending ||
     operations.discardPlan.isPending ||
     operations.save.isPending ||
-    operations.resolve.isPending;
+    operations.resolve.isPending ||
+    pendingDiscard !== undefined;
 
   const editingConflict = current?.file.kind === 'unmerged';
   const editable = current !== undefined && isOnDisk(current.file);
