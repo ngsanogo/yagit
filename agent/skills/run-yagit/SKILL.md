@@ -257,10 +257,15 @@ what a release actually ships.
   daemon only skips the origin check for an explicit credential, so POST and
   DELETE need the `X-Yagit-Token` header even when the session cookie is
   already set. The driver sends it on every call.
-- **Vite's own port is not the app.** `127.0.0.1:5173` answers `/api/repos`
+- **Vite's own port is not the app.** `127.0.0.1:7421` answers `/api/repos`
   with `200` and the SPA's `index.html` — there is no proxy that way round; the
-  daemon proxies *to* Vite. A script pointed at 5173 gets HTML where it expects
+  daemon proxies *to* Vite. A script pointed at 7421 gets HTML where it expects
   JSON and no error to explain it. Always 7420.
+- **The card may print a URL this machine cannot open.** When `.env` sets
+  `YAGIT_PUBLIC_URL`, `./do up` prints the reverse proxy's address, which is
+  for the person's browser. Scripts, `curl`, `./do shot` and `./do drive` on
+  this machine keep using `http://127.0.0.1:7420`, where the daemon still
+  listens.
 - **Reading right after a click reads the previous state.** Views refetch on
   the server-sent event stream, so `text 'role=heading[name=/Changes —/]'`
   straight after `click 'Stage …'` still says `0 staged`. `wait` on the value

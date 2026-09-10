@@ -88,9 +88,47 @@ func TestLoadConfigurationDefaultsTheHostToTheLoopback(t *testing.T) {
 	if config.publicHost != "127.0.0.1" {
 		t.Errorf("publicHost = %q, want the loopback", config.publicHost)
 	}
-	addr, err := listenAddress(config.publicHost, false)
+	addr, err := listenAddress(config)
 	if err != nil || addr != "127.0.0.1:7420" {
 		t.Errorf("a defaulted host produced listen address %q (%v)", addr, err)
+	}
+	if config.publicURL != "" {
+		t.Errorf("publicURL = %q from a .env that names none", config.publicURL)
+	}
+}
+
+// TestLoadConfigurationReadsThePublicURLAsAnOrigin checks that the value comes
+// out of .env in the one form both the card and the daemon's allowlist use —
+// the form a browser writes in an Origin header, whatever was typed.
+func TestLoadConfigurationReadsThePublicURLAsAnOrigin(t *testing.T) {
+	p := newProject(t)
+	writeFile(t, p.path(".env"),
+		"YAGIT_ROOT="+t.TempDir()+"\nYAGIT_PUBLIC_URL=https://Yagit.devvm.orb.local:443/\n")
+
+	config, err := p.loadConfiguration()
+	if err != nil {
+		t.Fatalf("loadConfiguration: %v", err)
+	}
+	if config.publicURL != "https://yagit.devvm.orb.local" {
+		t.Errorf("publicURL = %q, want the origin a browser presents", config.publicURL)
+	}
+}
+
+// A public URL no browser can present as an origin stops the command before
+// anything starts, and says which line of .env and what is wrong with it.
+func TestLoadConfigurationRefusesAPublicURLThatIsNotAnOrigin(t *testing.T) {
+	p := newProject(t)
+	writeFile(t, p.path(".env"),
+		"YAGIT_ROOT="+t.TempDir()+"\nYAGIT_PUBLIC_URL=https://yagit.example.com/yagit\n")
+
+	_, err := p.loadConfiguration()
+	if err == nil {
+		t.Fatal("a public URL with a path must stop the command")
+	}
+	for _, needed := range []string{"YAGIT_PUBLIC_URL", "https://yagit.example.com/yagit", "path"} {
+		if !strings.Contains(err.Error(), needed) {
+			t.Errorf("the refusal does not mention %q: %v", needed, err)
+		}
 	}
 }
 
@@ -232,6 +270,45 @@ func TestDaemonEnvironmentCarriesWhatTheDaemonNeeds(t *testing.T) {
 	if value, found := environmentValue(environment, "YAGIT_TOKEN_FILE"); found {
 		t.Errorf("YAGIT_TOKEN_FILE = %q; the daemon must write no token file under ./do", value)
 	}
+
+	// The daemon proxies to the port Vite is told to take. Two numbers that
+	// disagree are a 502 on every page with nothing pointing at the cause.
+	vite, _ := environmentValue(environment, "YAGIT_VITE_PORT")
+	devServer, _ := environmentValue(environment, "YAGIT_FRONTEND_DEV_SERVER")
+	if vite == "" || devServer != "http://127.0.0.1:"+vite {
+		t.Errorf("the daemon proxies to %q and Vite listens on port %q", devServer, vite)
+	}
+
+	// Nothing reads it any more: Vite's hot-reload client follows the page's
+	// own port, and handing it the daemon's is what broke it behind a proxy.
+	if value, found := environmentValue(environment, "YAGIT_DAEMON_PORT"); found {
+		t.Errorf("YAGIT_DAEMON_PORT = %q; nothing is meant to pin the hot-reload port", value)
+	}
+}
+
+// TestDaemonEnvironmentHandsThePublicURLDown covers the reverse proxy: the
+// daemon stays on the loopback, where the proxy connects, and is told the
+// public URL — which it accepts as an origin and announces.
+func TestDaemonEnvironmentHandsThePublicURLDown(t *testing.T) {
+	p := newProject(t)
+	environment, err := p.daemonEnvironment(configuration{
+		root: "/srv", publicHost: "127.0.0.1", publicURL: "https://yagit.devvm.orb.local",
+	}, "t")
+	if err != nil {
+		t.Fatalf("daemonEnvironment: %v", err)
+	}
+
+	for key, want := range map[string]string{
+		"YAGIT_ADDR":       "127.0.0.1:7420",
+		"YAGIT_PUBLIC_URL": "https://yagit.devvm.orb.local",
+	} {
+		if got, _ := environmentValue(environment, key); got != want {
+			t.Errorf("%s = %q, want %q", key, got, want)
+		}
+	}
+	if value, found := environmentValue(environment, "YAGIT_LISTEN_ALL"); found {
+		t.Errorf("YAGIT_LISTEN_ALL = %q behind a proxy, which widens nothing", value)
+	}
 }
 
 // TestDaemonEnvironmentWidensOnlyForARemoteHost is the security-relevant half.
@@ -303,6 +380,8 @@ func TestDaemonEnvironmentRefusesARemoteHostWithoutAcknowledgment(t *testing.T) 
 func TestDaemonEnvironmentOverridesTheAmbientOne(t *testing.T) {
 	t.Setenv("YAGIT_ROOT", "/from/the/ambient/shell")
 	t.Setenv("YAGIT_ADDR", "0.0.0.0:9999")
+	t.Setenv("YAGIT_PUBLIC_URL", "https://from.the.ambient.shell")
+	t.Setenv("YAGIT_ALLOW_ORIGINS", "https://tool.example.com")
 
 	p := newProject(t)
 	environment, err := p.daemonEnvironment(configuration{root: "/from/dotenv", publicHost: "127.0.0.1"}, "t")
@@ -315,6 +394,19 @@ func TestDaemonEnvironmentOverridesTheAmbientOne(t *testing.T) {
 	}
 	if got, _ := environmentValue(environment, "YAGIT_ADDR"); got != "127.0.0.1:7420" {
 		t.Errorf("YAGIT_ADDR = %q, want the derived address to win over the shell", got)
+	}
+
+	// Present and empty, not absent: absent, the shell's would reach the
+	// daemon, which would accept an origin and announce an address that .env
+	// never named and the card never prints.
+	if got, found := environmentValue(environment, "YAGIT_PUBLIC_URL"); !found || got != "" {
+		t.Errorf("YAGIT_PUBLIC_URL = %q (set: %v), want it cleared when .env names none", got, found)
+	}
+
+	// The daemon's own flag, which .env has no key for: `./do` leaves it as
+	// the shell has it rather than deciding it away.
+	if got, _ := environmentValue(environment, "YAGIT_ALLOW_ORIGINS"); got != "https://tool.example.com" {
+		t.Errorf("YAGIT_ALLOW_ORIGINS = %q, want the shell's left alone", got)
 	}
 }
 

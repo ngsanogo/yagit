@@ -32,13 +32,20 @@ import (
 //
 // A released binary has no `./do` to hand it one, so cmd/yagit carries its own
 // loopback default for that case, and nothing else does.
+//
+// Vite's sits beside the daemon's rather than on Vite's own default, 5173.
+// That default is every Vite project's on the machine, and with strictPort
+// whichever starts second refuses to start — so a yagit stack and another
+// project's frontend could not run side by side. A port next to the daemon's
+// is one no other project has a reason to pick.
 const (
 	daemonPort = 7420
-	vitePort   = 5173
+	vitePort   = 7421
 )
 
 // daemonURL is how this program reaches the daemon: it runs on this machine.
-// That is not necessarily how a browser reaches it — see publicHost.
+// That is not necessarily how a browser reaches it — see publicHost and
+// publicURL.
 var daemonURL = fmt.Sprintf("http://127.0.0.1:%d", daemonPort)
 
 // Runtime state: the session token, the throwaway stack's log, screenshots.

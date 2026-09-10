@@ -28,6 +28,7 @@ import (
 	"github.com/ngsanogo/yagit/internal/assets"
 	"github.com/ngsanogo/yagit/internal/git"
 	"github.com/ngsanogo/yagit/internal/protect"
+	"github.com/ngsanogo/yagit/internal/publicurl"
 	"github.com/ngsanogo/yagit/internal/repo"
 	"github.com/ngsanogo/yagit/internal/session"
 	"github.com/ngsanogo/yagit/internal/watch"
@@ -47,6 +48,10 @@ var version = "dev"
 // -listen-all or YAGIT_LISTEN_ALL=1, so neither path widens by accident.
 // What protects the daemon once it is widened is no longer the listen address
 // but the session token, required on every route.
+//
+// A reverse proxy on the same machine is the way to be reached from elsewhere
+// without widening anything: it connects to this address like any local
+// client, and -public-url tells the daemon the address it serves instead.
 const defaultAddr = "127.0.0.1:" + defaultPort
 
 // defaultPort is the port the daemon binds unless -addr says otherwise. It is
@@ -71,6 +76,10 @@ type configuration struct {
 	tlsCert           string
 	tlsKey            string
 	listenAll         bool
+
+	// publicURL is where a reverse proxy serves this daemon, held as the
+	// origin a browser presents there; empty when nothing does.
+	publicURL string
 }
 
 func main() {
@@ -131,6 +140,8 @@ func parseConfiguration() (configuration, error) {
 		"HTTP listen address")
 	publicHost := flag.String("public-host", environmentOr("YAGIT_PUBLIC_HOST", defaultPublicHost),
 		"host name a browser reaches this daemon by; used to build the announced URL and the accepted origins")
+	publicURL := flag.String("public-url", os.Getenv("YAGIT_PUBLIC_URL"),
+		"URL a reverse proxy serves this daemon at, such as https://yagit.example.com; announced at startup and accepted as an origin")
 	root := flag.String("root", os.Getenv("YAGIT_ROOT"),
 		"root under which yagit is allowed to open repositories (required)")
 	tokenFile := flag.String("token-file", os.Getenv("YAGIT_TOKEN_FILE"),
@@ -161,9 +172,22 @@ func parseConfiguration() (configuration, error) {
 		return configuration{}, err
 	}
 
+	// Refused at startup rather than carried: a public URL whose origin no
+	// browser presents is an allowlist entry that matches nothing, and the
+	// first sign of it would be every write refused with a 403.
+	var publicOrigin string
+	if *publicURL != "" {
+		origin, err := publicurl.Origin(*publicURL)
+		if err != nil {
+			return configuration{}, fmt.Errorf("-public-url (or YAGIT_PUBLIC_URL) %q: %w", *publicURL, err)
+		}
+		publicOrigin = origin
+	}
+
 	return configuration{
 		addr:              *addr,
 		publicHost:        *publicHost,
+		publicURL:         publicOrigin,
 		root:              *root,
 		tokenFile:         *tokenFile,
 		allowedOrigins:    splitOrigins(*allowOrigins),
@@ -290,7 +314,7 @@ func run(config configuration, logger *slog.Logger) error {
 		Registry:       registry,
 		Runner:         runner,
 		Token:          token,
-		AllowedOrigins: append(browserOrigins(scheme, config.publicHost, boundAddr), config.allowedOrigins...),
+		AllowedOrigins: acceptedOrigins(scheme, config, boundAddr),
 		SecureCookies:  scheme == "https",
 		Logger:         logger,
 		Events:         events,
@@ -322,7 +346,7 @@ func run(config configuration, logger *slog.Logger) error {
 		"go", runtime.Version(),
 		"git", gitVersionForTheLog(runner, logger),
 	)
-	announceStartup(scheme, config.publicHost, boundAddr, config.tokenFile)
+	announceStartup(announcedURL(scheme, config, boundAddr), config.tokenFile)
 
 	httpServer := newHTTPServer(server.Handler(), events)
 
@@ -644,6 +668,26 @@ func browserOrigins(scheme, publicHost, addr string) []string {
 	return origins
 }
 
+// acceptedOrigins is the whole allowlist: the origins this daemon can work out
+// for itself, the one a reverse proxy serves it at, and whatever -allow-origins
+// adds.
+//
+// The public URL is not derived from the listen address, and that is why it
+// joins here rather than inside browserOrigins. Behind a proxy the browser's
+// scheme and port are the proxy's — https on 443 in front of plain HTTP on
+// 7420 — so nothing the daemon knows about its own socket predicts them, and
+// an address with no port, which browserOrigins declines to guess from, still
+// has a public URL somebody configured on purpose. Without this entry the
+// door page's own POST is refused as a foreign origin, and so is every write
+// after it.
+func acceptedOrigins(scheme string, config configuration, boundAddr string) []string {
+	origins := browserOrigins(scheme, config.publicHost, boundAddr)
+	if config.publicURL != "" && !slices.Contains(origins, config.publicURL) {
+		origins = append(origins, config.publicURL)
+	}
+	return append(origins, config.allowedOrigins...)
+}
+
 // browserURL builds the address to open: the name a browser reaches this
 // daemon by, not the address it listens on — 0.0.0.0 is the name of nothing,
 // and a URL you cannot paste into an address bar is of no use to anyone.
@@ -661,6 +705,20 @@ func browserURL(scheme, publicHost, addr string) string {
 	return fmt.Sprintf("%s://%s/", scheme, net.JoinHostPort(publicHost, port))
 }
 
+// announcedURL is the address the startup line tells a person to open.
+//
+// A public URL wins over everything the daemon could build from its own
+// socket. Behind a proxy that socket is on the loopback, so the URL built
+// from it opens nothing from the machine the browser is on — and the refusal
+// of an unknown origin sends its reader to "the URL the daemon printed at
+// startup", which had better be the one that works.
+func announcedURL(scheme string, config configuration, boundAddr string) string {
+	if config.publicURL != "" {
+		return config.publicURL + "/"
+	}
+	return browserURL(scheme, config.publicHost, boundAddr)
+}
+
 // announceStartup writes what the user needs to open yagit, outside the
 // structured log: one line for the address, one for where the token lives.
 //
@@ -671,9 +729,7 @@ func browserURL(scheme, publicHost, addr string) string {
 // and for a binary started on its own, a -token-file or a token of the user's
 // own in YAGIT_TOKEN. Saying so at startup is cheaper than locking somebody out
 // of a daemon that is otherwise running perfectly.
-func announceStartup(scheme, publicHost, addr, tokenFile string) {
-	url := browserURL(scheme, publicHost, addr)
-
+func announceStartup(url, tokenFile string) {
 	if _, err := fmt.Fprintf(os.Stderr, "\n  Open yagit: %s\n", url); err != nil {
 		return
 	}

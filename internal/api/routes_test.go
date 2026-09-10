@@ -1789,7 +1789,7 @@ func authenticated(request *http.Request) *http.Request {
 // refusal below, rendered as text in a browser window — instructions written
 // for a client, on a screen offering no way to follow them. It is also the
 // first thing anyone browsing from another machine sees, which is the whole
-// case YAGIT_PUBLIC_HOST exists for.
+// case YAGIT_PUBLIC_HOST and YAGIT_PUBLIC_URL exist for.
 func TestAnUnauthenticatedBrowserGetsAPageAndAClientGetsJSON(t *testing.T) {
 	handler := testServer(t)
 

@@ -10,7 +10,7 @@ import (
 
 // NewDevFrontendProxy proxies to the Vite development server.
 //
-// Without it, Vite would be a second origin: the browser would talk to 5173
+// Without it, Vite would be a second origin: the browser would talk to 7421
 // for the interface and to 7420 for the API, and exchanging the token for a
 // cookie would not take the same path in development as in production. An
 // authentication model that differs between the two is a model nobody ever
@@ -26,7 +26,7 @@ func NewDevFrontendProxy(target string, logger *slog.Logger) (http.Handler, erro
 	}
 	if parsed.Scheme == "" || parsed.Host == "" {
 		return nil, fmt.Errorf(
-			"incomplete development server address %q: a scheme and a host are expected, for example http://127.0.0.1:5173",
+			"incomplete development server address %q: a scheme and a host are expected, for example http://127.0.0.1:7421",
 			target)
 	}
 

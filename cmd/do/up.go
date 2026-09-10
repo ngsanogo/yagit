@@ -784,9 +784,18 @@ func (p *project) printStackCard(config configuration, alreadyRunning bool) erro
 	return nil
 }
 
+// browserURL is the address the card tells a person to open: the one a browser
+// reaches yagit by, which behind a proxy is the proxy's and carries neither the
+// daemon's scheme nor its port.
+//
+// It goes through listenAddress first so that a .env the stack would refuse to
+// start on cannot be printed as a place to go.
 func browserURL(config configuration) (string, error) {
-	if _, err := listenAddress(config.publicHost, config.listenAll); err != nil {
+	if _, err := listenAddress(config); err != nil {
 		return "", err
+	}
+	if config.publicURL != "" {
+		return config.publicURL + "/", nil
 	}
 	host := config.publicHost
 	if host == "" {

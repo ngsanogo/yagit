@@ -52,7 +52,7 @@ func (s *Server) handleCreateSession(writer http.ResponseWriter, request *http.R
 		return
 	}
 
-	http.SetCookie(writer, s.sessionCookie())
+	http.SetCookie(writer, s.sessionCookie(request))
 
 	// The form that sent this has no script behind it and nothing it could do
 	// with a 204, so the browser is sent on to the application. A client gets

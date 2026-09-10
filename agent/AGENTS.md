@@ -76,11 +76,12 @@ web → api → history → graph, repo → git
 | `internal/edit` | Work-tree files, read and written — no git |
 | `internal/api` | HTTP routes, auth, JSON errors |
 | `internal/session` | The session token: minted and checked in one place, for the daemon and for `./do` |
+| `internal/publicurl` | A reverse proxy's address (`YAGIT_PUBLIC_URL`), checked and read as the origin a browser presents — for the daemon and for `./do` |
 | `internal/protect` | Owner-only lockdown for secrets — chmod on Unix, an ACL on Windows |
 | `web/src/design` | Design tokens — single source of visual values |
 | `web/src/app` | Workbench UI |
 
-Ports are defined once in `cmd/do/main.go` (`7420` daemon, `5173` Vite).
+Ports are defined once in `cmd/do/main.go` (`7420` daemon, `7421` Vite).
 
 ## Principles
 
@@ -118,7 +119,9 @@ Human-oriented workflow: [CONTRIBUTING.md](../CONTRIBUTING.md).
 
 ## Security
 
-- Daemon binds loopback by default (`127.0.0.1:7420`).
+- Daemon binds loopback by default (`127.0.0.1:7420`). Behind a reverse proxy
+  it stays there: `YAGIT_PUBLIC_URL` in `.env` names the proxy's address, and
+  is refused beside the settings that widen the listen address.
 - Session token required on every API route. Under `./do` it lives in
   `.yagit/session-token`, outlives the stack, and `./do up --new-token`
   replaces it. Whether a stack is up is asked of the port, never of a file.
