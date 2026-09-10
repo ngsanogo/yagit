@@ -31,6 +31,16 @@ func TestOriginIsWhatTheBrowserPresents(t *testing.T) {
 		{"plain http", "http://yagit.example.com", "http://yagit.example.com"},
 		{"an IPv6 literal with a port", "https://[::1]:8443/", "https://[::1]:8443"},
 		{"an IPv6 literal without one", "https://[::1]/", "https://[::1]"},
+		// An address has many spellings and a browser presents exactly one:
+		// the URL Standard's, which is not always Go's.
+		{"an expanded IPv6 literal", "https://[0:0:0:0:0:0:0:1]", "https://[::1]"},
+		{"an upper-case IPv6 literal", "https://[2001:DB8::1]:8443", "https://[2001:db8::1]:8443"},
+		{"the first longest zero run", "https://[1:0:0:2:0:0:0:3]", "https://[1:0:0:2::3]"},
+		{"a single zero piece is not compressed", "https://[1:0:2:3:4:5:6:7]", "https://[1:0:2:3:4:5:6:7]"},
+		{"trailing zeros", "https://[2001:db8:0:0:0:0:0:0]", "https://[2001:db8::]"},
+		{"an IPv4-mapped address", "https://[::ffff:1.2.3.4]", "https://[::ffff:102:304]"},
+		{"the unspecified address", "https://[::]", "https://[::]"},
+		{"an IPv4 address", "http://127.0.0.1:8080", "http://127.0.0.1:8080"},
 	}
 
 	for _, testCase := range cases {
@@ -73,6 +83,8 @@ func TestOriginRefusesWhatIsNotAnOrigin(t *testing.T) {
 		{"a port out of range", "https://yagit.example.com:70000", "port"},
 		{"a space", "https://yagit example.com", "not a URL"},
 		{"a name outside ASCII", "https://yägit.example.com", "ASCII"},
+		{"an IPv6 zone", "https://[fe80::1%25eth0]", "zone"},
+		{"an IPv4 address with leading zeros", "https://127.000.0.1", "dotted"},
 	}
 
 	for _, testCase := range cases {

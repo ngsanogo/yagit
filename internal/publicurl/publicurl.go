@@ -14,6 +14,7 @@ import (
 	"errors"
 	"fmt"
 	"net"
+	"net/netip"
 	"net/url"
 	"strconv"
 	"strings"
@@ -73,6 +74,11 @@ func Origin(raw string) (string, error) {
 	}
 	host = strings.ToLower(host)
 
+	host, err = canonicalHost(host)
+	if err != nil {
+		return "", err
+	}
+
 	port, err := originPort(parsed.Scheme, parsed.Port())
 	if err != nil {
 		return "", err
@@ -106,4 +112,78 @@ func originPort(scheme, port string) (string, error) {
 		return "", nil
 	}
 	return strconv.Itoa(number), nil
+}
+
+// canonicalHost writes an IP literal the way a browser serialises it in an
+// origin, and leaves a name as it is.
+//
+// The same address has many spellings, and the allowlist compares strings:
+// https://[0:0:0:0:0:0:0:1] typed into .env would sit there matching nothing,
+// because the browser presents https://[::1]. IPv6 follows the URL Standard's
+// serialiser, which is not Go's: RFC 5952, which netip follows, writes an
+// IPv4-mapped address with a dotted tail (::ffff:1.2.3.4), and a browser writes
+// it in hex (::ffff:102:304).
+//
+// An address with a zone is refused — a browser accepts none in a URL — and so
+// is a dotted run of digits that is not a plain IPv4 address, such as
+// 127.000.0.1: a browser reads the leading zeros as octal and presents another
+// address, and guessing its arithmetic here is not worth the case.
+func canonicalHost(host string) (string, error) {
+	address, err := netip.ParseAddr(host)
+	if err != nil {
+		if strings.Trim(host, "0123456789.") == "" {
+			return "", fmt.Errorf("write the IPv4 address %q in its plain dotted form, as in 127.0.0.1", host)
+		}
+		return host, nil
+	}
+	if address.Zone() != "" {
+		return "", fmt.Errorf("the address %q carries a zone, which no browser accepts in a URL", host)
+	}
+	if address.Is4() {
+		return address.String(), nil
+	}
+	return serializeIPv6(address.As16()), nil
+}
+
+// serializeIPv6 is the URL Standard's IPv6 serialiser: eight lower-case hex
+// pieces, and the first longest run of two or more zero pieces written as "::".
+func serializeIPv6(bytes [16]byte) string {
+	var pieces [8]uint16
+	for index := range pieces {
+		pieces[index] = uint16(bytes[2*index])<<8 | uint16(bytes[2*index+1])
+	}
+
+	compress, longest := -1, 1
+	for start := 0; start < len(pieces); {
+		if pieces[start] != 0 {
+			start++
+			continue
+		}
+		end := start
+		for end < len(pieces) && pieces[end] == 0 {
+			end++
+		}
+		if end-start > longest {
+			compress, longest = start, end-start
+		}
+		start = end
+	}
+
+	var out strings.Builder
+	for index := 0; index < len(pieces); index++ {
+		if index == compress {
+			if index == 0 {
+				out.WriteString("::")
+			} else {
+				out.WriteString(":")
+			}
+			index += longest - 1
+			continue
+		}
+		out.WriteString(strconv.FormatUint(uint64(pieces[index]), 16))
+		if index != len(pieces)-1 {
+			out.WriteString(":")
+		}
+	}
+	return out.String()
 }
