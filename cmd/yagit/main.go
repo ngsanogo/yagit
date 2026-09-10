@@ -182,6 +182,25 @@ func parseConfiguration() (configuration, error) {
 			return configuration{}, fmt.Errorf("-public-url (or YAGIT_PUBLIC_URL) %q: %w", *publicURL, err)
 		}
 		publicOrigin = origin
+
+		// A public URL says browsers reach this daemon through a reverse proxy,
+		// and a proxy on the same machine reaches it on the loopback — that is
+		// the point of naming one. `./do` refuses the widening combination
+		// before anything starts; the binary run by hand holds the same line,
+		// or the released daemon would listen on every interface in exactly
+		// the deployment that announced it would not.
+		if *listenAll || !isLoopbackAddress(*addr) {
+			widened := fmt.Sprintf("%q", *addr)
+			if *listenAll {
+				widened += " with -listen-all"
+			}
+			return configuration{}, fmt.Errorf(
+				"-public-url (or YAGIT_PUBLIC_URL) serves yagit through a reverse proxy, which reaches the daemon "+
+					"on the loopback, but the daemon is told to listen on %s. "+
+					"Either listen on 127.0.0.1 without -listen-all (YAGIT_LISTEN_ALL), "+
+					"or drop -public-url to be reached directly",
+				widened)
+		}
 	}
 
 	return configuration{
@@ -232,6 +251,14 @@ func validateListenAddress(addr string, listenAll bool) error {
 		"listen address %q is not on the loopback; "+
 			"pass -listen-all or set YAGIT_LISTEN_ALL=1 to acknowledge network exposure",
 		addr)
+}
+
+// isLoopbackAddress reports whether a listen address stays on the loopback. An
+// address it cannot split, or one with no host (":7420", every interface), does
+// not.
+func isLoopbackAddress(addr string) bool {
+	host, _, err := net.SplitHostPort(addr)
+	return err == nil && isLoopbackHost(host)
 }
 
 func isLoopbackHost(host string) bool {
