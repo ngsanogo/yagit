@@ -71,6 +71,37 @@ func TestDevRefusesAnUnknownFlag(t *testing.T) {
 	}
 }
 
+// A .env the daemon cannot be started on is refused by `./do up` itself,
+// before anything is installed or stopped. The case in mind is the migration to
+// a reverse proxy: YAGIT_PUBLIC_URL pasted under the YAGIT_PUBLIC_HOST and
+// YAGIT_LISTEN_ALL=1 it replaces, then `./do up --restart`. Refused by the
+// supervisor instead, that stopped the working stack first and put the reason
+// in a log tail.
+func TestUpRefusesAConfigurationTheDaemonCannotStartOn(t *testing.T) {
+	// Nothing below should reach the port. If it ever does, it reaches this
+	// closed one rather than whatever stack the machine running the suite has.
+	useNoDaemon(t)
+	p := newProject(t)
+	writeFile(t, p.path(".env"), "YAGIT_ROOT="+t.TempDir()+"\n"+
+		"YAGIT_PUBLIC_HOST=dev-box.local\nYAGIT_LISTEN_ALL=1\n"+
+		"YAGIT_PUBLIC_URL=https://yagit.dev-box.local\n")
+
+	err := runUp(p, []string{"--restart"})
+	if err == nil {
+		t.Fatal("up should refuse a public URL beside the widening")
+	}
+	if !strings.Contains(err.Error(), "comment YAGIT_PUBLIC_URL out") {
+		t.Errorf("error = %v, want the refusal itself rather than a failure further on", err)
+	}
+
+	// ensureBootstrapped creates the state directory before anything else it
+	// does, so its absence says nothing was installed — and nothing was
+	// stopped, since stopping comes after it.
+	if _, statErr := os.Stat(p.path(stateDirectory)); !os.IsNotExist(statErr) {
+		t.Errorf("%s exists (%v): the refusal came after the bootstrap", stateDirectory, statErr)
+	}
+}
+
 func TestBrowserURLFollowsConfiguration(t *testing.T) {
 	url, err := browserURL(configuration{publicHost: "127.0.0.1"})
 	if err != nil {

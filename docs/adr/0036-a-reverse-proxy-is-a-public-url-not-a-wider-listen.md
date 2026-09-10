@@ -71,6 +71,11 @@ serves yagit at.** With it set:
   the new line pasted under it, and guessing either way is wrong for somebody:
   widening exposes a daemon its owner put behind a proxy, and staying on the
   loopback leaves dead a direct address its owner meant to use.
+- `./do up` and `./do dev` check the listen address before they install or
+  stop anything. That migration is typed as `./do up --restart`, and a refusal
+  left to the supervisor arrived after the working stack had been stopped, in
+  the tail of a log. The older refusal — a remote host without
+  `YAGIT_LISTEN_ALL=1` — moves forward with it.
 
 **The daemon is told the URL, not only the origin.** Folding the origin into
 `YAGIT_ALLOW_ORIGINS`, merged with whatever the shell exports, was the first

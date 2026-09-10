@@ -98,17 +98,28 @@ func parseStackFlags(command string, args []string) (stackOptions, error) {
 }
 
 // startStack is what `up` and `dev` share, in the order that keeps a failure
-// from leaving two secrets behind: the checkout is made ready, the
-// configuration is read, only then is anything stopped, and only after that
+// from leaving two secrets behind: the configuration is read and checked, the
+// checkout is made ready, only then is anything stopped, and only after that
 // is the token touched. A stop that fails, or a .env that does not parse,
 // returns with the old daemon still holding the old token — which is the one
 // `./do token` prints, so nothing printed is false.
+//
+// Checked means the listen address too, which the supervisor derives again
+// when it starts the daemon. Left to the supervisor, a .env it refuses — a
+// public URL beside the widening, a remote host without the acknowledgment —
+// was found out after `--restart` had already stopped the stack that was
+// working, and reported from the tail of its log rather than on this terminal.
+// Before the bootstrap as well, for the reason parseStackFlags gives: a line of
+// .env to fix should cost a sentence, not an `npm ci`.
 func (p *project) startStack(options stackOptions) error {
-	if err := p.ensureBootstrapped(); err != nil {
-		return err
-	}
 	config, err := p.loadConfiguration()
 	if err != nil {
+		return err
+	}
+	if _, err := listenAddress(config); err != nil {
+		return err
+	}
+	if err := p.ensureBootstrapped(); err != nil {
 		return err
 	}
 	if options.foreground {
