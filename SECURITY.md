@@ -40,13 +40,17 @@ Two properties matter more than any other, and both are enforced in code:
 
 **The daemon listens on the loopback by default.** The built binary binds
 `127.0.0.1:7420`, and only `-addr` (or `YAGIT_ADDR`) moves it — the binary
-never reads `.env`. In development `./do` derives that address from
-`YAGIT_PUBLIC_HOST` in `.env`: a loopback name keeps the daemon on the
-loopback; a non-loopback name widens it to `0.0.0.0` only when
-`YAGIT_LISTEN_ALL=1` is also set. Widening is meant for reaching a headless
-development machine from your own browser, not for putting yagit on a network
-you do not control. There is no authentication beyond the session token; do not
-expose the daemon to an untrusted network without TLS.
+never reads `.env`. In development `./do` derives that address from `.env`.
+`YAGIT_PUBLIC_URL`, the address a reverse proxy on the same machine serves
+yagit at, keeps the daemon on the loopback, where the proxy connects, and is
+refused beside either of the two settings that widen it. Otherwise
+`YAGIT_PUBLIC_HOST` decides: a loopback name keeps the daemon on the loopback;
+a non-loopback name widens it to `0.0.0.0` only when `YAGIT_LISTEN_ALL=1` is
+also set. Both are meant for reaching a headless development machine from your
+own browser, not for putting yagit on a network you do not control
+([ADR 0036](docs/adr/0036-a-reverse-proxy-is-a-public-url-not-a-wider-listen.md)).
+There is no authentication beyond the session token; do not expose the daemon
+to an untrusted network without TLS — its own, or a proxy's in front of it.
 
 **Every route requires the session token**, exchanged for an HttpOnly cookie
 via `POST /api/session` rather than embedded in the startup URL. It is 256 bits
@@ -84,9 +88,15 @@ The rest of the model follows from those two:
   request that presents the token explicitly — header or query string — proves
   it knows the secret and needs no origin check; a cookie is attached by the
   browser on its own, and is the only case a third-party site could trigger.
-  The session cookie is `HttpOnly` and `SameSite=Strict`. Every HTTP response
-  carries baseline security headers (CSP, `X-Frame-Options`, `Referrer-Policy`,
-  and others).
+  The known origins are the ones the daemon builds from its own address — the
+  loopback in its three spellings, and the public host — plus the public URL a
+  reverse proxy serves it at (`-public-url`, `YAGIT_PUBLIC_URL`) and anything
+  `-allow-origins` adds. They are compared as exact strings, so a public URL is
+  held in the form a browser writes: lower case, and no default port. The
+  session cookie is `HttpOnly` and `SameSite=Strict`, and `Secure` whenever the
+  browser reached yagit over TLS (see "Plain HTTP by default" below). Every
+  HTTP response carries baseline security headers (CSP, `X-Frame-Options`,
+  `Referrer-Policy`, and others).
 - **Presenting a credential is rate limited; using one is not.** Six hundred
   attempts a minute per client address, counted on `POST /api/session` and on
   every request that arrives without a valid token — the same act either way.
@@ -95,7 +105,10 @@ The rest of the model follows from those two:
   legitimate client and any local process share one address. A budget they
   share throttles the user and not the probe. The bound is there so a runaway
   loop cannot occupy the daemon; it is not what makes the token hard to guess.
-  256 bits is.
+  256 bits is. A reverse proxy is one more local client, so every browser
+  behind it shares its address too; `X-Forwarded-For` is not read in its place,
+  because a budget keyed on a header the client writes is one it resets at
+  will.
 - **git is never invoked through a shell.** Arguments are always passed as an
   array, so a branch name containing `;` can trigger nothing.
 
@@ -209,12 +222,25 @@ them:
   `YAGIT_TLS_CERT` and `YAGIT_TLS_KEY` are set (or `-tls-cert` / `-tls-key`).
   On plain HTTP the session cookie omits the `Secure` attribute on purpose: a
   browser never sends a Secure cookie over `http://`, so setting it would not
-  harden the session, it would end it. Use TLS when the daemon is reachable
-  beyond the loopback.
+  harden the session, it would end it. The attribute follows the browser's
+  scheme, not the daemon's: a request that arrived over TLS, or that carries
+  `X-Forwarded-Proto: https` from a proxy that terminated TLS in front of a
+  plain-HTTP daemon, is answered with a Secure cookie. That header is believed
+  from anyone, because all it can do is make the sender's own cookie stricter —
+  and nothing else in the daemon reads it. Use TLS when the daemon is reachable
+  beyond the loopback: its own, or a proxy's.
 - **Network exposure is explicit.** Binding to a non-loopback address or
   listening on `0.0.0.0` requires `-listen-all` or `YAGIT_LISTEN_ALL=1`.
   `./do` widens the listen address only when both a non-loopback
-  `YAGIT_PUBLIC_HOST` and `YAGIT_LISTEN_ALL=1` are set.
+  `YAGIT_PUBLIC_HOST` and `YAGIT_LISTEN_ALL=1` are set, and never beside
+  `YAGIT_PUBLIC_URL`.
+- **A reverse proxy exposes the daemon as far as the proxy reaches.** The
+  listen address stays on the loopback, but the proxy carries requests from its
+  own network to it, so the address no longer limits who can knock — the
+  session token does, exactly as it does after widening. Put yagit behind a
+  proxy only where you would have widened, and give it a host name of its own:
+  a browser scopes cookies by host and not by port, so under a name other
+  applications share, the session cookie is sent to each of them as well.
 - **The token grants everything.** There are no scopes and no per-repository
   permissions. Anyone who reads `.yagit/session-token`, or the process
   environment of a stack `./do` started, has the same access you do.

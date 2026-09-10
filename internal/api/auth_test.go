@@ -2,6 +2,7 @@ package api_test
 
 import (
 	"bytes"
+	"crypto/tls"
 	"log/slog"
 	"net/http"
 	"net/http/httptest"
@@ -32,17 +33,24 @@ func testServer(t *testing.T) http.Handler {
 
 func testServerWithSecureCookies(t *testing.T, secureCookies bool) http.Handler {
 	t.Helper()
-	return newTestServer(t, secureCookies, slog.New(slog.DiscardHandler))
+	return newTestServer(t, secureCookies, []string{allowedOrigin}, slog.New(slog.DiscardHandler))
 }
 
 // testServerWithLogger is the same daemon with somewhere to read its log from,
 // for the tests that check what a refusal writes as well as what it answers.
 func testServerWithLogger(t *testing.T, logger *slog.Logger) http.Handler {
 	t.Helper()
-	return newTestServer(t, false, logger)
+	return newTestServer(t, false, []string{allowedOrigin}, logger)
 }
 
-func newTestServer(t *testing.T, secureCookies bool, logger *slog.Logger) http.Handler {
+// testServerWithOrigins is the daemon with an allowlist of the caller's, for
+// the tests about an origin it did not build from its own socket.
+func testServerWithOrigins(t *testing.T, origins []string) http.Handler {
+	t.Helper()
+	return newTestServer(t, false, origins, slog.New(slog.DiscardHandler))
+}
+
+func newTestServer(t *testing.T, secureCookies bool, origins []string, logger *slog.Logger) http.Handler {
 	t.Helper()
 
 	root, err := filepath.EvalSymlinks(t.TempDir())
@@ -60,7 +68,7 @@ func newTestServer(t *testing.T, secureCookies bool, logger *slog.Logger) http.H
 		Registry:       registry,
 		Runner:         runner,
 		Token:          testToken,
-		AllowedOrigins: []string{allowedOrigin},
+		AllowedOrigins: origins,
 		SecureCookies:  secureCookies,
 		Logger:         logger,
 		// The real frontend has no business in an API test. This stand-in
@@ -221,15 +229,33 @@ func TestTokenInURLIsExchangedForACookieThenStripped(t *testing.T) {
 // silent. A Secure cookie on plain HTTP is never sent back by the browser, so
 // the session dies at the first request after the exchange with no error
 // anywhere; a cookie without it under TLS travels in clear the first time
-// anything addresses the daemon as http://. One direction alone would leave an
+// anything addresses the host as http://. One direction alone would leave an
 // inverted attribute passing.
+//
+// The scheme is the browser's, which behind a reverse proxy that terminates
+// TLS is not the daemon's: the proxy speaks plain HTTP to the loopback and
+// says what the browser used in X-Forwarded-Proto.
 func TestTheSecureAttributeFollowsTheScheme(t *testing.T) {
 	cases := []struct {
 		name          string
 		secureCookies bool
+		overTLS       bool
+		forwarded     string
+		want          bool
 	}{
-		{"serving https", true},
-		{"serving plain http", false},
+		{name: "serving https", secureCookies: true, want: true},
+		// What the end-to-end suite, ./do shot and a browser on the same
+		// machine all do. A Secure cookie here would log every one of them
+		// out on their second request.
+		{name: "serving plain http", want: false},
+		{name: "a TLS connection the options did not describe", overTLS: true, want: true},
+		{name: "a proxy that terminated TLS", forwarded: "https", want: true},
+		{name: "a proxy that did not", forwarded: "http", want: false},
+		{name: "a proxy writing the scheme in capitals", forwarded: "HTTPS", want: true},
+		// A chain that appends puts the browser's scheme first; the later
+		// hops' plain-HTTP legs say nothing about the browser's.
+		{name: "a chain whose browser used https", forwarded: "https, http", want: true},
+		{name: "a chain whose browser used http", forwarded: "http, https", want: false},
 	}
 
 	for _, testCase := range cases {
@@ -239,6 +265,12 @@ func TestTheSecureAttributeFollowsTheScheme(t *testing.T) {
 			request := httptest.NewRequest(http.MethodPost, "/api/session",
 				strings.NewReader(`{"token":"`+testToken+`"}`))
 			request.Header.Set("Content-Type", "application/json")
+			if testCase.overTLS {
+				request.TLS = &tls.ConnectionState{}
+			}
+			if testCase.forwarded != "" {
+				request.Header.Set("X-Forwarded-Proto", testCase.forwarded)
+			}
 
 			response := execute(handler, request)
 			if response.Code != http.StatusNoContent {
@@ -249,10 +281,67 @@ func TestTheSecureAttributeFollowsTheScheme(t *testing.T) {
 			if len(cookies) != 1 {
 				t.Fatalf("want 1 cookie, got %d", len(cookies))
 			}
-			if cookies[0].Secure != testCase.secureCookies {
-				t.Errorf("Secure = %v, want %v", cookies[0].Secure, testCase.secureCookies)
+			if cookies[0].Secure != testCase.want {
+				t.Errorf("Secure = %v, want %v", cookies[0].Secure, testCase.want)
 			}
 		})
+	}
+}
+
+// The other door the cookie is issued at, GET /?token=, has to apply the same
+// rule: a tool behind the proxy that opens that URL would otherwise plant a
+// cookie without Secure on an https host, beside the one the door page sets.
+func TestTheTokenInTheURLEarnsTheSameSecureAttribute(t *testing.T) {
+	handler := testServer(t)
+
+	request := httptest.NewRequest(http.MethodGet, "/?token="+testToken, nil)
+	request.Header.Set("X-Forwarded-Proto", "https")
+
+	response := execute(handler, request)
+	if response.Code != http.StatusFound {
+		t.Fatalf("status = %d, want 302", response.Code)
+	}
+
+	cookies := response.Result().Cookies()
+	if len(cookies) != 1 {
+		t.Fatalf("want 1 cookie, got %d", len(cookies))
+	}
+	if !cookies[0].Secure {
+		t.Error("the cookie set from ?token= behind a TLS-terminating proxy has no Secure attribute")
+	}
+}
+
+// TestAProxysOriginIsAcceptedOnceAllowed walks the proxied session as a
+// browser performs it: the door page's form POST, then a write on the cookie
+// it planted, both presenting the proxy's origin rather than the daemon's.
+// It is what failed with a 403 before the public URL reached the allowlist.
+func TestAProxysOriginIsAcceptedOnceAllowed(t *testing.T) {
+	const proxied = "https://yagit.example.com"
+	handler := testServerWithOrigins(t, []string{allowedOrigin, proxied})
+
+	exchange := httptest.NewRequest(http.MethodPost, "/api/session",
+		strings.NewReader("token="+testToken))
+	exchange.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	exchange.Header.Set("Origin", proxied)
+	exchange.Header.Set("X-Forwarded-Proto", "https")
+
+	response := execute(handler, exchange)
+	if response.Code != http.StatusSeeOther {
+		t.Fatalf("the door page's POST: status = %d, want 303: %s", response.Code, response.Body)
+	}
+	cookies := response.Result().Cookies()
+	if len(cookies) != 1 || !cookies[0].Secure {
+		t.Fatalf("want one Secure cookie, got %v", cookies)
+	}
+
+	write := httptest.NewRequest(http.MethodPost, "/api/repos", strings.NewReader("{}"))
+	write.AddCookie(cookies[0])
+	write.Header.Set("Origin", proxied)
+
+	// 400 and not 403: the body names no path, so the request is refused
+	// further along — after the origin check it is here to pass.
+	if response := execute(handler, write); response.Code != http.StatusBadRequest {
+		t.Fatalf("a write on the cookie: status = %d, want 400: %s", response.Code, response.Body)
 	}
 }
 

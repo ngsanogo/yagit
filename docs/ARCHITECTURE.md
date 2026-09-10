@@ -98,6 +98,7 @@ else.
 | `internal/api` | HTTP surface, authentication, error shape. |
 | `internal/assets` | The built frontend, embedded through `//go:embed`. |
 | `internal/session` | The session token: minted and checked in one place, for the daemon and for `./do` ([0027](adr/0027-the-stack-is-asked-not-a-file.md)). |
+| `internal/publicurl` | The address a reverse proxy serves yagit at, checked and turned into the origin a browser presents — one rule for `./do` and the daemon ([0036](adr/0036-a-reverse-proxy-is-a-public-url-not-a-wider-listen.md)). |
 | `internal/protect` | Owner-only lockdown for secrets — chmod on Unix, an explicit ACL on Windows ([0035](adr/0035-secrets-get-an-owner-only-acl-on-windows.md)). |
 | `web/src/design` | Tokens and the design system showcase. |
 | `web/src/components` | Base components. |
@@ -398,7 +399,8 @@ browsing a large history holds every commit of it for the life of the daemon.
 The threat model, the guarantees and the known limitations are in
 [SECURITY.md](../SECURITY.md). In short:
 
-- Loopback by default; widening the listen address is a deliberate act.
+- Loopback by default; widening the listen address is a deliberate act, and a
+  reverse proxy in front reaches the browser without it.
 - A 256-bit session token required on every route, exchanged once for an
   HttpOnly cookie.
 - Repositories opened by path once, addressed by opaque id afterwards.
@@ -421,6 +423,15 @@ exchange follows the same path on both sides.
 
 This matters because an authentication model that differs between development
 and production is a model nobody ever really tests.
+
+Vite's hot-reload socket is part of the same origin. Its client is told no port
+and opens the WebSocket on the page's own, and the daemon passes the upgrade on
+to Vite with everything else outside `/api` — so it works whether the browser
+came straight to the daemon or through a reverse proxy serving yagit under a
+name of its own. A reverse proxy is one more hop in front of that origin, not a
+second origin: the browser still talks to one address, which is the proxy's,
+and `YAGIT_PUBLIC_URL` is how the daemon learns what that address is
+([0036](adr/0036-a-reverse-proxy-is-a-public-url-not-a-wider-listen.md)).
 
 ## Agent configuration
 
@@ -447,9 +458,12 @@ longer holds:
    `./do` widens the listen address only when both a non-loopback
    `YAGIT_PUBLIC_HOST` and `YAGIT_LISTEN_ALL=1` are set — a headless
    development machine browsed from somewhere else, and a person who agreed to
-   it. The widening happens in one place and is commented there. What protects
-   the daemon afterwards is the token, never the address. This is exactly the
-   kind of thing someone later "fixes" by mistake.
+   it. `YAGIT_PUBLIC_URL` is the other way to be browsed from somewhere else,
+   through a reverse proxy on the same machine, and it keeps the daemon on the
+   loopback; beside either widening setting it is refused. The rule lives in
+   one place, `listenAddress` in `cmd/do/project.go`, and is commented there.
+   What protects the daemon afterwards is the token, never the address. This is
+   exactly the kind of thing someone later "fixes" by mistake.
 
 2. **File watching.** Through fsnotify, the one third-party Go dependency: inotify is Linux's mechanism, macOS uses kqueue and Windows
    `ReadDirectoryChangesW`, and writing all three is a project rather than a

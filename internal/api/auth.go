@@ -163,7 +163,7 @@ func (s *Server) requireToken(next http.Handler) http.Handler {
 
 		if s.tokenMatches(request.URL.Query().Get(tokenQueryParameter)) &&
 			request.Method == http.MethodGet && request.URL.Path == "/" {
-			http.SetCookie(writer, s.sessionCookie())
+			http.SetCookie(writer, s.sessionCookie(request))
 
 			// The token is stripped from the URL so it lingers neither in
 			// browser history, nor in a screen share, nor in a bookmark.
@@ -175,7 +175,10 @@ func (s *Server) requireToken(next http.Handler) http.Handler {
 	})
 }
 
-func (s *Server) sessionCookie() *http.Cookie {
+// sessionCookie is the cookie a request that proved the token is answered
+// with. It takes the request because one of its attributes depends on how the
+// browser reached yagit, and only the request knows.
+func (s *Server) sessionCookie(request *http.Request) *http.Cookie {
 	return &http.Cookie{
 		Name:  tokenCookieName,
 		Value: s.token,
@@ -187,15 +190,43 @@ func (s *Server) sessionCookie() *http.Cookie {
 		// requests coming from another site. That is the first barrier; the
 		// origin check above is the second.
 		SameSite: http.SameSiteStrictMode,
-		// Secure follows the scheme the daemon is serving, and it has to go
-		// that way round rather than always on: a browser never sends a
-		// Secure cookie over http://, so setting it on plain HTTP would not
-		// harden the session, it would end it — every request after the
-		// exchange arriving with no cookie at all, and nothing anywhere
-		// saying why. Under TLS it is what keeps the token off the wire the
-		// first time anything addresses this daemon as http://.
-		Secure: s.secureCookies,
+		// Secure follows the scheme the browser used, and it has to go that
+		// way round rather than always on: a browser never sends a Secure
+		// cookie over http://, so setting it on plain HTTP would not harden
+		// the session, it would end it — every request after the exchange
+		// arriving with no cookie at all, and nothing anywhere saying why.
+		// Under TLS it is what keeps the token off the wire the first time
+		// anything addresses this host as http://.
+		//
+		// The browser's scheme is not always this daemon's. A reverse proxy
+		// that terminates TLS talks plain HTTP to a daemon on the loopback,
+		// and a cookie set from the daemon's own scheme alone would travel
+		// without Secure on exactly the deployment reached from elsewhere.
+		Secure: s.secureCookies || reachedOverTLS(request),
 	}
+}
+
+// reachedOverTLS reports whether the browser behind a request reached yagit
+// over TLS: this daemon's own, or a reverse proxy's in front of it.
+//
+// X-Forwarded-Proto is believed from anyone, which is safe for this use and
+// for no other. What it decides is one attribute of a cookie sent back to
+// whoever sent the header, and Secure can only make that cookie stricter: a
+// client that claims https while speaking plain HTTP gets a session its own
+// next request does not carry. No page can make somebody else's browser send
+// the header either: a cross-origin request may not set it without a CORS
+// preflight, which yagit never grants. Anything that loosened a check on the
+// strength of this header would be a different decision, and a wrong one.
+//
+// The leftmost value is read. A chain of proxies that appends to the header
+// puts the scheme the browser used first, and a later hop's plain-HTTP leg
+// says nothing about the browser's.
+func reachedOverTLS(request *http.Request) bool {
+	if request.TLS != nil {
+		return true
+	}
+	first, _, _ := strings.Cut(request.Header.Get("X-Forwarded-Proto"), ",")
+	return strings.EqualFold(strings.TrimSpace(first), "https")
 }
 
 // redirectWithoutToken sends the browser back to the page it asked for, with

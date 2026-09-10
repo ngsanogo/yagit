@@ -6,10 +6,10 @@ import react from '@vitejs/plugin-react';
 import tailwindcss from '@tailwindcss/vite';
 
 /**
- * The project's two ports are defined in `./do`, which passes them down
- * through the environment. Restating them here would create a second source
- * of truth, and two sources of truth always end up diverging. The fallbacks
- * are there for whoever runs `vite` by hand.
+ * The project's ports are defined in `./do`, which passes Vite's down through
+ * the environment. Restating it here would create a second source of truth,
+ * and two sources of truth always end up diverging. The fallback is there for
+ * whoever runs `vite` by hand.
  */
 const port = (name: string, fallback: number): number => {
   const raw = process.env[name];
@@ -22,8 +22,7 @@ const port = (name: string, fallback: number): number => {
   return parsed;
 };
 
-const vitePort = port('YAGIT_VITE_PORT', 5173);
-const daemonPort = port('YAGIT_DAEMON_PORT', 7420);
+const vitePort = port('YAGIT_VITE_PORT', 7421);
 
 export default defineConfig({
   plugins: [react(), tailwindcss()],
@@ -40,9 +39,13 @@ export default defineConfig({
     // 502 with nothing pointing at the cause.
     strictPort: true,
 
-    // The hot reload client opens its WebSocket connection to the port the
-    // browser sees, not the one Vite actually listens on.
-    hmr: { clientPort: daemonPort },
+    // No hmr.clientPort, deliberately. Left unset, the hot reload client
+    // opens its WebSocket on the page's own host and port — the daemon's
+    // when the browser comes straight to it, and a reverse proxy's when one
+    // serves yagit under a name of its own — and the daemon passes the
+    // upgrade on to here. Pinning it to the daemon's port sent the socket
+    // around the proxy, to a port nothing outside the machine can reach, and
+    // hot reload stopped with one console line to say so.
   },
 
   build: {

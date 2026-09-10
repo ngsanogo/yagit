@@ -14,7 +14,7 @@ import (
 // processes.
 //
 // `npm run dev` does not forward SIGTERM to the Vite it spawned (measured):
-// killing npm's own pid leaves Vite orphaned, port 5173 taken, and the next
+// killing npm's own pid leaves Vite orphaned, its port taken, and the next
 // `./do dev` failing on an inexplicable strictPort error. The same holds for
 // air and the daemon binary it rebuilds.
 //

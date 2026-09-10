@@ -88,6 +88,38 @@ yagit is allowed to open repositories. It defaults to your home directory.
 [`.env.example`](../.env.example) documents every other setting, including how
 to develop on one machine and browse from another.
 
+### Browsing from another machine
+
+There are two ways, and `.env` takes one of them.
+
+**Through a reverse proxy on the development machine** — the recommended one,
+and the shape of a VM that serves each of its apps under a host name of its
+own:
+
+```sh
+YAGIT_PUBLIC_URL=https://yagit.my-dev-box.local
+```
+
+The daemon stays on `127.0.0.1:7420`, where the proxy connects; point the proxy
+there, let WebSocket upgrades through, leave responses unbuffered — the event
+stream never ends — and have it send `X-Forwarded-Proto`. `./do up` prints the
+public URL, the daemon accepts writes from a page served at it, the session
+cookie is `Secure` because the browser's side is HTTPS, and hot reload rides
+the proxy like every other request. A host name of its own matters: browsers
+keep cookies per host rather than per port, so applications sharing one name on
+different ports log each other out.
+
+**Straight to the daemon**, by setting `YAGIT_PUBLIC_HOST` to the machine's
+name and `YAGIT_LISTEN_ALL=1`, which widens the listen address to `0.0.0.0`.
+
+Setting `YAGIT_PUBLIC_URL` beside either of those is refused, with the lines to
+comment out for each way. `./do up --restart` picks up a changed `.env`.
+
+The ports are `7420` for the daemon and `7421` for Vite, both on the loopback
+and both defined in `cmd/do/main.go`. Vite is never addressed directly — the
+daemon proxies to it — and it sits beside the daemon's port rather than on its
+own default, which every other Vite project on the machine would also want.
+
 ## Commands
 
 Everything goes through `./do`. There is no second path: no Makefile, no

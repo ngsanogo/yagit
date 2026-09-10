@@ -19,6 +19,7 @@ internal/edit/      work-tree files read and written — runs no git
 internal/api/       HTTP, auth, error JSON shape
 internal/assets/    embedded frontend via //go:embed
 internal/session/   the session token — minted and checked here, by both cmd/
+internal/publicurl/ a reverse proxy's address, read as an origin — by both cmd/
 internal/protect/   owner-only lockdown for secrets — chmod on Unix, ACL on Windows
 ```
 

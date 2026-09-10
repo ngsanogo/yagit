@@ -42,6 +42,7 @@ a record that says so and why — not asking permission from the old one.
 | [0033](0033-a-chosen-set-of-refs-is-a-history.md) | A chosen set of refs is a history, not a filter over one | extends 0016 |
 | [0034](0034-the-diff-is-drawn-not-edited.md) | The diff is drawn, not edited | **reverses [0004](0004-diffs-are-codemirror.md)** |
 | [0035](0035-secrets-get-an-owner-only-acl-on-windows.md) | Secrets get an owner-only ACL on Windows | new |
+| [0036](0036-a-reverse-proxy-is-a-public-url-not-a-wider-listen.md) | A reverse proxy is a public URL, not a wider listen address | new |
 
 ## Alternatives considered without a full record
 

@@ -1,0 +1,101 @@
+package publicurl
+
+import (
+	"strings"
+	"testing"
+)
+
+// Every accepted case is written as what a person types and what a browser
+// then presents, because the gap between the two is the bug this package
+// exists for: an allowlist entry that looks right and matches nothing.
+func TestOriginIsWhatTheBrowserPresents(t *testing.T) {
+	cases := []struct {
+		name string
+		raw  string
+		want string
+	}{
+		{"a bare origin", "https://yagit.dev-box.local", "https://yagit.dev-box.local"},
+		{"a lone trailing slash", "https://yagit.dev-box.local/", "https://yagit.dev-box.local"},
+		// A browser lower-cases the scheme and the host before it writes an
+		// Origin header, whatever the address bar was given.
+		{"upper case", "HTTPS://Yagit.Dev-Box.local/", "https://yagit.dev-box.local"},
+		// The default port is never written in an origin. Kept, it would put
+		// an entry on the allowlist that no browser ever sends.
+		{"https on its default port", "https://yagit.example.com:443/", "https://yagit.example.com"},
+		{"http on its default port", "http://yagit.example.com:80", "http://yagit.example.com"},
+		{"a port with leading zeros", "https://yagit.example.com:0443", "https://yagit.example.com"},
+		{"an empty port", "https://yagit.example.com:/", "https://yagit.example.com"},
+		{"another port", "https://yagit.example.com:8443/", "https://yagit.example.com:8443"},
+		// 443 is https's default, not http's.
+		{"another scheme's default", "http://yagit.example.com:443", "http://yagit.example.com:443"},
+		{"plain http", "http://yagit.example.com", "http://yagit.example.com"},
+		{"an IPv6 literal with a port", "https://[::1]:8443/", "https://[::1]:8443"},
+		{"an IPv6 literal without one", "https://[::1]/", "https://[::1]"},
+		// An address has many spellings and a browser presents exactly one:
+		// the URL Standard's, which is not always Go's.
+		{"an expanded IPv6 literal", "https://[0:0:0:0:0:0:0:1]", "https://[::1]"},
+		{"an upper-case IPv6 literal", "https://[2001:DB8::1]:8443", "https://[2001:db8::1]:8443"},
+		{"the first longest zero run", "https://[1:0:0:2:0:0:0:3]", "https://[1:0:0:2::3]"},
+		{"a single zero piece is not compressed", "https://[1:0:2:3:4:5:6:7]", "https://[1:0:2:3:4:5:6:7]"},
+		{"trailing zeros", "https://[2001:db8:0:0:0:0:0:0]", "https://[2001:db8::]"},
+		{"an IPv4-mapped address", "https://[::ffff:1.2.3.4]", "https://[::ffff:102:304]"},
+		{"the unspecified address", "https://[::]", "https://[::]"},
+		{"an IPv4 address", "http://127.0.0.1:8080", "http://127.0.0.1:8080"},
+	}
+
+	for _, testCase := range cases {
+		t.Run(testCase.name, func(t *testing.T) {
+			got, err := Origin(testCase.raw)
+			if err != nil {
+				t.Fatalf("Origin(%q): %v", testCase.raw, err)
+			}
+			if got != testCase.want {
+				t.Errorf("Origin(%q) = %q, want %q", testCase.raw, got, testCase.want)
+			}
+		})
+	}
+}
+
+// Every refusal has to say what is wrong with the value, not only that it is:
+// the sentence is read by somebody looking at one line of .env.
+func TestOriginRefusesWhatIsNotAnOrigin(t *testing.T) {
+	cases := []struct {
+		name string
+		raw  string
+		says string
+	}{
+		{"no scheme", "yagit.dev-box.local", "https://"},
+		// A host and a port with no scheme parses as a scheme called the host.
+		{"a host and a port", "yagit.dev-box.local:443", "https://"},
+		{"another scheme", "ftp://yagit.example.com", "https://"},
+		{"no host", "https://", "host"},
+		{"only a port", "https://:8443", "host"},
+		{"no slashes", "https:yagit.example.com", "host"},
+		{"credentials", "https://ada:secret@yagit.example.com", "password"},
+		// The one worth a sentence of its own: the interface asks for /api/
+		// from the root, so a proxy serving it under a prefix cannot work.
+		{"a path", "https://yagit.example.com/yagit/", "/yagit/"},
+		{"a query", "https://yagit.example.com/?next=/", "query"},
+		{"a fragment", "https://yagit.example.com/#top", "fragment"},
+		{"an empty fragment", "https://yagit.example.com#", "fragment"},
+		{"an empty query", "https://yagit.example.com?", "query"},
+		{"port zero", "https://yagit.example.com:0", "port"},
+		{"a port out of range", "https://yagit.example.com:70000", "port"},
+		{"a space", "https://yagit example.com", "not a URL"},
+		{"a name outside ASCII", "https://yägit.example.com", "ASCII"},
+		{"an IPv6 zone", "https://[fe80::1%25eth0]", "zone"},
+		{"an IPv4 address with leading zeros", "https://127.000.0.1", "dotted"},
+	}
+
+	for _, testCase := range cases {
+		t.Run(testCase.name, func(t *testing.T) {
+			got, err := Origin(testCase.raw)
+			if err == nil {
+				t.Fatalf("Origin(%q) = %q, want a refusal", testCase.raw, got)
+			}
+			if !strings.Contains(err.Error(), testCase.says) {
+				t.Errorf("Origin(%q) refused with %q, want it to mention %q", testCase.raw, err, testCase.says)
+			}
+		})
+	}
+}

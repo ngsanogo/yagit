@@ -273,6 +273,54 @@ func TestBrowserOriginsFollowsTheSchemeBeingServed(t *testing.T) {
 	}
 }
 
+// TestAcceptedOriginsTakeThePublicURLAsTheProxyServesIt is the case the
+// public URL was added for. A proxy terminating TLS on 443 in front of a
+// plain-HTTP daemon on 7420 makes the browser present an origin the daemon
+// cannot build from its own socket — and without it, the door page's own POST
+// is refused as a foreign origin, and every write after it.
+func TestAcceptedOriginsTakeThePublicURLAsTheProxyServesIt(t *testing.T) {
+	origins := acceptedOrigins("http", configuration{
+		publicHost:     "127.0.0.1",
+		publicURL:      "https://yagit.dev-box.local",
+		allowedOrigins: []string{"https://tool.example.com"},
+	}, "127.0.0.1:7420")
+
+	expected := []string{
+		"http://127.0.0.1:7420",
+		"http://localhost:7420",
+		"http://[::1]:7420",
+		"https://yagit.dev-box.local",
+		// -allow-origins still adds to the list rather than being replaced
+		// by the public URL: the two are for different callers.
+		"https://tool.example.com",
+	}
+	if !slices.Equal(origins, expected) {
+		t.Errorf("origins = %v, expected %v", origins, expected)
+	}
+}
+
+func TestAcceptedOriginsKeepThePublicURLWhenTheAddressHasNoPort(t *testing.T) {
+	// browserOrigins declines to guess from an address with no port. The
+	// public URL is not a guess — somebody configured it — so it survives
+	// that refusal.
+	origins := acceptedOrigins("http", configuration{publicURL: "https://yagit.example.com"}, "not-an-address")
+
+	if !slices.Equal(origins, []string{"https://yagit.example.com"}) {
+		t.Errorf("origins = %v, expected only the public URL", origins)
+	}
+}
+
+func TestAcceptedOriginsDoNotRepeatAPublicURLTheDaemonAlreadyBuilt(t *testing.T) {
+	origins := acceptedOrigins("http", configuration{
+		publicHost: "127.0.0.1",
+		publicURL:  "http://127.0.0.1:7420",
+	}, "127.0.0.1:7420")
+
+	if len(origins) != 3 {
+		t.Errorf("a public URL naming the loopback produced %v, expected three entries", origins)
+	}
+}
+
 // --------------------------------------------------------------------------
 // The URL the user is told to open
 // --------------------------------------------------------------------------
@@ -313,6 +361,28 @@ func TestBrowserURLUsesHTTPSSchemeWhenAsked(t *testing.T) {
 	url := browserURL("https", "127.0.0.1", "127.0.0.1:7420")
 	if url != "https://127.0.0.1:7420/" {
 		t.Errorf("url = %q", url)
+	}
+}
+
+func TestAnnouncedURLIsThePublicOneBehindAProxy(t *testing.T) {
+	// The loopback address the daemon listens on opens nothing from the
+	// machine the browser is on, and the refusal of an unknown origin tells
+	// its reader to open "the URL the daemon printed at startup".
+	url := announcedURL("http", configuration{
+		publicHost: "127.0.0.1",
+		publicURL:  "https://yagit.dev-box.local",
+	}, "127.0.0.1:7420")
+
+	if url != "https://yagit.dev-box.local/" {
+		t.Errorf("url = %q, expected the public URL", url)
+	}
+}
+
+func TestAnnouncedURLIsTheDaemonsOwnWithoutAProxy(t *testing.T) {
+	url := announcedURL("http", configuration{publicHost: "dev-box.local"}, "0.0.0.0:7420")
+
+	if url != "http://dev-box.local:7420/" {
+		t.Errorf("url = %q, expected the one browserURL builds", url)
 	}
 }
 
@@ -381,6 +451,7 @@ func TestParseConfigurationReadsTheEnvironment(t *testing.T) {
 	t.Setenv("YAGIT_ADDR", "0.0.0.0:9999")
 	t.Setenv("YAGIT_LISTEN_ALL", "1")
 	t.Setenv("YAGIT_ALLOW_ORIGINS", "http://a, http://b")
+	t.Setenv("YAGIT_PUBLIC_URL", "")
 
 	config, err := parseConfiguration()
 	if err != nil {
@@ -394,6 +465,92 @@ func TestParseConfigurationReadsTheEnvironment(t *testing.T) {
 	}
 	if !slices.Equal(config.allowedOrigins, []string{"http://a", "http://b"}) {
 		t.Errorf("allowedOrigins = %v", config.allowedOrigins)
+	}
+}
+
+// The public URL is read from the environment too, apart from the rest: a
+// daemon behind a proxy stays on the loopback, so it cannot share the widened
+// address the test above reads.
+func TestParseConfigurationReadsThePublicURLFromTheEnvironment(t *testing.T) {
+	withCleanFlags(t, []string{"yagit"})
+	t.Setenv("YAGIT_ROOT", "/srv/repositories")
+	t.Setenv("YAGIT_ADDR", "127.0.0.1:9999")
+	t.Setenv("YAGIT_LISTEN_ALL", "")
+	t.Setenv("YAGIT_PUBLIC_URL", "https://Yagit.example.com:443/")
+
+	config, err := parseConfiguration()
+	if err != nil {
+		t.Fatalf("parseConfiguration: %v", err)
+	}
+	// Held as the origin a browser presents, because that is what the
+	// allowlist is compared against, header by header, as a string.
+	if config.publicURL != "https://yagit.example.com" {
+		t.Errorf("publicURL = %q", config.publicURL)
+	}
+}
+
+// TestParseConfigurationRefusesAPublicURLThatIsNotAnOrigin keeps a typo from
+// starting a daemon whose allowlist holds an entry no browser matches — found
+// out, otherwise, as a 403 on the door page.
+func TestParseConfigurationRefusesAPublicURLThatIsNotAnOrigin(t *testing.T) {
+	withCleanFlags(t, []string{"yagit", "-root", "/srv", "-public-url", "yagit.example.com"})
+	t.Setenv("YAGIT_PUBLIC_URL", "")
+
+	_, err := parseConfiguration()
+	if err == nil {
+		t.Fatal("a public URL with no scheme must not start")
+	}
+	if !strings.Contains(err.Error(), "-public-url") {
+		t.Errorf("the error must name the flag, got: %v", err)
+	}
+}
+
+// A public URL is a promise that browsers come through a proxy, which reaches
+// the daemon on the loopback. `./do` refuses to widen the listen address beside
+// one; the binary run by hand must refuse it too, flag or environment.
+func TestParseConfigurationKeepsAProxiedDaemonOnTheLoopback(t *testing.T) {
+	cases := []struct {
+		name      string
+		args      []string
+		listenAll string
+	}{
+		{"every interface acknowledged by flag", []string{"-addr", "0.0.0.0:7420", "-listen-all"}, ""},
+		{"every interface acknowledged by the environment", []string{"-addr", "0.0.0.0:7420"}, "1"},
+		{"no host at all", []string{"-addr", ":7420", "-listen-all"}, ""},
+		{"a loopback address with -listen-all still set", []string{"-addr", "127.0.0.1:7420", "-listen-all"}, ""},
+	}
+
+	for _, testCase := range cases {
+		t.Run(testCase.name, func(t *testing.T) {
+			args := append([]string{"yagit", "-root", "/srv", "-public-url", "https://yagit.example.com"}, testCase.args...)
+			withCleanFlags(t, args)
+			t.Setenv("YAGIT_LISTEN_ALL", testCase.listenAll)
+
+			_, err := parseConfiguration()
+			if err == nil {
+				t.Fatal("a public URL beside a widened listen address must not start")
+			}
+			if !strings.Contains(err.Error(), "loopback") {
+				t.Errorf("refused with %q, want it to name the loopback", err)
+			}
+		})
+	}
+}
+
+func TestParseConfigurationAcceptsAProxiedDaemonOnTheLoopback(t *testing.T) {
+	for _, addr := range []string{"127.0.0.1:7420", "[::1]:7420", "localhost:7420"} {
+		t.Run(addr, func(t *testing.T) {
+			withCleanFlags(t, []string{"yagit", "-root", "/srv", "-addr", addr, "-public-url", "https://yagit.example.com"})
+			t.Setenv("YAGIT_LISTEN_ALL", "")
+
+			config, err := parseConfiguration()
+			if err != nil {
+				t.Fatalf("parseConfiguration: %v", err)
+			}
+			if config.publicURL != "https://yagit.example.com" {
+				t.Errorf("publicURL = %q", config.publicURL)
+			}
+		})
 	}
 }
 
