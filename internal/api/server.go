@@ -50,9 +50,11 @@ type Options struct {
 	// interface that refreshes only when asked is worth more than none.
 	Watcher *watch.Watcher
 
-	// SecureCookies sets the Secure attribute on the session cookie. True when
-	// the daemon serves HTTPS; false on plain HTTP, where a Secure cookie would
-	// never be sent back.
+	// SecureCookies sets the Secure attribute on every session cookie. True
+	// when the daemon serves HTTPS. False on plain HTTP, where a Secure cookie
+	// would never be sent back — unless the request itself says the browser
+	// reached yagit over TLS through a proxy in front, which earns the
+	// attribute one cookie at a time (see reachedOverTLS).
 	SecureCookies bool
 
 	// Frontend serves everything that is not under /api: a proxy to Vite in

@@ -21,7 +21,7 @@ import (
 // That tells a client exactly what to do and leaves a reader nowhere to do
 // it: no field to paste into, and a header no address bar can set. It is the
 // first thing anyone browsing from another machine sees — the exact case
-// YAGIT_PUBLIC_HOST exists for.
+// YAGIT_PUBLIC_HOST and YAGIT_PUBLIC_URL exist for.
 //
 // This is Jupyter's model, which the token scheme already borrows: the same
 // page that refuses you tells you how to get in, and takes the token when you

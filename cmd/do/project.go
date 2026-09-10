@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"github.com/ngsanogo/yagit/internal/protect"
+	"github.com/ngsanogo/yagit/internal/publicurl"
 	"github.com/ngsanogo/yagit/internal/session"
 )
 
@@ -54,6 +55,15 @@ type configuration struct {
 	// daemon to the network. Without it, a non-loopback YAGIT_PUBLIC_HOST
 	// is refused rather than silently binding 0.0.0.0.
 	listenAll bool
+
+	// publicURL is where a reverse proxy on this machine serves yagit — a
+	// development VM that gives every app a host name of its own — held as the
+	// origin a browser presents there once loadConfiguration has checked it.
+	// Empty when the browser reaches the daemon directly.
+	//
+	// It is the other way to browse from elsewhere, and the one that widens
+	// nothing: the proxy connects to the loopback like any local client.
+	publicURL string
 }
 
 // envFile is .env parsed once: what it assigns, and what something asked for.
@@ -189,6 +199,22 @@ func (p *project) loadConfiguration() (configuration, error) {
 			"YAGIT_ROOT is %q in .env, but that directory does not exist. Fix it or create it", config.root)
 	}
 
+	// Here, before anything starts, and in the form the card prints and the
+	// daemon compares: an address a browser would write differently is an
+	// allowlist entry that matches nothing, and it would be found out as a
+	// 403 on the door page rather than as this sentence.
+	if config.publicURL != "" {
+		origin, err := publicurl.Origin(config.publicURL)
+		if err != nil {
+			// No full stop after %w: several of the reasons end in an example
+			// URL, and a dot pasted onto it is a dot somebody pastes into .env.
+			return configuration{}, fmt.Errorf("YAGIT_PUBLIC_URL is %q in .env: %w%s", config.publicURL, err, indent(
+				"It is the address a reverse proxy on this machine serves yagit at.",
+				"Without a proxy, comment it out of .env."))
+		}
+		config.publicURL = origin
+	}
+
 	return config, nil
 }
 
@@ -204,6 +230,7 @@ func readConfiguration(env *envFile) configuration {
 		root:       env.value("YAGIT_ROOT"),
 		publicHost: host,
 		listenAll:  envTruthy(env.value("YAGIT_LISTEN_ALL")),
+		publicURL:  env.value("YAGIT_PUBLIC_URL"),
 	}
 }
 
@@ -225,33 +252,83 @@ func (p *project) createEnvFile(envPath string) error {
 	return nil
 }
 
-// listenAddress derives the daemon's listen address from the host a browser
-// reaches it by.
+// listenAddress derives the daemon's listen address from how a browser reaches
+// it.
 //
 // Reaching the daemon by a name other than the loopback only works if it
 // listens beyond the loopback. That widening requires YAGIT_LISTEN_ALL=1 —
 // an explicit acknowledgment that the daemon will be reachable on the network.
-func listenAddress(publicHost string, listenAll bool) (string, error) {
-	switch publicHost {
-	case "127.0.0.1", "localhost", "::1":
-		return fmt.Sprintf("127.0.0.1:%d", daemonPort), nil
-	default:
-		if !listenAll {
-			// Both ways out, not only the widening one. This is the refusal a
-			// .env written before the acknowledgment existed runs into, and
-			// advice that says nothing but "listen on all interfaces" talks
-			// the reader into the exposure the refusal is here to prevent —
-			// including the reader who now browses on the machine itself.
-			return "", fmt.Errorf(
-				"YAGIT_PUBLIC_HOST=%q names a host other than the loopback.%s",
-				publicHost,
-				indent(
-					"Reaching the daemon by that name means listening on all interfaces.",
-					"To do that, set YAGIT_LISTEN_ALL=1 in .env.",
-					"To stay on the loopback, comment YAGIT_PUBLIC_HOST out of .env."))
+//
+// A reverse proxy is the other way to be reached from elsewhere, and it needs
+// no widening at all: the proxy runs on this machine and connects to the
+// loopback like any local client. So beside YAGIT_PUBLIC_URL, anything that
+// asks for the widening is a .env saying two things at once, and it is refused
+// rather than settled by a guess — widening would expose a daemon whose owner
+// meant it to sit behind a proxy, and staying put would leave dead the direct
+// address its owner meant to use.
+func listenAddress(config configuration) (string, error) {
+	loopback := fmt.Sprintf("127.0.0.1:%d", daemonPort)
+
+	if config.publicURL != "" {
+		if !isLoopbackName(config.publicHost) || config.listenAll {
+			return "", publicURLBesideWidening(config)
 		}
-		return fmt.Sprintf("0.0.0.0:%d", daemonPort), nil
+		return loopback, nil
 	}
+
+	if isLoopbackName(config.publicHost) {
+		return loopback, nil
+	}
+	if !config.listenAll {
+		// Both ways out, not only the widening one. This is the refusal a
+		// .env written before the acknowledgment existed runs into, and advice
+		// that says nothing but "listen on all interfaces" talks the reader
+		// into the exposure the refusal is here to prevent — including the
+		// reader who now browses on the machine itself, or through a proxy.
+		return "", fmt.Errorf(
+			"YAGIT_PUBLIC_HOST=%q names a host other than the loopback.%s",
+			config.publicHost,
+			indent(
+				"Reaching the daemon by that name means listening on all interfaces.",
+				"To do that, set YAGIT_LISTEN_ALL=1 in .env.",
+				"To stay on the loopback, comment YAGIT_PUBLIC_HOST out of .env —",
+				"and set YAGIT_PUBLIC_URL if a reverse proxy serves yagit to your browser."))
+	}
+	return fmt.Sprintf("0.0.0.0:%d", daemonPort), nil
+}
+
+// isLoopbackName reports whether a public host keeps the daemon on the
+// loopback: the three spellings a browser on this machine uses for it.
+func isLoopbackName(host string) bool {
+	switch host {
+	case "127.0.0.1", "localhost", "::1":
+		return true
+	default:
+		return false
+	}
+}
+
+// publicURLBesideWidening is the refusal for a .env that puts yagit behind a
+// proxy and also asks the daemon to be reached directly. It names what asked,
+// and both ways out, in the order ADR 0014 settled on.
+func publicURLBesideWidening(config configuration) error {
+	var assignments, names []string
+	if !isLoopbackName(config.publicHost) {
+		assignments = append(assignments, fmt.Sprintf("YAGIT_PUBLIC_HOST=%q", config.publicHost))
+		names = append(names, "YAGIT_PUBLIC_HOST")
+	}
+	if config.listenAll {
+		assignments = append(assignments, "YAGIT_LISTEN_ALL=1")
+		names = append(names, "YAGIT_LISTEN_ALL")
+	}
+
+	return fmt.Errorf(
+		"YAGIT_PUBLIC_URL puts yagit behind a reverse proxy, and %s in .env asks for the daemon to be reached directly.%s",
+		strings.Join(assignments, " with "),
+		indent(
+			"Behind a proxy the daemon stays on the loopback, which is where the proxy connects.",
+			"To go through the proxy at "+config.publicURL+"/, comment "+strings.Join(names, " and ")+" out of .env.",
+			"To reach the daemon directly instead, comment YAGIT_PUBLIC_URL out of .env."))
 }
 
 func envTruthy(value string) bool {
@@ -275,7 +352,7 @@ func envTruthy(value string) bool {
 // and listenAddress already says exactly how. A stack trace would bury that
 // sentence under twenty lines of goroutine dump.
 func (p *project) daemonEnvironment(config configuration, token string) ([]string, error) {
-	addr, err := listenAddress(config.publicHost, config.listenAll)
+	addr, err := listenAddress(config)
 	if err != nil {
 		return nil, err
 	}
@@ -285,16 +362,27 @@ func (p *project) daemonEnvironment(config configuration, token string) ([]strin
 		"YAGIT_ADDR="+addr,
 		"YAGIT_PUBLIC_HOST="+config.publicHost,
 
+		// Always, and empty when .env names none. The daemon reads this from
+		// its environment, so one exported in the shell would otherwise reach
+		// it unasked: an origin on the allowlist, and a startup line naming an
+		// address, that .env never mentioned and the card does not print.
+		// YAGIT_ALLOW_ORIGINS is left as the shell has it, on purpose — it is
+		// the daemon's own flag, which .env has no key for and `./do` has no
+		// opinion about, and the public origin needs no help from it.
+		"YAGIT_PUBLIC_URL="+config.publicURL,
+
 		// In development the daemon proxies everything outside /api to Vite.
 		// This variable is absent in production, where the frontend is
 		// embedded in the binary — and that is the only difference between the
 		// two.
 		fmt.Sprintf("YAGIT_FRONTEND_DEV_SERVER=http://127.0.0.1:%d", vitePort),
 
-		// Vite reads these to pick its port, and to tell its hot-reload client
-		// to open its WebSocket against the daemon rather than against itself.
+		// Vite reads this to pick its port. Nothing tells its hot-reload
+		// client a port: it opens its WebSocket on the page's own origin,
+		// which is the daemon when the browser comes straight to it and the
+		// proxy when one is in front — and the daemon passes the upgrade on
+		// to Vite like any other request outside /api.
 		fmt.Sprintf("YAGIT_VITE_PORT=%d", vitePort),
-		fmt.Sprintf("YAGIT_DAEMON_PORT=%d", daemonPort),
 
 		// The session token is handed down rather than left to the daemon to
 		// generate: air restarts it on every saved Go file, and a fresh token

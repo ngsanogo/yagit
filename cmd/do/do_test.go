@@ -113,6 +113,13 @@ func TestParseEnvFileAgainstTheShippedExample(t *testing.T) {
 	if host := example.value("YAGIT_PUBLIC_HOST"); host != "" {
 		t.Errorf("YAGIT_PUBLIC_HOST reads as %q out of a commented-out line", host)
 	}
+
+	// And YAGIT_PUBLIC_URL beside it. Read as a value, every fresh checkout
+	// would print a proxy's address that does not exist on that machine, and
+	// accept writes from its origin.
+	if url := example.value("YAGIT_PUBLIC_URL"); url != "" {
+		t.Errorf("YAGIT_PUBLIC_URL reads as %q out of a commented-out line", url)
+	}
 }
 
 func TestTheShippedExampleSetsNothingThatIsIgnored(t *testing.T) {
@@ -185,7 +192,7 @@ func TestListenAddressFollowsThePublicHost(t *testing.T) {
 	}
 
 	for host, want := range loopbackCases {
-		got, err := listenAddress(host, false)
+		got, err := listenAddress(configuration{publicHost: host})
 		if err != nil {
 			t.Fatalf("listenAddress(%q): %v", host, err)
 		}
@@ -195,16 +202,86 @@ func TestListenAddressFollowsThePublicHost(t *testing.T) {
 	}
 
 	for _, host := range []string{"my-dev-box", "192.168.1.10", "box.example.com"} {
-		if _, err := listenAddress(host, false); err == nil {
+		if _, err := listenAddress(configuration{publicHost: host}); err == nil {
 			t.Errorf("listenAddress(%q) without listen-all should refuse", host)
 		}
-		got, err := listenAddress(host, true)
+		got, err := listenAddress(configuration{publicHost: host, listenAll: true})
 		if err != nil {
 			t.Fatalf("listenAddress(%q, listenAll): %v", host, err)
 		}
 		if got != "0.0.0.0:7420" {
 			t.Errorf("listenAddress(%q, listenAll) = %q, want 0.0.0.0:7420", host, got)
 		}
+	}
+}
+
+// TestListenAddressStaysOnTheLoopbackBehindAProxy is the half of the rule a
+// reverse proxy adds. The proxy runs on this machine, so the daemon it serves
+// is reached from elsewhere without listening anywhere but the loopback — and
+// a regression here is 0.0.0.0 on the one machine whose owner set up a proxy
+// precisely so as not to need it.
+func TestListenAddressStaysOnTheLoopbackBehindAProxy(t *testing.T) {
+	for _, host := range []string{"127.0.0.1", "localhost", "::1"} {
+		got, err := listenAddress(configuration{publicHost: host, publicURL: "https://yagit.example.com"})
+		if err != nil {
+			t.Fatalf("a public URL beside the loopback host %q: %v", host, err)
+		}
+		if got != "127.0.0.1:7420" {
+			t.Errorf("a public URL beside %q gave %q, want the loopback", host, got)
+		}
+	}
+}
+
+// TestListenAddressRefusesAProxyBesideTheWidening pins the refusal a .env
+// earns by saying both "a proxy serves yagit" and "reach the daemon directly".
+// Either reading of it is wrong for somebody, so it is not read at all — and,
+// as ADR 0014 settled, the sentence names what asked and both ways out.
+func TestListenAddressRefusesAProxyBesideTheWidening(t *testing.T) {
+	cases := []struct {
+		name   string
+		config configuration
+		// names is what the sentence must tell the reader to comment out to
+		// keep the proxy.
+		names string
+	}{
+		{
+			"a remote host",
+			configuration{publicHost: "dev-box.local", publicURL: "https://yagit.example.com"},
+			"comment YAGIT_PUBLIC_HOST out",
+		},
+		{
+			"listen-all",
+			configuration{publicHost: "127.0.0.1", listenAll: true, publicURL: "https://yagit.example.com"},
+			"comment YAGIT_LISTEN_ALL out",
+		},
+		{
+			// The .env a machine browsed directly already has, with the
+			// proxy's line pasted at the bottom: the migration most likely
+			// to meet this refusal.
+			"both",
+			configuration{publicHost: "dev-box.local", listenAll: true, publicURL: "https://yagit.example.com"},
+			"comment YAGIT_PUBLIC_HOST and YAGIT_LISTEN_ALL out",
+		},
+	}
+
+	for _, testCase := range cases {
+		t.Run(testCase.name, func(t *testing.T) {
+			got, err := listenAddress(testCase.config)
+			if err == nil {
+				t.Fatalf("listenAddress = %q, want a refusal", got)
+			}
+			for _, needed := range []string{
+				testCase.names,
+				"comment YAGIT_PUBLIC_URL out",
+				// The address the proxy way out leads to, so the reader can
+				// tell it is the one they meant.
+				"https://yagit.example.com/",
+			} {
+				if !strings.Contains(err.Error(), needed) {
+					t.Errorf("the refusal does not say %q: %v", needed, err)
+				}
+			}
+		})
 	}
 }
 

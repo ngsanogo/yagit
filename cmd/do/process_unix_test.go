@@ -16,7 +16,7 @@ import (
 // signals a group rather than a process.
 //
 // `npm run dev` does not forward SIGTERM to the Vite it spawned. Killing npm's
-// own pid leaves Vite orphaned, port 5173 held, and the next `./do dev`
+// own pid leaves Vite orphaned, its port held, and the next `./do dev`
 // failing on a strictPort error that names nothing useful. The shape below is
 // that one: a parent that ignores the signal, and a child that would outlive
 // it.
@@ -72,7 +72,7 @@ func TestTerminateProcessTreeTakesTheChildrenToo(t *testing.T) {
 	deadline := time.Now().Add(10 * time.Second)
 	for processExists(child) {
 		if time.Now().After(deadline) {
-			t.Fatalf("the child %d outlived its parent — this is Vite holding port 5173", child)
+			t.Fatalf("the child %d outlived its parent — this is Vite holding its port", child)
 		}
 		time.Sleep(20 * time.Millisecond)
 	}
