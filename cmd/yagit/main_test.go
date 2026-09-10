@@ -281,7 +281,7 @@ func TestBrowserOriginsFollowsTheSchemeBeingServed(t *testing.T) {
 func TestAcceptedOriginsTakeThePublicURLAsTheProxyServesIt(t *testing.T) {
 	origins := acceptedOrigins("http", configuration{
 		publicHost:     "127.0.0.1",
-		publicURL:      "https://yagit.devvm.orb.local",
+		publicURL:      "https://yagit.dev-box.local",
 		allowedOrigins: []string{"https://tool.example.com"},
 	}, "127.0.0.1:7420")
 
@@ -289,7 +289,7 @@ func TestAcceptedOriginsTakeThePublicURLAsTheProxyServesIt(t *testing.T) {
 		"http://127.0.0.1:7420",
 		"http://localhost:7420",
 		"http://[::1]:7420",
-		"https://yagit.devvm.orb.local",
+		"https://yagit.dev-box.local",
 		// -allow-origins still adds to the list rather than being replaced
 		// by the public URL: the two are for different callers.
 		"https://tool.example.com",
@@ -370,10 +370,10 @@ func TestAnnouncedURLIsThePublicOneBehindAProxy(t *testing.T) {
 	// its reader to open "the URL the daemon printed at startup".
 	url := announcedURL("http", configuration{
 		publicHost: "127.0.0.1",
-		publicURL:  "https://yagit.devvm.orb.local",
+		publicURL:  "https://yagit.dev-box.local",
 	}, "127.0.0.1:7420")
 
-	if url != "https://yagit.devvm.orb.local/" {
+	if url != "https://yagit.dev-box.local/" {
 		t.Errorf("url = %q, expected the public URL", url)
 	}
 }

@@ -14,11 +14,11 @@ func TestOriginIsWhatTheBrowserPresents(t *testing.T) {
 		raw  string
 		want string
 	}{
-		{"a bare origin", "https://yagit.devvm.orb.local", "https://yagit.devvm.orb.local"},
-		{"a lone trailing slash", "https://yagit.devvm.orb.local/", "https://yagit.devvm.orb.local"},
+		{"a bare origin", "https://yagit.dev-box.local", "https://yagit.dev-box.local"},
+		{"a lone trailing slash", "https://yagit.dev-box.local/", "https://yagit.dev-box.local"},
 		// A browser lower-cases the scheme and the host before it writes an
 		// Origin header, whatever the address bar was given.
-		{"upper case", "HTTPS://Yagit.DevVM.orb.local/", "https://yagit.devvm.orb.local"},
+		{"upper case", "HTTPS://Yagit.Dev-Box.local/", "https://yagit.dev-box.local"},
 		// The default port is never written in an origin. Kept, it would put
 		// an entry on the allowlist that no browser ever sends.
 		{"https on its default port", "https://yagit.example.com:443/", "https://yagit.example.com"},
@@ -54,9 +54,9 @@ func TestOriginRefusesWhatIsNotAnOrigin(t *testing.T) {
 		raw  string
 		says string
 	}{
-		{"no scheme", "yagit.devvm.orb.local", "https://"},
+		{"no scheme", "yagit.dev-box.local", "https://"},
 		// A host and a port with no scheme parses as a scheme called the host.
-		{"a host and a port", "yagit.devvm.orb.local:443", "https://"},
+		{"a host and a port", "yagit.dev-box.local:443", "https://"},
 		{"another scheme", "ftp://yagit.example.com", "https://"},
 		{"no host", "https://", "host"},
 		{"only a port", "https://:8443", "host"},

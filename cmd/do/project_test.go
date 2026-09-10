@@ -103,13 +103,13 @@ func TestLoadConfigurationDefaultsTheHostToTheLoopback(t *testing.T) {
 func TestLoadConfigurationReadsThePublicURLAsAnOrigin(t *testing.T) {
 	p := newProject(t)
 	writeFile(t, p.path(".env"),
-		"YAGIT_ROOT="+t.TempDir()+"\nYAGIT_PUBLIC_URL=https://Yagit.devvm.orb.local:443/\n")
+		"YAGIT_ROOT="+t.TempDir()+"\nYAGIT_PUBLIC_URL=https://Yagit.Dev-Box.local:443/\n")
 
 	config, err := p.loadConfiguration()
 	if err != nil {
 		t.Fatalf("loadConfiguration: %v", err)
 	}
-	if config.publicURL != "https://yagit.devvm.orb.local" {
+	if config.publicURL != "https://yagit.dev-box.local" {
 		t.Errorf("publicURL = %q, want the origin a browser presents", config.publicURL)
 	}
 }
@@ -292,7 +292,7 @@ func TestDaemonEnvironmentCarriesWhatTheDaemonNeeds(t *testing.T) {
 func TestDaemonEnvironmentHandsThePublicURLDown(t *testing.T) {
 	p := newProject(t)
 	environment, err := p.daemonEnvironment(configuration{
-		root: "/srv", publicHost: "127.0.0.1", publicURL: "https://yagit.devvm.orb.local",
+		root: "/srv", publicHost: "127.0.0.1", publicURL: "https://yagit.dev-box.local",
 	}, "t")
 	if err != nil {
 		t.Fatalf("daemonEnvironment: %v", err)
@@ -300,7 +300,7 @@ func TestDaemonEnvironmentHandsThePublicURLDown(t *testing.T) {
 
 	for key, want := range map[string]string{
 		"YAGIT_ADDR":       "127.0.0.1:7420",
-		"YAGIT_PUBLIC_URL": "https://yagit.devvm.orb.local",
+		"YAGIT_PUBLIC_URL": "https://yagit.dev-box.local",
 	} {
 		if got, _ := environmentValue(environment, key); got != want {
 			t.Errorf("%s = %q, want %q", key, got, want)

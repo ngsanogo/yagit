@@ -126,17 +126,17 @@ func TestBrowserURLFollowsConfiguration(t *testing.T) {
 	// Behind a proxy the card prints the proxy's address, which carries
 	// neither the daemon's scheme nor its port: the loopback URL opens nothing
 	// from the machine the browser is on.
-	url, err = browserURL(configuration{publicHost: "127.0.0.1", publicURL: "https://yagit.devvm.orb.local"})
+	url, err = browserURL(configuration{publicHost: "127.0.0.1", publicURL: "https://yagit.dev-box.local"})
 	if err != nil {
 		t.Fatal(err)
 	}
-	if url != "https://yagit.devvm.orb.local/" {
+	if url != "https://yagit.dev-box.local/" {
 		t.Errorf("browserURL(behind a proxy) = %q", url)
 	}
 
 	// A .env the stack refuses to start on is not printed as a place to go.
 	if _, err := browserURL(configuration{
-		publicHost: "dev-box.local", listenAll: true, publicURL: "https://yagit.devvm.orb.local",
+		publicHost: "dev-box.local", listenAll: true, publicURL: "https://yagit.dev-box.local",
 	}); err == nil {
 		t.Fatal("browserURL for a proxy beside a widened listen address should refuse")
 	}
