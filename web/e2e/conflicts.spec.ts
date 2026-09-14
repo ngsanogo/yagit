@@ -29,6 +29,24 @@ import { closeRepositoryAt, openWorkbench, sessionToken } from './session';
  * closes is one nothing can ever remove, and a git repository per test would
  * accumulate under `.yagit/e2e/` for good.
  */
+/**
+ * The file's contents, or null while it is absent.
+ *
+ * git rewrites a work-tree file by removing it and writing it anew, so a poll
+ * can land in between. A read that throws inside `expect.poll` fails the test
+ * instead of being retried: CI lost "takes one side of the whole file through
+ * git" to an ENOENT on notes.md, once in 150 runs. Absent is "not yet", like
+ * any other wrong answer.
+ */
+function contentsOrNull(file: string): string | null {
+  try {
+    return readFileSync(file, 'utf8');
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === 'ENOENT') return null;
+    throw error;
+  }
+}
+
 const opened: string[] = [];
 
 test.afterEach(async ({ page }) => {
@@ -189,7 +207,7 @@ test('resolves a conflict by choosing a side, saving, and staging', async ({ pag
   await expect(page.getByText('Every conflict is resolved')).toBeVisible();
 
   await page.getByRole('button', { name: 'Save' }).click();
-  await expect.poll(() => readFileSync(join(path, 'notes.md'), 'utf8')).toBe('one\nSIDE\nthree\n');
+  await expect.poll(() => contentsOrNull(join(path, 'notes.md'))).toBe('one\nSIDE\nthree\n');
 
   await expect(markResolved).toBeEnabled();
   await markResolved.click();
@@ -220,7 +238,7 @@ test('takes one side of the whole file through git', async ({ page }) => {
   await expect(confirmation).toContainText('git checkout --ours');
   await confirmation.getByRole('button', { name: 'Take ours' }).click();
 
-  await expect.poll(() => readFileSync(join(path, 'notes.md'), 'utf8')).toBe('one\nMAIN\nthree\n');
+  await expect.poll(() => contentsOrNull(join(path, 'notes.md'))).toBe('one\nMAIN\nthree\n');
   await expect(page.getByRole('status').filter({ hasText: 'Merging' })).toContainText(
     'Nothing is left conflicted',
   );
@@ -293,7 +311,7 @@ test('calls the merge off from the banner, having named what that destroys', asy
   // The banner goes in the same frame, because the route answers with the
   // status it left behind rather than leaving the panel to poll for it.
   await expect(banner).toHaveCount(0);
-  await expect.poll(() => readFileSync(join(path, 'notes.md'), 'utf8')).toBe('one\nMAIN\nthree\n');
+  await expect.poll(() => contentsOrNull(join(path, 'notes.md'))).toBe('one\nMAIN\nthree\n');
 });
 
 test('says why Continue is refused, where a refused button can be read', async ({ page }) => {
