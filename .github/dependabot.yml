@@ -38,6 +38,20 @@ updates:
           - globals
         update-types: [major, minor, patch]
 
+      # vitest and its plugins move as one, major versions included.
+      #
+      # @vitest/coverage-v8 requires the exact vitest version it was released
+      # with, so each of the two arrived alone as a pull request that could not
+      # even install: vitest 5 came as #15 and #16, both red on `npm ci`
+      # ERESOLVE, and landed together by hand in #17. The updater puts a
+      # dependency in the FIRST group that matches it, so this group has to
+      # stay above `frontend`, whose `*` would otherwise take the minors.
+      vitest:
+        patterns:
+          - vitest
+          - "@vitest/*"
+        update-types: [major, minor, patch]
+
       # Everything else, minor and patch only: fifteen separate pull requests
       # for routine bumps is not review, it is noise.
       frontend:
