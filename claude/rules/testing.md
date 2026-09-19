@@ -25,6 +25,10 @@ paths:
 Priority packages: `internal/git` (parsing), `internal/graph` (lane assignment).
 Fuzz anything that parses git output — hand-written tests miss edge cases.
 
+A benchmark run that timed nothing fails, and prints each skip with its reason:
+go says nothing about a skipped benchmark and exits 0. The graph benchmark
+skips until `YAGIT_REAL_REPOSITORY` names a repository to measure against.
+
 ## Frontend
 
 ```sh
