@@ -444,25 +444,6 @@ func (p *project) openStackLog() (*os.File, error) {
 	return log, nil
 }
 
-// testBench times what the other tests only check the answer of.
-//
-// Not a gate and not part of `./do test`, for the same reason fuzzing is not:
-// a number that depends on the machine it was measured on cannot fail a pull
-// request. It is the tool for the question asked before an optimisation and
-// again after it, which is the only way to know one was worth committing.
-//
-// Without -race, unlike every other Go test here. The detector intercepts
-// every memory access, and a benchmark run under it measures the detector.
-//
-// -run '^$' matches no test at all: a benchmark run that also ran the suite
-// would spend most of its time somewhere the numbers do not report.
-func (p *project) testBench(pattern string) error {
-	info("benchmarks matching %s", pattern)
-
-	args := append([]string{"test", "-run", "^$", "-bench", pattern, "-benchmem"}, goPackages...)
-	return p.run("go", args...)
-}
-
 // testFuzz is a search, not a gate.
 //
 // It answers "is there an input I did not think of", and most of the time the

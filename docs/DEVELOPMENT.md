@@ -136,7 +136,7 @@ same place, one of them goes stale and nobody notices.
 | `./do bootstrap [--browsers]` | Install dependencies into `.yagit/` and `web/node_modules/`. |
 | `./do shell-hook [--write]` | Generate `yagit-up`, `yagit-down`, `yagit-logs` aliases. |
 | `./do build` | Build the frontend and the binaries into `dist/`. |
-| `./do test [go\|web\|e2e\|release\|bench\|fuzz\|soak\|coverage]` | Run tests. With no argument, go, web and e2e. `release` starts the built binary; `bench` times the graph; `soak` repeats the end-to-end suite on a busy machine; `coverage` prints a baseline. |
+| `./do test [go\|web\|e2e\|release\|bench\|fuzz\|soak\|coverage]` | Run tests. With no argument, go, web and e2e. `release` starts the built binary; `bench` times the graph against the repository `YAGIT_REAL_REPOSITORY` names, and fails when nothing was timed; `soak` repeats the end-to-end suite on a busy machine; `coverage` prints a baseline. |
 | `./do lint` | Static analysis of Go — for every platform yagit ships to, not only this one — the frontend, the shell — the `./do` shim and the release installers under `scripts/` — and the CI workflows. |
 | `./do audit` | Check every dependency, the Go standard library included, against the vulnerability databases. |
 | `./do fmt` | Reformat the code. |
