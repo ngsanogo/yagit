@@ -18,8 +18,8 @@
   "dependencies": {
     "@fontsource-variable/inter": "^5.2.5",
     "@fontsource-variable/jetbrains-mono": "^5.2.5",
-    "@tanstack/react-query": "5.102.8",
-    "@tanstack/react-virtual": "3.14.11",
+    "@tanstack/react-query": "5.103.1",
+    "@tanstack/react-virtual": "3.14.13",
     "react": "^19.0.0",
     "react-dom": "^19.0.0"
   },
