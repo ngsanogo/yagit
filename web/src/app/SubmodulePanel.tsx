@@ -1,6 +1,7 @@
 import type { Submodule } from '../api/types';
 import { Badge } from '../components/Badge';
 import { Button } from '../components/Button';
+import { SubmoduleIcon } from '../components/Icons';
 import { Menu, menuItem, type MenuItem } from '../components/Menu';
 import { Panel } from '../components/Panel';
 import { QueryErrorState, type RetryableQuery } from '../components/PanelState';
@@ -76,6 +77,7 @@ export function SubmodulePanel({
 
   return (
     <Panel
+      icon={<SubmoduleIcon />}
       title={`Submodules${submodules === undefined ? '' : ` — ${submodules.length}`}`}
       className="max-h-48 shrink-0"
       flush
@@ -158,7 +160,9 @@ function Row({ submodule, items }: { submodule: Submodule; items: MenuItem[] }) 
         className={cx('flex w-full min-w-0 flex-col gap-0.5 px-3 py-2 text-left')}
       >
         <span className="flex min-w-0 items-center gap-2">
-          <span className="min-w-0 flex-1 truncate text-sm text-ink">{submodule.path}</span>
+          <span className="min-w-0 flex-1 truncate text-xs font-medium text-ink">
+            {submodule.path}
+          </span>
           {/* A gitlink nobody described. Named rather than hidden: it is why
               an update cannot fetch it, and the fix is a file to commit. */}
           {!submodule.declared && <Badge tone="warning">not in .gitmodules</Badge>}

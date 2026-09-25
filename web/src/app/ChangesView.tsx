@@ -10,6 +10,7 @@ import type {
 import { Button } from '../components/Button';
 import { ConfirmDialog } from '../components/ConfirmDialog';
 import { EmptyState } from '../components/EmptyState';
+import { ChangesIcon, FileIcon, FilterIcon, PencilIcon } from '../components/Icons';
 import { Panel } from '../components/Panel';
 import { SegmentedControl } from '../components/SegmentedControl';
 import { Spinner } from '../components/Spinner';
@@ -412,16 +413,18 @@ export function ChangesView({
     <div className="flex min-h-0 flex-1 gap-3 p-3">
       <Panel
         className="w-96 shrink-0"
+        icon={<ChangesIcon />}
         title={changesTitle(staged.length, changed.length, conflicted.length)}
         flush
       >
         <div className="flex h-full min-h-0 flex-col">
           {showFilter && (
-            <div className="shrink-0 border-b border-line px-3 py-2">
+            <div className="relative shrink-0 border-b border-line px-3 py-2">
               {/* Not a Field: that one draws a label above itself and stands
                   36px tall, and this is a strip over a list in a 384px panel.
                   The name is on the control instead, where a screen reader
                   reads it and the placeholder repeats it for everyone else. */}
+              <FilterIcon className="pointer-events-none absolute top-1/2 left-5 -translate-y-1/2 text-ink-subtle" />
               <input
                 type="text"
                 value={filter}
@@ -429,7 +432,7 @@ export function ChangesView({
                 aria-label="Filter files by path"
                 placeholder="Filter files…"
                 className={cx(
-                  'h-7 w-full min-w-0 rounded-sm border border-line-strong bg-sunken px-2',
+                  'h-7 w-full min-w-0 rounded-md border border-line-strong bg-sunken pr-2 pl-7',
                   'font-mono text-xs text-ink placeholder:text-ink-subtle',
                   'transition-colors transition-instant outline-none',
                   'focus-visible:focus-ring hover:border-ink-subtle',
@@ -448,6 +451,7 @@ export function ChangesView({
           <div className="min-h-32 flex-1 overflow-auto">
             {status.files.length === 0 ? (
               <EmptyState
+                icon={<ChangesIcon size={20} />}
                 title="Nothing to commit"
                 description="The work tree matches the last commit. Edit a file and it will appear here."
               />
@@ -543,6 +547,7 @@ export function ChangesView({
           in the case the filesystem actually uses. */}
       <Panel
         className="min-w-0 flex-1"
+        icon={showing === 'edit' ? <PencilIcon /> : <FileIcon />}
         title={paneTitle(showing)}
         // Not for a binary file, and the condition is the diff's own answer
         // rather than a guess from the path: git decides what is binary, and
@@ -558,8 +563,8 @@ export function ChangesView({
               value={pane}
               onChange={setPane}
               segments={[
-                { value: 'diff', label: 'Diff' },
-                { value: 'edit', label: 'Edit' },
+                { value: 'diff', label: 'Diff', icon: <ChangesIcon /> },
+                { value: 'edit', label: 'Edit', icon: <PencilIcon /> },
               ]}
             />
           ) : undefined
@@ -568,6 +573,7 @@ export function ChangesView({
       >
         {current === undefined ? (
           <EmptyState
+            icon={<FileIcon size={20} />}
             title="No file chosen"
             description="Pick a file on the left to see what changed in it, and to choose which of those changes to keep."
           />

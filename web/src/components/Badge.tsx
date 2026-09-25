@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 
 import { cx } from '../lib/cx';
+import { BranchIcon, RemoteIcon, TagIcon } from './Icons';
 
 /**
  * Git ref badges.
@@ -36,8 +37,12 @@ export function RefBadge({ kind, name, current = false }: RefBadgeProps) {
       )}
       title={name}
     >
-      {kind === 'remote' && <RemoteGlyph />}
-      {kind === 'tag' && <TagGlyph />}
+      {/* A glyph per kind, and the branch has one too. Three kinds carried a
+          glyph and the fourth carried none, so a bare word in a badge meant
+          "branch" by elimination — a rule the reader had to work out. */}
+      {kind === 'remote' && <RemoteIcon size={10} />}
+      {kind === 'tag' && <TagIcon size={10} />}
+      {(kind === 'branch' || kind === 'head') && <BranchIcon size={10} />}
       <span className="truncate">{name}</span>
     </span>
   );
@@ -87,32 +92,5 @@ export function Badge({ tone = 'neutral', children, className, title }: BadgePro
     >
       {children}
     </span>
-  );
-}
-
-function RemoteGlyph() {
-  return (
-    <svg width="9" height="9" viewBox="0 0 12 12" fill="none" aria-hidden="true">
-      <circle cx="6" cy="6" r="4.5" stroke="currentColor" strokeWidth="1.3" />
-      <path
-        d="M1.5 6h9M6 1.5c1.6 1.8 1.6 7.2 0 9M6 1.5c-1.6 1.8-1.6 7.2 0 9"
-        stroke="currentColor"
-        strokeWidth="1.1"
-      />
-    </svg>
-  );
-}
-
-function TagGlyph() {
-  return (
-    <svg width="9" height="9" viewBox="0 0 12 12" fill="none" aria-hidden="true">
-      <path
-        d="M1.5 5.2V1.5h3.7l5.3 5.3-3.7 3.7z"
-        stroke="currentColor"
-        strokeWidth="1.3"
-        strokeLinejoin="round"
-      />
-      <circle cx="3.6" cy="3.6" r="0.85" fill="currentColor" />
-    </svg>
   );
 }

@@ -4,6 +4,7 @@ import type { Head, Ref } from '../api/types';
 import { Badge, RefBadge } from '../components/Badge';
 import { Button } from '../components/Button';
 import { EmptyState } from '../components/EmptyState';
+import { BranchIcon, RemoteIcon, TagIcon } from '../components/Icons';
 import { Menu, menuItem, type MenuItem } from '../components/Menu';
 import { Panel } from '../components/Panel';
 import { Tooltip } from '../components/Tooltip';
@@ -30,14 +31,14 @@ import type { CheckOutRequest } from './useCheckOut';
  * and deleting a branch are the everything else.
  */
 
-const GROUPS: { kind: Ref['kind']; title: string }[] = [
-  { kind: 'branch', title: 'Branches' },
-  { kind: 'remote', title: 'Remotes' },
-  { kind: 'tag', title: 'Tags' },
+const GROUPS: { kind: Ref['kind']; title: string; icon: ReactNode }[] = [
+  { kind: 'branch', title: 'Branches', icon: <BranchIcon size={12} /> },
+  { kind: 'remote', title: 'Remotes', icon: <RemoteIcon size={12} /> },
+  { kind: 'tag', title: 'Tags', icon: <TagIcon size={12} /> },
   // Notes, bisect marks, whatever another tool wrote under refs/. `git log
   // --all` walks them like any other reference, so dropping them here left
   // commits in the graph whose name appeared nowhere on screen.
-  { kind: 'other', title: 'Other' },
+  { kind: 'other', title: 'Other', icon: undefined },
 ];
 
 /**
@@ -167,6 +168,10 @@ export function RefSidebar({
   const headerActions =
     onNewBranch === undefined && onNewTag === undefined ? undefined : (
       <div className="flex items-center gap-1">
+        {/* No glyphs on these two, and it is a matter of width: the panel
+            is 320 pixels, its title has a glyph of its own now, and two
+            labelled buttons with glyphs left "References" drawn as "Re…". The
+            words are the whole of what these need to say. */}
         {onNewBranch !== undefined && (
           <Button size="sm" variant="ghost" onClick={onNewBranch}>
             New branch…
@@ -191,7 +196,13 @@ export function RefSidebar({
   // a thousand tags from pushing the stash off the bottom of the column, and
   // the reason this cannot simply be the column's own scrolling.
   return (
-    <Panel title="References" className="max-h-96 shrink-0" flush actions={headerActions}>
+    <Panel
+      title="References"
+      icon={<BranchIcon />}
+      className="max-h-96 shrink-0"
+      flush
+      actions={headerActions}
+    >
       <div className="h-full overflow-auto">
         {/* A detached HEAD is on no branch, so `for-each-ref` never mentions
             it and every group below would leave the screen saying nothing
@@ -226,14 +237,14 @@ export function RefSidebar({
           />
         )}
 
-        {GROUPS.map(({ kind, title }) => {
+        {GROUPS.map(({ kind, title, icon }) => {
           const group = listed.filter((ref) => ref.kind === kind);
           if (group.length === 0) {
             return null;
           }
 
           return (
-            <Group key={kind} title={title}>
+            <Group key={kind} title={title} icon={icon} count={group.length}>
               {group.map((ref) => {
                 const current = isCurrent(ref, head);
                 const request = checkOutRequestFor(ref);
@@ -681,13 +692,41 @@ export function branchMenuItems({
   return items;
 }
 
-function Group({ title, children }: { title: string; children: ReactNode }) {
+/**
+ * One kind of reference, under a heading that says which.
+ *
+ * The count sits beside the heading and outside it: "Branches" is the
+ * landmark a screen reader jumps to and the name a test asks for, and a
+ * number glued onto it would rename the group every time a branch is made.
+ * The glyph is outside it too, and hidden, for the same reason.
+ */
+function Group({
+  title,
+  icon,
+  count,
+  children,
+}: {
+  title: string;
+  icon?: ReactNode;
+  count?: number;
+  children: ReactNode;
+}) {
   return (
     <section>
-      <h3 className="sticky top-0 bg-surface px-3 py-1.5 text-2xs font-medium tracking-wide text-ink-subtle uppercase">
-        {title}
-      </h3>
-      <ul>{children}</ul>
+      <div className="sticky top-0 flex items-center gap-1.5 border-b border-line bg-surface px-3 py-1.5">
+        {icon !== undefined && (
+          <span aria-hidden="true" className="text-ink-subtle">
+            {icon}
+          </span>
+        )}
+        <h3 className="text-2xs font-semibold tracking-wide text-ink-muted uppercase">{title}</h3>
+        {count !== undefined && (
+          <span className="text-2xs text-ink-subtle tabular" aria-hidden="true">
+            {count}
+          </span>
+        )}
+      </div>
+      <ul className="py-0.5">{children}</ul>
     </section>
   );
 }
@@ -751,14 +790,25 @@ function Row({
         // is bordered and the bare text beside it is not — and it is always the
         // current branch, so the one row a reader looks for first is the one
         // that puts the column of shas out of step.
+        // The row HEAD is on wears the accent's soft ground at rest, the way
+        // the HEAD badge on it wears the accent: the branch the repository is
+        // standing on is the first row a reader looks for, and a list of ten
+        // names in one ink made them look for it by reading all ten.
         className={cx(
           'flex h-8 w-full items-center gap-2 px-3 text-left outline-none',
-          'transition-colors transition-instant hover:bg-hover focus-visible:focus-ring',
+          'transition-colors transition-instant focus-visible:focus-ring',
+          current ? 'bg-accent-soft/40 hover:bg-accent-soft/60' : 'hover:bg-hover',
         )}
       >
         <span
           className={cx(
-            'min-w-0 flex-1 truncate font-mono text-xs text-ink-muted',
+            // The interface face rather than the machine's. A branch name is
+            // an identifier, but a column of them in monospace read as a
+            // terminal dump beside a history set in Inter; the sha at the end
+            // of the row keeps the mono, which is what marks it as the thing
+            // to paste.
+            'min-w-0 flex-1 truncate text-xs',
+            current ? 'font-semibold text-ink' : 'font-medium text-ink-muted',
             actionReachesTheName && NAME_YIELDS_TO_ACTION,
           )}
           title={title}
@@ -768,7 +818,7 @@ function Row({
 
         {children}
 
-        <span className="font-mono text-2xs text-ink-subtle">{shortenSha(sha)}</span>
+        <span className="font-mono text-2xs text-ink-subtle tabular">{shortenSha(sha)}</span>
       </button>
 
       {/* Laid over the row's right edge rather than taking a column of its

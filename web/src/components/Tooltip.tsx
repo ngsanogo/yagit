@@ -20,6 +20,15 @@ interface TooltipProps {
    * positioning engine for the two places that need it.
    */
   align?: 'center' | 'end';
+  /**
+   * Above the anchor unless told otherwise.
+   *
+   * `bottom` is for a control in the toolbar under the header: a bubble that
+   * hangs upwards from there lands on the header's own buttons, and the
+   * sentence saying why Push is refused was drawn over "Add repository…".
+   * Below, it hangs into the panel gap, where nothing else is.
+   */
+  side?: 'top' | 'bottom';
   className?: string;
 }
 
@@ -53,7 +62,13 @@ interface TooltipProps {
  * aria-describedby — and the moment it is worth reading is exactly the moment
  * the button cannot be pressed.
  */
-export function Tooltip({ label, children, align = 'center', className }: TooltipProps) {
+export function Tooltip({
+  label,
+  children,
+  align = 'center',
+  side = 'top',
+  className,
+}: TooltipProps) {
   const bubbleId = useId();
 
   return (
@@ -63,13 +78,17 @@ export function Tooltip({ label, children, align = 'center', className }: Toolti
         id={bubbleId}
         role="tooltip"
         className={cx(
-          'pointer-events-none absolute bottom-full z-50 mb-1.5',
+          'pointer-events-none absolute z-50',
+          side === 'top' ? 'bottom-full mb-1.5' : 'top-full mt-1.5',
           align === 'end' ? 'right-0' : 'left-1/2 -translate-x-1/2',
-          // Wrapping, with a width to wrap at. A sentence that says why a
-          // button is refused does not fit on one line, and one line is what a
-          // bubble with nothing to stop it grows to.
-          'max-w-xs text-pretty',
-          'rounded-sm bg-raised px-2 py-1 text-2xs text-ink shadow-popover',
+          // As wide as its sentence, up to a ceiling. An absolutely positioned
+          // box shrinks to fit the width of the element it is positioned
+          // against, and that element is the button: a sentence over a
+          // sixty-pixel Fetch was wrapped into a column three words tall,
+          // one word to a line. `w-max` asks for the sentence's own width and
+          // the ceiling is what makes a long refusal wrap at all.
+          'w-max max-w-xs text-pretty',
+          'rounded-md border border-line-strong bg-raised px-2.5 py-1.5 text-xs text-ink shadow-popover',
           // `invisible`, not opacity alone. An element at opacity 0 is still
           // in the accessibility tree, so the bubble was announced whether or
           // not it was showing; visibility takes it out until it is. The

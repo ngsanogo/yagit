@@ -1,6 +1,7 @@
 import type { PullStrategy, Remote, WorkingDirectory } from '../api/types';
 import { Badge } from '../components/Badge';
 import { Button } from '../components/Button';
+import { FetchIcon, PlusIcon, PullIcon, PushIcon, RemoteIcon } from '../components/Icons';
 import { Menu, menuItem, type MenuItem } from '../components/Menu';
 import { Tooltip } from '../components/Tooltip';
 import {
@@ -94,7 +95,7 @@ export function RemoteBar({
   if (!offers.canFetch) {
     return (
       <div className="flex shrink-0 items-center gap-1.5">
-        <Button size="sm" variant="ghost" onClick={onAddRemote}>
+        <Button size="sm" leading={<PlusIcon />} onClick={onAddRemote}>
           Add remote…
         </Button>
       </div>
@@ -107,29 +108,35 @@ export function RemoteBar({
     // `relative` for the progress line alone, which is positioned rather than
     // laid out — see ProgressLine. The bar itself is one row of buttons and
     // stays one row of buttons whether an operation is running or not.
+    // Secondary buttons, not ghosts, and the bubbles hang below. Three verbs
+    // in muted ink with no edge read as a caption for the branch chip beside
+    // them; these are the three things on the screen that talk to another
+    // machine, and they have to look pressable from across the room. The
+    // tooltips go under the bar rather than over it because over it is the
+    // header, and a sentence about Push used to land on "Add repository…".
     <div className="relative flex shrink-0 items-center gap-1.5">
-      <Tooltip label={fetchDescription(remotes)}>
-        <Button size="sm" variant="ghost" loading={busy === 'fetch'} onClick={onFetch}>
+      <Tooltip label={fetchDescription(remotes)} side="bottom">
+        <Button size="sm" leading={<FetchIcon />} loading={busy === 'fetch'} onClick={onFetch}>
           Fetch
         </Button>
       </Tooltip>
 
-      <Tooltip label={pullDescription(offers.pull, upstream)}>
+      <Tooltip label={pullDescription(offers.pull, upstream)} side="bottom">
         <Button
           size="sm"
-          variant="ghost"
+          leading={<PullIcon />}
           loading={busy === 'pull'}
           disabled={offers.pull.kind !== 'pull'}
           onClick={() => onPull('ff-only')}
         >
           Pull
           {offers.pull.kind === 'pull' && offers.pull.behind > 0 && (
-            <Badge tone="warning" className="ml-1.5">{`↓${offers.pull.behind}`}</Badge>
+            <Badge tone="warning">{`↓${offers.pull.behind}`}</Badge>
           )}
         </Button>
       </Tooltip>
 
-      <Tooltip label={pushDescription(offers.push, upstream)}>
+      <Tooltip label={pushDescription(offers.push, upstream)} side="bottom" align="end">
         <PushButton
           offer={offers.push}
           busy={busy === 'push'}
@@ -260,7 +267,7 @@ function PushButton({
 }) {
   if (offer.kind === 'publish') {
     return (
-      <Button size="sm" variant="ghost" loading={busy} onClick={onPublish} {...described}>
+      <Button size="sm" leading={<RemoteIcon />} loading={busy} onClick={onPublish} {...described}>
         Publish branch…
       </Button>
     );
@@ -269,7 +276,7 @@ function PushButton({
   return (
     <Button
       size="sm"
-      variant="ghost"
+      leading={<PushIcon />}
       loading={busy}
       {...described}
       // Nothing ahead is nothing to send, and a button whose only outcome is
@@ -281,7 +288,7 @@ function PushButton({
     >
       Push
       {offer.kind === 'push' && offer.ahead > 0 && (
-        <Badge tone="success" className="ml-1.5">{`↑${offer.ahead}`}</Badge>
+        <Badge tone="success">{`↑${offer.ahead}`}</Badge>
       )}
     </Button>
   );

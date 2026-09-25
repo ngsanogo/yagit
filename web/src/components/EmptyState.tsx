@@ -3,6 +3,12 @@ import type { ReactNode } from 'react';
 import { cx } from '../lib/cx';
 
 interface EmptyStateProps {
+  /**
+   * A glyph above the title, for the empty states that are a screen rather
+   * than a line: no repository open, nothing to commit, no file chosen. A
+   * panel that is two rows tall has no room for one and leaves it off.
+   */
+  icon?: ReactNode;
   title: string;
   /**
    * What the user can do next. An empty screen that only reports the
@@ -35,6 +41,7 @@ interface EmptyStateProps {
 }
 
 export function EmptyState({
+  icon,
   title,
   description,
   detail,
@@ -50,6 +57,14 @@ export function EmptyState({
         className,
       )}
     >
+      {icon !== undefined && (
+        <span
+          aria-hidden="true"
+          className="flex size-11 items-center justify-center rounded-lg border border-line bg-sunken text-ink-subtle"
+        >
+          {icon}
+        </span>
+      )}
       <div className="flex flex-col gap-1">
         <p className="text-base font-medium text-ink">{title}</p>
         {description !== undefined && description !== '' && (

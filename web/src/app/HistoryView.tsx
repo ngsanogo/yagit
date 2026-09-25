@@ -5,6 +5,7 @@ import { api } from '../api/client';
 import type { HistoryScope, Repository } from '../api/types';
 import { Button } from '../components/Button';
 import { EmptyState } from '../components/EmptyState';
+import { HistoryIcon, SearchIcon } from '../components/Icons';
 import { Panel } from '../components/Panel';
 import { Centered, QueryErrorState } from '../components/PanelState';
 import { SegmentedControl } from '../components/SegmentedControl';
@@ -62,25 +63,6 @@ export type Inspected =
  * give the pixels up.
  */
 const INSPECT_PANEL = 'h-2/5 min-h-64 shrink-0';
-
-/**
- * The magnifier on the search button.
- *
- * Here rather than in ThemeGlyphs, which is the theme control's own set and
- * named for it; one glyph used in one place is not a shared module yet. It
- * exists because of what sits beside it — a three-segment switch drawn in the
- * same size, weight and colour as a ghost button, which left the door to the
- * search dialog reading as a fourth, unselected setting. A glyph is the one
- * mark a segment of a switch never carries.
- */
-function SearchGlyph() {
-  return (
-    <svg width="13" height="13" viewBox="0 0 14 14" fill="none" aria-hidden="true">
-      <circle cx="6" cy="6" r="4.25" stroke="currentColor" strokeWidth="1.3" />
-      <path d="M9.1 9.1 12.6 12.6" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />
-    </svg>
-  );
-}
 
 /**
  * The history: the graph and its commits, the references beside them, and what
@@ -275,6 +257,7 @@ export function HistoryView({
       <div className="flex min-w-0 flex-1 flex-col gap-3">
         <Panel
           className="min-w-0 flex-1"
+          icon={<HistoryIcon />}
           title={`History${history.isPending || history.error ? '' : ` — ${history.total}`}`}
           actions={
             // Two things, spaced as two: the door to a dialog, then the
@@ -285,8 +268,7 @@ export function HistoryView({
             <div className="flex items-center gap-3">
               <Button
                 size="sm"
-                variant="ghost"
-                leading={<SearchGlyph />}
+                leading={<SearchIcon />}
                 onClick={() => openDialog({ kind: 'search' })}
               >
                 Search…
@@ -323,6 +305,7 @@ export function HistoryView({
 
           {!history.isPending && !history.error && history.total === 0 && (
             <EmptyState
+              icon={<HistoryIcon size={20} />}
               title="No commits yet"
               description="This repository has no history. Make a commit and it will appear here."
             />
@@ -467,17 +450,18 @@ export function HistoryView({
           neither, and the cap on the references panel itself is what keeps the
           thousand tags scrolling inside it instead of pushing the stash off
           the bottom of the column. */}
-      {/* Twenty rem, and it was eighteen. The extra two are what the labels
-          in these panel headers now need: every one of them that opens a
-          dialog carries an ellipsis, and two of them sit beside a panel title
-          in 288 pixels. "References" was the part that gave way — the header
-          measured 262 pixels of room, the actions took 186 of it, and the
-          title needed 84 of the 64 that were left, so the one word naming the
-          panel was drawn as "REFERE…". The column is also where a branch name
-          is read, and those truncate first everywhere else too. What it costs
-          is 32 pixels of the history beside it, which is a column the commit
-          rows stopped needing when they stopped stacking. */}
-      <div className="flex w-80 shrink-0 flex-col gap-3 overflow-y-auto">
+      {/* Twenty-one rem, and it was eighteen, then twenty. The extra is what
+          the labels in these panel headers need: every one of them that opens
+          a dialog carries an ellipsis, two of them sit beside a panel title,
+          and the title now carries a glyph of its own. "References" was the
+          part that gave way each time — at twenty rem the header measured 294
+          pixels of room, the actions took 190 of it, and the title needed 102
+          of the 92 that were left, so the one word naming the panel was drawn
+          as "Referenc…". The column is also where a branch name is read, and
+          those truncate first everywhere else too. What it costs is 48 pixels
+          of the history beside it, which is a column the commit rows stopped
+          needing when they stopped stacking. */}
+      <div className="flex w-84 shrink-0 flex-col gap-3 overflow-y-auto">
         {refs.isPending && (
           <Panel title="References" className="shrink-0">
             <Centered compact>

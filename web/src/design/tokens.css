@@ -77,15 +77,15 @@
    * neutral, they lean slightly cold, which gives the green accent
    * something to stand out against.
    * ------------------------------------------------------------------- */
-  --color-canvas: oklch(17.5% 0.012 200); /* application background */
-  --color-sunken: oklch(14.5% 0.012 200); /* sunken: fields, input areas */
+  --color-canvas: oklch(16% 0.012 200); /* application background */
+  --color-sunken: oklch(13% 0.012 200); /* sunken: fields, input areas */
   --color-surface: oklch(21.5% 0.013 200); /* panels */
-  --color-raised: oklch(25.5% 0.014 200); /* dialogs, menus */
+  --color-raised: oklch(26% 0.014 200); /* dialogs, menus */
   --color-hover: oklch(29% 0.015 200); /* row hover */
-  --color-selected: oklch(32% 0.022 200); /* selected row */
+  --color-selected: oklch(32% 0.028 190); /* selected row */
 
-  --color-line: oklch(30% 0.014 200); /* quiet separators */
-  --color-line-strong: oklch(42% 0.016 200); /* assertive borders */
+  --color-line: oklch(31% 0.014 200); /* quiet separators */
+  --color-line-strong: oklch(46% 0.016 200); /* assertive borders */
 
   --color-ink: oklch(94% 0.008 200); /* primary text */
   --color-ink-muted: oklch(80% 0.014 200); /* secondary text */
@@ -264,6 +264,7 @@
   --duration-slow: 260ms; /* dialogs, panels */
 
   --shadow-raised: 0 1px 2px oklch(0% 0 0 / 0.4), inset 0 1px 0 oklch(100% 0 0 / 0.04);
+  --shadow-panel: 0 1px 3px oklch(0% 0 0 / 0.35), inset 0 1px 0 oklch(100% 0 0 / 0.035);
   --shadow-popover: 0 8px 24px oklch(0% 0 0 / 0.45), 0 0 0 1px oklch(100% 0 0 / 0.06);
   --shadow-dialog: 0 24px 64px oklch(0% 0 0 / 0.55), 0 0 0 1px oklch(100% 0 0 / 0.08);
 }
@@ -339,8 +340,8 @@
   --color-hover: oklch(91% 0.008 200);
   --color-selected: oklch(88% 0.022 200);
 
-  --color-line: oklch(90% 0.008 200);
-  --color-line-strong: oklch(78% 0.012 200);
+  --color-line: oklch(89% 0.008 200);
+  --color-line-strong: oklch(76% 0.012 200);
 
   --color-ink: oklch(24% 0.02 200);
   --color-ink-muted: oklch(38% 0.02 200);
@@ -455,6 +456,7 @@
    * "above" with, against dark's 4, and a ladder is what is left to say it
    * with. */
   --shadow-raised: 0 1px 2px oklch(0% 0 0 / 0.1);
+  --shadow-panel: 0 1px 3px oklch(0% 0 0 / 0.06);
   --shadow-popover: 0 8px 24px oklch(0% 0 0 / 0.14), 0 0 0 1px oklch(0% 0 0 / 0.12);
   --shadow-dialog: 0 24px 64px oklch(0% 0 0 / 0.18), 0 0 0 1px oklch(0% 0 0 / 0.12);
 
@@ -500,6 +502,28 @@
 
 @utility shadow-popover {
   box-shadow: var(--shadow-popover);
+}
+
+/*
+ * The panel's own level, under raised: every workbench panel rests on the
+ * canvas, and on a dark page a border alone leaves it reading as a rectangle
+ * drawn on the same grey. This is what makes it read as a surface.
+ */
+@utility shadow-panel {
+  box-shadow: var(--shadow-panel);
+}
+
+/*
+ * The mark on the row that is selected, drawn as an inset shadow rather than
+ * a border. A border-left would be two pixels of layout the unselected rows
+ * beside it do not have, so the whole column of subjects would step sideways
+ * as the selection moved; an inset shadow occupies no space, and it survives
+ * the selection ground painted under it. Accent, because the selection is the
+ * one state that moves under the reader's hand — the same argument HEAD
+ * makes for the same colour.
+ */
+@utility selected-edge {
+  box-shadow: inset 3px 0 0 var(--color-accent);
 }
 
 @utility shadow-dialog {
