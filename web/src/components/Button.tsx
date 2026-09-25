@@ -37,14 +37,29 @@ export type ButtonSize = 'sm' | 'md';
  */
 const VARIANT_CLASSES: Record<ButtonVariant, string> = {
   primary: 'bg-accent text-accent-ink hover:bg-accent-hover active:bg-accent-active shadow-raised',
-  secondary: 'bg-raised text-ink border border-line-strong hover:bg-hover active:bg-selected',
+  // A visible edge and a lifted ground at rest, which is the whole of what
+  // separates a button from a label. The toolbar used to draw Fetch, Pull and
+  // Push as ghosts, and three verbs in muted ink read as a caption for the
+  // branch beside them rather than as three things to press.
+  secondary:
+    'bg-raised text-ink border border-line-strong shadow-raised hover:bg-hover hover:border-ink-subtle active:bg-selected',
   ghost: 'text-ink-muted hover:bg-hover hover:text-ink active:bg-selected',
   danger: 'bg-danger text-canvas hover:bg-danger-hover active:bg-danger-active shadow-raised',
 };
 
 const SIZE_CLASSES: Record<ButtonSize, string> = {
-  sm: 'h-7 px-2.5 gap-1.5 text-xs rounded-sm',
+  sm: 'h-7 px-2.5 gap-1.5 text-xs rounded-md',
   md: 'h-9 px-3.5 gap-2 text-sm rounded-md',
+};
+
+/**
+ * The same heights, with no room for a label: a square that holds one glyph.
+ * `size-7` and `size-9`, so an icon-only control lines up with the labelled
+ * button beside it to the pixel.
+ */
+const SQUARE_CLASSES: Record<ButtonSize, string> = {
+  sm: 'size-7 rounded-md',
+  md: 'size-9 rounded-md',
 };
 
 interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
@@ -143,5 +158,48 @@ export function Button({
       {loading ? <Spinner size={size === 'sm' ? 12 : 14} /> : leading}
       {children}
     </button>
+  );
+}
+
+interface IconButtonProps extends Omit<ButtonProps, 'leading' | 'children' | 'aria-label'> {
+  /** The one glyph the button holds. */
+  icon: ReactNode;
+  /**
+   * What the button does, in words. Required rather than inherited as an
+   * optional attribute: a button with a glyph and no name is a button a
+   * screen reader announces as "button", and there is no glyph on this screen
+   * that a word could not name.
+   */
+  'aria-label': string;
+}
+
+/**
+ * A button that is one glyph — close, copy, the theme, a menu's trigger.
+ *
+ * The same component underneath, so it takes every state Button takes: busy,
+ * refused, pressed, focused. What it adds is the square footprint and the
+ * rule that the name is not optional.
+ */
+export function IconButton({
+  icon,
+  size = 'sm',
+  variant = 'ghost',
+  className,
+  title,
+  ...rest
+}: IconButtonProps) {
+  return (
+    <Button
+      size={size}
+      variant={variant}
+      // The label doubles as the hover text unless the caller has something
+      // longer to say: an icon-only control owes the pointer the word it owes
+      // the screen reader.
+      title={title ?? rest['aria-label']}
+      className={cx('px-0', SQUARE_CLASSES[size], className)}
+      {...rest}
+    >
+      {icon}
+    </Button>
   );
 }

@@ -4,6 +4,7 @@ import type { FileStatus } from '../api/types';
 import { Badge } from '../components/Badge';
 import { Button } from '../components/Button';
 import { describeKind, FileStatusMark } from '../components/FileStatusMark';
+import { CheckIcon, MinusIcon, PlusIcon, TrashIcon } from '../components/Icons';
 import { cx } from '../lib/cx';
 import { pluralize } from '../lib/format';
 import { REVEALED_ON_ATTENTION } from '../lib/reveal';
@@ -54,6 +55,24 @@ export interface Selection {
  */
 const DISCARD_ON_SURFACE = 'text-danger hover:bg-danger-soft hover:text-danger';
 const DISCARD_ON_A_ROW = 'hover:bg-danger-soft hover:text-danger';
+
+/**
+ * The glyph on a list's move button, from the word on it.
+ *
+ * Three lists, three verbs, three shapes: a plus takes a file into the index,
+ * a minus takes it back out, a tick ends a conflict. The word is still the
+ * name; the glyph is what makes three rows of the same small button read as
+ * three different things at a glance.
+ */
+function moveGlyph(label: string) {
+  if (label === 'Unstage') {
+    return <MinusIcon />;
+  }
+  if (label === 'Stage') {
+    return <PlusIcon />;
+  }
+  return <CheckIcon />;
+}
 
 interface ChangeListProps {
   title: string;
@@ -253,7 +272,7 @@ export function ChangeList({
           again. The ground is the panel's own, so the rows pass underneath
           rather than through. HunkView does the same over `bg-sunken`. */}
       <header className="sticky top-0 z-10 flex shrink-0 items-center gap-2 border-b border-line bg-surface px-3 py-1.5">
-        <h3 className="text-2xs font-medium tracking-wide text-ink-subtle uppercase">{title}</h3>
+        <h3 className="text-2xs font-semibold tracking-wide text-ink-muted uppercase">{title}</h3>
         <Badge>{files.length}</Badge>
 
         {/* The action the user came for first, and the irreversible one after
@@ -264,6 +283,7 @@ export function ChangeList({
           <Button
             size="sm"
             variant="ghost"
+            leading={moveGlyph(moveLabel)}
             disabled={busy}
             onClick={() => onMove(files.map((file) => file.path))}
             aria-label={`${moveLabel} all ${pluralize(files.length, 'file')}`}
@@ -274,6 +294,7 @@ export function ChangeList({
             <Button
               size="sm"
               variant="ghost"
+              leading={<TrashIcon />}
               className={DISCARD_ON_SURFACE}
               disabled={busy}
               onClick={() => onDiscard(files)}
@@ -371,8 +392,9 @@ function FileRow({
     // button is invalid HTML that browsers repair by moving it out.
     <div
       className={cx(
-        'group/row flex items-center gap-2 pr-1 pl-3',
-        selected ? 'bg-selected' : 'hover:bg-hover',
+        'group/row flex items-center gap-2 pr-1.5 pl-3',
+        'transition-colors transition-instant',
+        selected ? 'bg-selected selected-edge' : 'hover:bg-hover',
       )}
     >
       {/* The label is spelled out because the row's contents are not a
@@ -389,7 +411,7 @@ function FileRow({
         aria-current={selected}
         aria-label={describeRow(file, row)}
         className={cx(
-          'flex min-w-0 flex-1 items-center gap-2 py-1.5 text-left outline-none',
+          'flex min-w-0 flex-1 items-center gap-2.5 py-2 text-left outline-none',
           'focus-visible:focus-ring',
         )}
       >
@@ -411,9 +433,11 @@ function FileRow({
             recovery for whichever half is gone. */}
         <span className="flex min-w-0 items-baseline gap-1" title={file.path}>
           {directory !== '' && (
-            <span className="min-w-0 truncate font-mono text-2xs text-ink-subtle">{directory}</span>
+            <span className="min-w-0 truncate font-mono text-xs text-ink-subtle">{directory}</span>
           )}
-          <span className="max-w-full shrink-0 truncate font-mono text-xs text-ink">{name}</span>
+          <span className="max-w-full shrink-0 truncate font-mono text-xs font-medium text-ink">
+            {name}
+          </span>
         </span>
 
         {file.old_path !== undefined && file.old_path !== '' && (
@@ -443,6 +467,7 @@ function FileRow({
         <Button
           size="sm"
           variant="ghost"
+          leading={moveGlyph(moveLabel)}
           tabIndex={tabbable ? 0 : -1}
           disabled={busy}
           onClick={() => {
@@ -461,6 +486,7 @@ function FileRow({
             // pointer still finds it, arrows still reach the row that owns it,
             // and it keeps its accessible name wherever it stands.
             tabIndex={tabbable ? 0 : -1}
+            leading={<TrashIcon />}
             className={cx(REVEALED_ON_ATTENTION, DISCARD_ON_A_ROW)}
             disabled={busy}
             onClick={() => {

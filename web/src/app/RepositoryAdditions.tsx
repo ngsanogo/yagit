@@ -1,5 +1,6 @@
 import type { LFSSupport } from '../api/types';
 import { Button } from '../components/Button';
+import { LargeFileIcon, SubmoduleIcon } from '../components/Icons';
 import { Tooltip } from '../components/Tooltip';
 
 /**
@@ -45,8 +46,18 @@ export function RepositoryAdditions({
   const lfsRefusal = lfsUnavailableReason(lfs, lfsLoading);
 
   return (
-    <div className="flex shrink-0 flex-wrap items-center gap-1">
-      <Button size="sm" variant="ghost" onClick={onAddSubmodule} loading={submodulePending}>
+    // A row of two quiet buttons with glyphs, drawn under the last panel
+    // rather than as a panel of its own: they start something the repository
+    // does not have yet, and a bordered box with two links in it read as a
+    // panel that had failed to load its rows.
+    <div className="flex shrink-0 flex-wrap items-center gap-1 px-1">
+      <Button
+        size="sm"
+        variant="ghost"
+        leading={<SubmoduleIcon />}
+        onClick={onAddSubmodule}
+        loading={submodulePending}
+      >
         Add submodule…
       </Button>
 
@@ -59,6 +70,7 @@ export function RepositoryAdditions({
         <Button
           size="sm"
           variant="ghost"
+          leading={<LargeFileIcon />}
           onClick={onTrackLFS}
           loading={lfsPending}
           disabled={lfsRefusal !== undefined}

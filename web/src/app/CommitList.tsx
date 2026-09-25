@@ -11,7 +11,7 @@ import {
 
 import type { CommitRow, HistoryScope } from '../api/types';
 import { Avatar, AVATAR_SIZE } from '../components/Avatar';
-import { RefBadge } from '../components/Badge';
+import { Badge, RefBadge } from '../components/Badge';
 import { Button } from '../components/Button';
 import { cx } from '../lib/cx';
 import { gitFailureLine } from '../lib/errorDisplay';
@@ -291,6 +291,10 @@ export function CommitList({
               total={total}
               edges={history.edges}
               laneOf={history.laneOf}
+              isHead={(row) => {
+                const commit = history.rowAt(row);
+                return commit !== undefined && isHeadCommit(commit);
+              }}
             />
           )}
         </div>
@@ -580,9 +584,20 @@ export function reportingRows(
  * prevent.
  */
 const SUBJECT_COLUMN = 'min-w-0 grow shrink basis-64';
-const AUTHOR_COLUMN = 'w-40 min-w-0';
-const DATE_COLUMN = 'w-24 shrink-0';
-const SHA_COLUMN = 'w-14 shrink-0';
+const AUTHOR_COLUMN = 'w-44 min-w-0';
+const DATE_COLUMN = 'w-28 shrink-0';
+const SHA_COLUMN = 'w-16 shrink-0';
+
+/**
+ * Whether a row's decorations say HEAD is on it.
+ *
+ * `%D` writes `HEAD -> main` on a branch and a bare `HEAD` when detached;
+ * both are the commit the repository is standing on, and both get the ring in
+ * the graph and the weight on the subject.
+ */
+export function isHeadCommit(commit: CommitRow): boolean {
+  return commit.refs.some((ref) => ref === 'HEAD' || ref.startsWith('HEAD -> '));
+}
 
 interface CommitRowViewProps {
   /** Where this row sits in the history: the arrow keys count in these. */
@@ -632,6 +647,7 @@ export function CommitRowView({
   }
 
   const committedAt = new Date(commit.date);
+  const head = isHeadCommit(commit);
 
   return (
     <button
@@ -645,12 +661,20 @@ export function CommitRowView({
       className={cx(
         'flex h-full w-full items-center gap-3 border-b border-line px-4 text-left outline-none',
         'transition-colors transition-instant',
-        selected ? 'bg-selected' : 'hover:bg-hover',
+        // The ground and an edge. A ground alone is one step of lightness on
+        // a row of forty pixels, which the eye loses the moment it looks
+        // away; the accent edge is the mark it comes back to.
+        selected ? 'bg-selected selected-edge' : 'hover:bg-hover',
         'focus-visible:focus-ring',
       )}
     >
       <span className={cx('flex items-center gap-2', SUBJECT_COLUMN)}>
-        <span className="truncate text-sm text-ink">{commit.subject}</span>
+        {/* The commit HEAD is on carries its weight in the subject as well
+            as the ring in the graph, for the reader who is reading rather
+            than looking. */}
+        <span className={cx('truncate text-sm text-ink', head && 'font-semibold')}>
+          {commit.subject}
+        </span>
         {commit.refs.map((ref) => (
           <RefBadge key={ref} {...decorationBadge(ref)} />
         ))}
@@ -658,9 +682,7 @@ export function CommitRowView({
             graph is aria-hidden. This is the same fact in the channel a
             screen reader can reach — and the only one left when the picture
             is refused or clipped. */}
-        {commit.parents.length > 1 && (
-          <span className="shrink-0 text-2xs text-ink-subtle">merge</span>
-        )}
+        {commit.parents.length > 1 && <Badge className="shrink-0">merge</Badge>}
       </span>
 
       {/* The chip travels with the name rather than leading the row. It is one
@@ -669,12 +691,18 @@ export function CommitRowView({
           two. Beside the name it is what makes the author column scannable at
           a glance, and the subject then starts where the eye lands: right
           after the graph. */}
+      {/* Three quieter columns in three quieter inks, and they are ordered
+          by how often they are read. The author is a name people look for,
+          so it is muted rather than subtle; the date and the sha are there
+          for the pass that wants them and stay out of the way of the pass
+          that does not. All three were the same faint eleven pixels, which
+          made the row one line of subject and one line of noise. */}
       <span
-        className={cx('flex items-center gap-2 text-2xs text-ink-subtle', AUTHOR_COLUMN)}
+        className={cx('flex items-center gap-2 text-xs text-ink-muted', AUTHOR_COLUMN)}
         // The name in full, one hover away, for the same reason the failed row
         // titles both of its lines: a column narrow enough to scan down is
         // narrow enough to cut "Grace Brewster Murray Hopper" in half, and the
-        // chip beside it is twenty-four pixels of tooltip target.
+        // chip beside it is twenty pixels of tooltip target.
         title={commit.author}
       >
         <Avatar name={commit.author} decorative />
@@ -684,7 +712,7 @@ export function CommitRowView({
       {/* The exact instant as a title: past a week the visible text is a day
           and nothing more, and a working day's worth of commits shares it. */}
       <span
-        className={cx('truncate text-2xs text-ink-subtle tabular', DATE_COLUMN)}
+        className={cx('truncate text-xs text-ink-subtle tabular', DATE_COLUMN)}
         title={formatExactTime(committedAt)}
       >
         {/* `now` is passed in rather than read inside: the same list rendered
@@ -693,7 +721,7 @@ export function CommitRowView({
         {formatRelativeTime(committedAt, new Date())}
       </span>
 
-      <span className={cx('truncate font-mono text-2xs text-ink-subtle', SHA_COLUMN)}>
+      <span className={cx('truncate font-mono text-xs text-ink-subtle', SHA_COLUMN)}>
         {shortenSha(commit.sha)}
       </span>
     </button>

@@ -10,6 +10,7 @@ import type {
 import { Badge } from '../components/Badge';
 import { Button } from '../components/Button';
 import { ConfirmDialog } from '../components/ConfirmDialog';
+import { WarningIcon } from '../components/Icons';
 import { useToast } from '../components/ToastHost';
 import { Tooltip } from '../components/Tooltip';
 import { errorDescription } from '../lib/errorDisplay';
@@ -117,9 +118,10 @@ export function OperationBanner({ repositoryId, status }: OperationBannerProps) 
         // vertical line down each edge of the window and read as an inset
         // panel that has come loose. The leading rule is the shape the
         // conflict bands already use for the same job.
-        className="flex shrink-0 flex-wrap items-center gap-x-3 gap-y-1 border-b border-l-2 border-warning bg-warning-soft px-3 py-1.5"
+        className="flex shrink-0 flex-wrap items-center gap-x-3 gap-y-1 border-b border-l-2 border-warning bg-warning-soft px-3 py-2"
       >
-        <span className="text-xs font-medium text-ink">
+        <span className="flex items-center gap-1.5 text-xs font-semibold text-ink">
+          <WarningIcon className="text-warning" />
           {headline(state.operation, state.branch)}
         </span>
 

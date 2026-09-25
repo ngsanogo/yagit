@@ -5,6 +5,7 @@ import { Badge } from '../components/Badge';
 import { Button } from '../components/Button';
 import { ConfirmDialog } from '../components/ConfirmDialog';
 import { GitFailureDetail } from '../components/GitFailureDetail';
+import { CheckIcon, KeyIcon, PlusIcon } from '../components/Icons';
 import { Kbd } from '../components/Kbd';
 import { useToast } from '../components/ToastHost';
 import { ApiError } from '../api/client';
@@ -287,7 +288,10 @@ export function CommitBox({
   }
 
   return (
-    <div className="flex shrink-0 flex-col gap-2 border-t border-line p-3">
+    // On the sunken ground, so the box reads as the foot of the panel rather
+    // than as more of the list above it: the list is rows on the surface and
+    // this is the one place on the screen where something is written.
+    <div className="flex shrink-0 flex-col gap-2 border-t border-line bg-sunken/40 p-3">
       <label className="sr-only" htmlFor="commit-message">
         Commit message
       </label>
@@ -322,8 +326,8 @@ export function CommitBox({
         // grip is the browser's rather than this design system's, which is
         // the price of the one control on the screen that costs no code.
         className={cx(
-          'w-full resize-y rounded-md border border-line-strong bg-sunken px-2.5 py-2',
-          'font-mono text-xs text-ink placeholder:text-ink-subtle',
+          'w-full resize-y rounded-md border border-line-strong bg-sunken px-3 py-2',
+          'font-mono text-xs leading-5 text-ink placeholder:text-ink-subtle',
           'transition-colors transition-instant outline-none',
           'focus-visible:focus-ring hover:border-ink-subtle',
         )}
@@ -367,7 +371,8 @@ export function CommitBox({
           yagit reads `commit.gpgsign` and never writes it: whose key a commit
           carries is not this application's decision. */}
       {prepared.data?.signing === true && (
-        <p className="text-2xs text-ink-subtle">
+        <p className="flex items-center gap-1.5 text-2xs text-ink-subtle">
+          <KeyIcon size={12} className="shrink-0" />
           This commit will be signed. Your key or agent may ask for something.
         </p>
       )}
@@ -385,7 +390,7 @@ export function CommitBox({
       )}
 
       <div className="flex items-center gap-2">
-        <label className="flex cursor-pointer items-center gap-1.5 text-2xs text-ink-muted">
+        <label className="flex cursor-pointer items-center gap-1.5 text-2xs whitespace-nowrap text-ink-muted">
           <input
             type="checkbox"
             checked={amend}
@@ -401,21 +406,21 @@ export function CommitBox({
         )}
 
         <span className="ml-auto flex items-center gap-2">
-          {/* The key the reader actually has. The handler takes either
-              modifier on every platform; only the hint was ever wrong, and it
-              was wrong for everybody not on an Apple keyboard. */}
-          <span className="flex items-center gap-1 text-2xs text-ink-subtle">
-            <Kbd label={modifier.name}>{modifier.label}</Kbd>
-            <Kbd label="Enter">↵</Kbd>
-          </span>
           <Button
             variant="primary"
             size="sm"
+            leading={<CheckIcon />}
             loading={busy}
             disabled={!canCommit}
+            // The key the reader actually has, one hover away. The handler
+            // takes either modifier on every platform; only the hint was ever
+            // wrong, and it was wrong for everybody not on an Apple keyboard.
+            // It used to be two drawn keys beside the button, and in a panel
+            // 384 pixels wide those keys were what wrapped "Amend the last
+            // commit" onto two lines the moment the button said which branch.
+            title={`${modifier.name}+Enter`}
             // Both modifiers, because both fire it. aria-keyshortcuts is how
-            // the shortcut reaches a reader who cannot see the two keys drawn
-            // beside the button.
+            // the shortcut reaches a reader who cannot see the title.
             aria-keyshortcuts="Meta+Enter Control+Enter"
             // The sentence saying why, tied to the control it is about. A
             // refused button whose explanation is a loose paragraph is a dead
@@ -493,6 +498,7 @@ function CoAuthors({
         <Button
           size="sm"
           variant="ghost"
+          leading={<PlusIcon size={12} />}
           className="h-5 px-1.5 text-2xs"
           onClick={() => onChange([emptyCoAuthor()])}
         >

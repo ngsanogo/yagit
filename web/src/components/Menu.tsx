@@ -2,6 +2,7 @@ import { useCallback, useEffect, useId, useLayoutEffect, useRef, useState } from
 import type { KeyboardEvent } from 'react';
 
 import { cx } from '../lib/cx';
+import { EllipsisIcon } from './Icons';
 
 /**
  * The actions of one row, behind one button.
@@ -428,7 +429,7 @@ export function Menu({ label, items, className }: MenuProps) {
           setOpen(true);
         }}
         className={cx(
-          'inline-flex h-7 w-7 items-center justify-center rounded-sm',
+          'inline-flex size-7 items-center justify-center rounded-md',
           'text-ink-muted transition-colors transition-instant',
           'hover:bg-hover hover:text-ink focus-visible:focus-ring outline-none',
           // Dimmed like every other refused control in this design system. A
@@ -439,7 +440,7 @@ export function Menu({ label, items, className }: MenuProps) {
           className,
         )}
       >
-        <EllipsisGlyph />
+        <EllipsisIcon />
       </button>
 
       <div
@@ -606,14 +607,4 @@ function moveFocus(menu: HTMLElement | null, step: -1 | 1) {
   // Focus not on an item yet reads as one place before the first, so Down
   // lands on the first and Up wraps to the last.
   focusItem(menu, from < 0 ? (step > 0 ? 0 : -1) : from + step);
-}
-
-function EllipsisGlyph() {
-  return (
-    <svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor" aria-hidden="true">
-      <circle cx="3" cy="7" r="1.2" />
-      <circle cx="7" cy="7" r="1.2" />
-      <circle cx="11" cy="7" r="1.2" />
-    </svg>
-  );
 }

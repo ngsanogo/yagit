@@ -11,10 +11,14 @@ import { initialsFromName, stableIndex } from '../lib/format';
  * page arrived, which is the jitter a fixed row height exists to prevent,
  * reintroduced under it.
  *
- * Twenty-four rather than twenty-two: a multiple of the 4px step everything
- * else in the interface lands on.
+ * Twenty, a multiple of the 4px step everything else in the interface lands
+ * on. It was twenty-four, and at that size the chip was the tallest thing on
+ * a commit row by four pixels: the row was sized to it, and the author column
+ * — the second thing read on a row, never the first — was the widest, tallest
+ * mark on it. Two initials at the type scale's floor fit a twenty-pixel ring
+ * with a pixel to spare on each side.
  */
-export const AVATAR_SIZE = 24;
+export const AVATAR_SIZE = 20;
 
 interface AvatarProps {
   name: string;

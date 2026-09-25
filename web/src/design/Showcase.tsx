@@ -16,6 +16,7 @@ import { EmptyState } from '../components/EmptyState';
 import { Field } from '../components/Field';
 import { FileStatusMark } from '../components/FileStatusMark';
 import { GitCommand } from '../components/GitCommand';
+import { ICONS, SearchIcon } from '../components/Icons';
 import { Kbd } from '../components/Kbd';
 import { Menu, menuItem, type MenuItem } from '../components/Menu';
 import { Panel } from '../components/Panel';
@@ -416,6 +417,27 @@ export function Showcase() {
           </div>
         </Section>
 
+        <Section
+          title="Icons"
+          note="Sixteen units, a stroke and a half, round ends, currentColor. One pen for every glyph, so a reader learns a shape once and meets it everywhere the thing is named: the branch in the sidebar, in the badge on a row and in the chip above the history are the same drawing. Every icon is aria-hidden; the control that puts one on its own owes it a name, and IconButton refuses to be built without one."
+        >
+          <div className="grid grid-cols-3 gap-3 sm:grid-cols-5 lg:grid-cols-7">
+            {Object.entries(ICONS).map(([name, Glyph]) => (
+              <div
+                key={name}
+                className="flex flex-col items-center gap-2 rounded-md border border-line bg-surface px-2 py-3"
+              >
+                <span className="text-ink-muted">
+                  <Glyph size={18} />
+                </span>
+                <code className="max-w-full truncate font-mono text-2xs text-ink-subtle">
+                  {name.replace(/Icon$/, '')}
+                </code>
+              </div>
+            ))}
+          </div>
+        </Section>
+
         <Section title="References and badges">
           <div className="flex flex-col gap-4">
             <div className="flex flex-wrap items-center gap-2">
@@ -596,7 +618,7 @@ export function Showcase() {
               value={scope}
               onChange={setScope}
             />
-            <Button size="sm" variant="ghost" leading={<SearchGlyph />}>
+            <Button size="sm" variant="ghost" leading={<SearchIcon />}>
               Search…
             </Button>
           </div>
@@ -684,7 +706,7 @@ export function Showcase() {
 
         <Section
           title="Capped text"
-          note="Two things that go together whenever a panel holds writing somebody else did. A title is clamped to two lines beside siblings that must not shrink, so a subject nobody edited cannot push the sha off the row; a body is capped in height, and the moment a box scrolls it needs a tab stop, or the ninth line is reachable by pointer alone."
+          note="Two things that go together whenever a panel holds writing somebody else did. A title is clamped to two lines beside siblings that must not shrink, so a subject nobody edited cannot push the sha off the row; a body is capped in height at sixteen lines — enough for a normal message in full — and the moment a box scrolls it needs a tab stop, or the line past the cap is reachable by pointer alone."
         >
           <div className="max-w-2xl rounded-lg border border-line bg-surface p-3">
             <div className="flex items-start gap-3">
@@ -710,7 +732,7 @@ export function Showcase() {
               tabIndex={0}
               role="group"
               aria-label="Commit message body"
-              className="mt-3 max-h-32 overflow-auto font-sans text-xs whitespace-pre-wrap text-ink-muted outline-none focus-visible:focus-ring"
+              className="mt-3 max-h-64 overflow-auto font-sans text-xs whitespace-pre-wrap text-ink-muted outline-none focus-visible:focus-ring"
             >
               {SAMPLE_BODY}
             </pre>
@@ -1016,8 +1038,20 @@ function MenuRow({
         ];
 
   return (
-    <div className="flex items-center gap-2 border-b border-line px-3 py-1.5 last:border-b-0">
-      <span className="min-w-0 flex-1 truncate font-mono text-xs text-ink-muted">{name}</span>
+    <div
+      className={cx(
+        'flex items-center gap-2 border-b border-line px-3 py-1.5 last:border-b-0',
+        current === true && 'bg-accent-soft/40',
+      )}
+    >
+      <span
+        className={cx(
+          'min-w-0 flex-1 truncate text-xs',
+          current === true ? 'font-semibold text-ink' : 'font-medium text-ink-muted',
+        )}
+      >
+        {name}
+      </span>
       {current === true && <RefBadge kind="head" name="HEAD" current />}
       {detached === true && <Badge tone="warning">detached</Badge>}
       <span className="font-mono text-2xs text-ink-subtle">{sha}</span>
@@ -1222,20 +1256,6 @@ function Swatch({
 }
 
 /** The glyph on the button beside the history's filter. */
-function SearchGlyph() {
-  return (
-    <svg width="12" height="12" viewBox="0 0 14 14" fill="none" aria-hidden="true">
-      <circle cx="6" cy="6" r="4" stroke="currentColor" strokeWidth="1.3" />
-      <path d="m9.2 9.2 3 3" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />
-    </svg>
-  );
-}
-
-/**
- * A preview of the lanes as the graph draws them: curves that split and
- * converge. The graph is SVG as well (docs/adr/0003), so this stands in for it
- * only to judge the palette on the shape that will carry it.
- */
 function LanePreview() {
   return (
     <svg viewBox="0 0 320 96" className="h-24 w-full" role="img" aria-label="Graph lane colors">

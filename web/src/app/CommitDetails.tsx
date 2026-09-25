@@ -8,6 +8,7 @@ import { Button } from '../components/Button';
 import { Badge, RefBadge } from '../components/Badge';
 import { CloseButton } from '../components/CloseButton';
 import { EmptyState } from '../components/EmptyState';
+import { CommitIcon, CopyIcon, MergeIcon } from '../components/Icons';
 import { Menu, menuItem, type MenuItem } from '../components/Menu';
 import { Panel } from '../components/Panel';
 import { Spinner } from '../components/Spinner';
@@ -173,6 +174,7 @@ export function CommitDetails({
   return (
     <Panel
       title="Commit"
+      icon={<CommitIcon />}
       className="h-full"
       actions={
         <>
@@ -331,71 +333,79 @@ function Body({
 
   return (
     <div className="flex h-full min-h-0 flex-col">
-      {/* Three quarters of the panel at most, and it scrolls whatever will
-          not fit. A header that holds its height inside a Panel that clips
-          what leaves it is a header that is silently cut off: on a 720px
-          window the parents, the file count and the entire patch sat below
-          the panel's bottom edge, with no scrollbar and no ellipsis to say
-          so. The ceiling is what stops the repair from becoming the same
-          fault pointing the other way — a header free to ask for every pixel
-          it wants leaves the patch at no height at all, and the patch is what
-          reading a commit means.
+      {/* Sized to what it holds, with a ceiling only the abnormally long
+          message hits. A header free to ask for every pixel it wants left
+          the patch at no height at all on a short window, which is why there
+          is a ceiling at all — but half the panel was the wrong one: an
+          ordinary commit (subject, a few lines of body, author, parents)
+          fits in far less, and the half it reserved was pixels the patch
+          needed. Two fifths is enough for a long-but-normal message; past
+          that the header scrolls and the patch keeps the rest.
 
-          A share of the panel and not a count of pixels, because the number
-          that is right in a tall pane is the whole of a short one. Three
-          quarters rather than a half: the ordinary header — a subject, an
-          author, a parent and the files badge — is under that at every height
-          this panel takes, so the ceiling only meets the commit with a long
-          body or a dozen references, and the quarter it holds back is what
-          keeps a diff on the screen when it does. */}
-      <header className="flex max-h-3/4 min-h-0 flex-col gap-2 overflow-y-auto border-b border-line px-3 py-2.5">
-        <div className="flex min-w-0 items-start gap-2">
+          The body alone used to cap at eight lines (`max-h-32`) and force a
+          scroll on any real write-up. Sixteen lines is where a careful
+          message still fits in full and a pasted changelog starts to scroll,
+          which is the line the reader asked for: read it without scrolling
+          unless it is abnormally long. */}
+      <header className="flex max-h-2/5 min-h-0 shrink-0 flex-col gap-2.5 overflow-y-auto border-b border-line px-4 py-3">
+        <div className="flex min-w-0 items-start gap-3">
           {/* Two lines, then an ellipsis, with the whole subject on hover.
               Reverts and merges write long ones, and beside a sha that holds
               its width an ordinary 178-character subject wrapped to thirty
               lines and pushed everything under it out of the panel. The text
               is untouched — line-clamp is paint, not content — so a screen
-              reader still reads the subject in full. */}
+              reader still reads the subject in full.
+
+              A step up the type scale from the rows above: this is the one
+              commit the reader chose, and its subject is the heading of the
+              pane. */}
           <p
-            className="line-clamp-2 min-w-0 flex-1 text-sm font-medium text-ink"
+            className="line-clamp-2 min-w-0 flex-1 text-base font-semibold text-ink"
             title={detail.subject}
           >
             {detail.subject}
           </p>
           {/* The whole SHA, and a way to take it. It is the string you carry
               to a terminal, so an abbreviation you cannot copy is the one
-              thing this pane must not show. */}
-          <code className="shrink-0 font-mono text-2xs break-all text-ink-subtle">
-            {detail.sha}
-          </code>
-          <Button size="sm" variant="ghost" onClick={() => void clipboard.copy(detail.sha)}>
-            {copyLabel(clipboard.state, 'Copy SHA')}
-          </Button>
+              thing this pane must not show. Drawn as one chip — the string and
+              the button that copies it — so the two read as one thing. */}
+          <span className="flex shrink-0 items-center gap-1 rounded-md border border-line bg-sunken pl-2">
+            <code className="font-mono text-2xs break-all text-ink-muted">{detail.sha}</code>
+            <Button
+              size="sm"
+              variant="ghost"
+              leading={<CopyIcon />}
+              onClick={() => void clipboard.copy(detail.sha)}
+            >
+              {copyLabel(clipboard.state, 'Copy SHA')}
+            </Button>
+          </span>
         </div>
 
         {detail.body !== '' && (
           // pre-wrap: a commit body is a written document with paragraphs and
           // indented lists, and collapsing its whitespace would rewrite it.
           //
-          // Capped, and therefore focusable. Eight lines is what the box
-          // shows and a body worth reading is longer, so without a tab stop
-          // the ninth line is reachable by pointer alone — WCAG 2.1.1, and
-          // invisible to the axe gate because every fixture commit is written
-          // with a one-line `-m`. `group` rather than `region`: the panel
-          // around this is already a named landmark, and nesting a second one
-          // inside it puts a scroll box into the list a screen reader offers
-          // as the parts of the screen.
+          // Capped, and therefore focusable. Sixteen lines is what the box
+          // shows before scrolling, and a body worth reading past that is the
+          // abnormal case — without a tab stop the line past the cap would be
+          // reachable by pointer alone (WCAG 2.1.1), and invisible to the axe
+          // gate because every fixture commit is written with a one-line `-m`.
+          // `group` rather than `region`: the panel around this is already a
+          // named landmark, and nesting a second one inside it puts a scroll
+          // box into the list a screen reader offers as the parts of the
+          // screen.
           <pre
             tabIndex={0}
             role="group"
             aria-label="Commit message body"
-            className="max-h-32 overflow-auto font-sans text-xs whitespace-pre-wrap text-ink-muted outline-none focus-visible:focus-ring"
+            className="max-h-64 overflow-auto font-sans text-xs whitespace-pre-wrap text-ink-muted outline-none focus-visible:focus-ring"
           >
             {detail.body}
           </pre>
         )}
 
-        <div className="flex flex-wrap items-center gap-2 text-2xs text-ink-subtle">
+        <div className="flex flex-wrap items-center gap-2 text-xs text-ink-subtle">
           {/* Decorative, because the name is written out beside it. The
               initials are visible text and join the accessible name of
               whatever contains them, so this line was heard as "AL Ada
@@ -403,7 +413,7 @@ function Body({
               they encode. Where the chip stands alone it is the only thing
               naming the author and it stays announced. */}
           <Avatar name={detail.author} decorative />
-          <span className="text-ink-muted">{detail.author}</span>
+          <span className="font-medium text-ink">{detail.author}</span>
           {/* The clock, which the visible form does not carry: past a week
               formatRelativeTime is a bare date, so this hover used to hand
               back the string it is attached to. A working day's commits share
@@ -441,49 +451,70 @@ function Body({
             thing about a commit that the patch above cannot show. A heading
             rather than a label, so the block is reachable as a landmark and
             reads as a section to anyone who is not looking at the layout. */}
-        <div className="flex flex-wrap items-baseline gap-2 text-2xs text-ink-subtle">
-          <h3 className="font-medium tracking-wide uppercase">
-            {detail.parents.length === 1 ? 'Parent' : 'Parents'}
-          </h3>
-          {detail.parents.length === 0 ? (
-            <span className="text-ink-muted">None: this is a root commit.</span>
-          ) : (
-            detail.parents.map((parent) => (
-              <code key={parent} className="font-mono text-ink-muted" title={parent}>
-                {shortenSha(parent)}
-              </code>
-            ))
-          )}
-        </div>
+        {/* One line for the facts a commit has besides its message: what it
+            hangs from, and how much it touched. Two lines of eleven-pixel
+            labels stacked under the author used to spend more height than the
+            subject and read as a form. */}
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-ink-subtle">
+          <div className="flex flex-wrap items-baseline gap-2">
+            <h3 className="text-2xs font-medium tracking-wide uppercase">
+              {detail.parents.length === 1 ? 'Parent' : 'Parents'}
+            </h3>
+            {detail.parents.length === 0 ? (
+              <span className="text-ink-muted">None: this is a root commit.</span>
+            ) : (
+              detail.parents.map((parent) => (
+                <code
+                  key={parent}
+                  className="rounded-sm border border-line bg-sunken px-1.5 font-mono text-2xs text-ink-muted"
+                  title={parent}
+                >
+                  {shortenSha(parent)}
+                </code>
+              ))
+            )}
+          </div>
 
-        <div className="flex flex-wrap items-center gap-2">
           <Badge>{summarise(detail.files)}</Badge>
           {detail.against_first_parent && (
             // A merge has one answer per parent and git prints none of them by
             // default. This one is the first parent's, and saying so is the
             // difference between a useful default and a quiet half-truth.
-            <Badge tone="info">merge — shown against its first parent</Badge>
+            <Badge tone="info">
+              <MergeIcon size={10} />
+              merge — shown against its first parent
+            </Badge>
           )}
         </div>
       </header>
 
-      <div className="min-h-0 flex-1 overflow-auto">
-        {detail.files.length === 0 ? (
-          <EmptyState
-            title="This commit changed nothing"
-            description={
-              detail.against_first_parent
-                ? 'A merge that resolved to its first parent leaves no difference against it.'
-                : 'An empty commit records a moment rather than a change.'
-            }
-          />
-        ) : (
-          <ReadOnlyPatch
-            files={detail.files}
-            {...(onFileHistory === undefined ? {} : { onFileHistory })}
-            {...(onBlame === undefined ? {} : { onBlame })}
-          />
-        )}
+      {/* Absolute fill rather than a bare overflow-auto flex child. A tall
+          patch inside `overflow-auto` still contributed its layout height to
+          the document's scrollable overflow — Chromium grows the page, the
+          window gains a scrollbar through empty canvas, and the pane that
+          should show the diff stays a strip at the top. Pinning the scroller
+          to the slot with `absolute inset-0` keeps the content's height
+          inside the slot that already has a definite size from the flex
+          share above. */}
+      <div className="relative min-h-0 flex-1">
+        <div className="absolute inset-0 overflow-auto">
+          {detail.files.length === 0 ? (
+            <EmptyState
+              title="This commit changed nothing"
+              description={
+                detail.against_first_parent
+                  ? 'A merge that resolved to its first parent leaves no difference against it.'
+                  : 'An empty commit records a moment rather than a change.'
+              }
+            />
+          ) : (
+            <ReadOnlyPatch
+              files={detail.files}
+              {...(onFileHistory === undefined ? {} : { onFileHistory })}
+              {...(onBlame === undefined ? {} : { onBlame })}
+            />
+          )}
+        </div>
       </div>
     </div>
   );

@@ -3,6 +3,7 @@ import { useState } from 'react';
 import type { UndoPlan } from '../api/types';
 import { Button } from '../components/Button';
 import { ConfirmDialog } from '../components/ConfirmDialog';
+import { UndoIcon } from '../components/Icons';
 import { errorDescription } from '../lib/errorDisplay';
 import { useToast } from '../components/ToastHost';
 import { undoButtonLabel, undoConfirmLabel, useUndo } from './useUndo';
@@ -42,7 +43,7 @@ export function UndoActions({ repositoryId }: { repositoryId: string }) {
       {offer !== undefined && (
         <Button
           size="sm"
-          variant="ghost"
+          leading={<UndoIcon />}
           disabled={undo.plan.isPending || undo.run.isPending}
           onClick={propose}
           title={offer.subject}

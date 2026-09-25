@@ -1,6 +1,7 @@
 import type { Worktree } from '../api/types';
 import { Badge } from '../components/Badge';
 import { Button } from '../components/Button';
+import { PlusIcon, WorktreeIcon } from '../components/Icons';
 import { Menu, menuItem, type MenuItem } from '../components/Menu';
 import { Panel } from '../components/Panel';
 import { QueryErrorState, type RetryableQuery } from '../components/PanelState';
@@ -62,6 +63,7 @@ export function WorktreePanel({
 
   return (
     <Panel
+      icon={<WorktreeIcon />}
       title={`Worktrees${worktrees === undefined ? '' : ` — ${worktrees.length}`}`}
       className="max-h-48 shrink-0"
       flush
@@ -84,6 +86,7 @@ export function WorktreePanel({
             <Button
               size="sm"
               variant="ghost"
+              leading={<PlusIcon />}
               onClick={onAdd}
               loading={adding}
               title="Checks out another worktree of this repository."
@@ -152,7 +155,9 @@ function Row({ worktree, items }: { worktree: Worktree; items: MenuItem[] }) {
         )}
       >
         <span className="flex min-w-0 items-center gap-2">
-          <span className="min-w-0 flex-1 truncate text-sm text-ink">{leafOf(worktree.path)}</span>
+          <span className="min-w-0 flex-1 truncate text-xs font-medium text-ink">
+            {leafOf(worktree.path)}
+          </span>
           {worktree.main && <Badge>main tree</Badge>}
           {worktree.current && <Badge>this tab</Badge>}
         </span>

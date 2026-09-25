@@ -55,7 +55,7 @@ export function FileStatusMark({ file, side }: FileStatusMarkProps) {
       // that survives, and the title spells it out for a screen reader.
       title={MARK_LABELS[mark] ?? 'changed'}
       className={cx(
-        'inline-flex size-4 shrink-0 items-center justify-center rounded-sm border',
+        'inline-flex size-4.5 shrink-0 items-center justify-center rounded-sm border',
         'font-mono text-2xs leading-none font-semibold',
         MARK_CLASSES[mark] ?? 'text-ink-subtle border-line bg-hover',
       )}

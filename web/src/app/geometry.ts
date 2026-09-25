@@ -67,8 +67,29 @@ export function graphFits(columns: number): boolean {
   return columns <= MOST_DRAWABLE_COLUMNS;
 }
 
-/** Radius of a commit's dot. */
-export const DOT_RADIUS = 4;
+/**
+ * Radius of a commit's dot.
+ *
+ * Four and a half, up from four: a lane is sixteen wide and a line two and a
+ * half, and a dot that is not clearly wider than the line running through it
+ * reads as a thickening of the line rather than as a commit. It stays under
+ * half a lane so two dots in neighbouring columns never touch.
+ */
+export const DOT_RADIUS = 4.5;
+
+/** The stroke of a lane's line. */
+export const LINE_WIDTH = 2.5;
+
+/**
+ * How much wider than an ordinary dot the ring around HEAD's commit is.
+ *
+ * The graph is aria-hidden and the rows already carry the HEAD badge, so this
+ * is for the eye alone: the one dot the repository is standing on, found
+ * without reading a row. Drawn hollow — a ring in the lane's colour around a
+ * dot of the panel's ground — because a bigger filled dot is a merge to
+ * anyone who has read a graph before.
+ */
+export const HEAD_RING = 3;
 
 /**
  * Space to the left of the first column, in pixels.

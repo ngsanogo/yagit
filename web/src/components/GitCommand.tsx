@@ -1,5 +1,6 @@
 import { copyLabel, useClipboard } from '../lib/clipboard';
 import { cx } from '../lib/cx';
+import { CheckIcon, CopyIcon } from './Icons';
 import { Tooltip } from './Tooltip';
 
 interface GitCommandProps {
@@ -50,46 +51,10 @@ export function GitCommand({ command, className, copyable = true }: GitCommandPr
               clipboard.state === 'failed' ? 'text-danger' : 'text-ink-subtle hover:text-ink',
             )}
           >
-            {clipboard.state === 'copied' ? <CheckGlyph /> : <CopyGlyph />}
+            {clipboard.state === 'copied' ? <CheckIcon /> : <CopyIcon />}
           </button>
         </Tooltip>
       )}
     </div>
-  );
-}
-
-function CopyGlyph() {
-  return (
-    <svg width="13" height="13" viewBox="0 0 14 14" fill="none" aria-hidden="true">
-      <rect
-        x="4.75"
-        y="4.75"
-        width="8"
-        height="8"
-        rx="1.5"
-        stroke="currentColor"
-        strokeWidth="1.3"
-      />
-      <path
-        d="M9.5 2.75h-6a1.5 1.5 0 0 0-1.5 1.5v6"
-        stroke="currentColor"
-        strokeWidth="1.3"
-        strokeLinecap="round"
-      />
-    </svg>
-  );
-}
-
-function CheckGlyph() {
-  return (
-    <svg width="13" height="13" viewBox="0 0 14 14" fill="none" aria-hidden="true">
-      <path
-        d="M2.5 7.5 5.5 10.5 11.5 4"
-        stroke="currentColor"
-        strokeWidth="1.6"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
   );
 }
