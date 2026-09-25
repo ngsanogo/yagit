@@ -396,7 +396,7 @@
   --color-theirs: oklch(50% 0.15 300);
   --color-theirs-soft: oklch(95% 0.04 300);
 
-  --color-ref-head: oklch(48% 0.13 168);
+  --color-ref-head: oklch(40% 0.13 168);
   --color-ref-branch: oklch(50% 0.14 245);
   --color-ref-remote: oklch(50% 0.13 285);
   --color-ref-tag: oklch(51% 0.13 70);
