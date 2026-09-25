@@ -5,6 +5,14 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>yagit</title>
     <!--
+      The tab's own mark, not a letter invented from the title. Without it,
+      every local app on loopback collapses to the same grey initial in a
+      row of tabs, and the only way to tell which is yagit is to open it.
+      SVG rather than a raster: one file at every density, served from
+      `web/public/` like theme.js, so the released binary holds it too.
+    -->
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <!--
       Render-blocking and not a module, which is the whole point: it has to run
       before the first paint, and a module cannot.
 

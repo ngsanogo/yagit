@@ -333,24 +333,21 @@ function Body({
 
   return (
     <div className="flex h-full min-h-0 flex-col">
-      {/* Three quarters of the panel at most, and it scrolls whatever will
-          not fit. A header that holds its height inside a Panel that clips
-          what leaves it is a header that is silently cut off: on a 720px
-          window the parents, the file count and the entire patch sat below
-          the panel's bottom edge, with no scrollbar and no ellipsis to say
-          so. The ceiling is what stops the repair from becoming the same
-          fault pointing the other way — a header free to ask for every pixel
-          it wants leaves the patch at no height at all, and the patch is what
-          reading a commit means.
+      {/* Sized to what it holds, with a ceiling only the abnormally long
+          message hits. A header free to ask for every pixel it wants left
+          the patch at no height at all on a short window, which is why there
+          is a ceiling at all — but half the panel was the wrong one: an
+          ordinary commit (subject, a few lines of body, author, parents)
+          fits in far less, and the half it reserved was pixels the patch
+          needed. Two fifths is enough for a long-but-normal message; past
+          that the header scrolls and the patch keeps the rest.
 
-          A share of the panel and not a count of pixels, because the number
-          that is right in a tall pane is the whole of a short one. Three
-          quarters rather than a half: the ordinary header — a subject, an
-          author, a parent and the files badge — is under that at every height
-          this panel takes, so the ceiling only meets the commit with a long
-          body or a dozen references, and the quarter it holds back is what
-          keeps a diff on the screen when it does. */}
-      <header className="flex max-h-3/4 min-h-0 flex-col gap-2.5 overflow-y-auto border-b border-line px-4 py-3">
+          The body alone used to cap at eight lines (`max-h-32`) and force a
+          scroll on any real write-up. Sixteen lines is where a careful
+          message still fits in full and a pasted changelog starts to scroll,
+          which is the line the reader asked for: read it without scrolling
+          unless it is abnormally long. */}
+      <header className="flex max-h-2/5 min-h-0 shrink-0 flex-col gap-2.5 overflow-y-auto border-b border-line px-4 py-3">
         <div className="flex min-w-0 items-start gap-3">
           {/* Two lines, then an ellipsis, with the whole subject on hover.
               Reverts and merges write long ones, and beside a sha that holds
@@ -389,19 +386,20 @@ function Body({
           // pre-wrap: a commit body is a written document with paragraphs and
           // indented lists, and collapsing its whitespace would rewrite it.
           //
-          // Capped, and therefore focusable. Eight lines is what the box
-          // shows and a body worth reading is longer, so without a tab stop
-          // the ninth line is reachable by pointer alone — WCAG 2.1.1, and
-          // invisible to the axe gate because every fixture commit is written
-          // with a one-line `-m`. `group` rather than `region`: the panel
-          // around this is already a named landmark, and nesting a second one
-          // inside it puts a scroll box into the list a screen reader offers
-          // as the parts of the screen.
+          // Capped, and therefore focusable. Sixteen lines is what the box
+          // shows before scrolling, and a body worth reading past that is the
+          // abnormal case — without a tab stop the line past the cap would be
+          // reachable by pointer alone (WCAG 2.1.1), and invisible to the axe
+          // gate because every fixture commit is written with a one-line `-m`.
+          // `group` rather than `region`: the panel around this is already a
+          // named landmark, and nesting a second one inside it puts a scroll
+          // box into the list a screen reader offers as the parts of the
+          // screen.
           <pre
             tabIndex={0}
             role="group"
             aria-label="Commit message body"
-            className="max-h-32 overflow-auto font-sans text-xs whitespace-pre-wrap text-ink-muted outline-none focus-visible:focus-ring"
+            className="max-h-64 overflow-auto font-sans text-xs whitespace-pre-wrap text-ink-muted outline-none focus-visible:focus-ring"
           >
             {detail.body}
           </pre>
@@ -490,23 +488,33 @@ function Body({
         </div>
       </header>
 
-      <div className="min-h-0 flex-1 overflow-auto">
-        {detail.files.length === 0 ? (
-          <EmptyState
-            title="This commit changed nothing"
-            description={
-              detail.against_first_parent
-                ? 'A merge that resolved to its first parent leaves no difference against it.'
-                : 'An empty commit records a moment rather than a change.'
-            }
-          />
-        ) : (
-          <ReadOnlyPatch
-            files={detail.files}
-            {...(onFileHistory === undefined ? {} : { onFileHistory })}
-            {...(onBlame === undefined ? {} : { onBlame })}
-          />
-        )}
+      {/* Absolute fill rather than a bare overflow-auto flex child. A tall
+          patch inside `overflow-auto` still contributed its layout height to
+          the document's scrollable overflow — Chromium grows the page, the
+          window gains a scrollbar through empty canvas, and the pane that
+          should show the diff stays a strip at the top. Pinning the scroller
+          to the slot with `absolute inset-0` keeps the content's height
+          inside the slot that already has a definite size from the flex
+          share above. */}
+      <div className="relative min-h-0 flex-1">
+        <div className="absolute inset-0 overflow-auto">
+          {detail.files.length === 0 ? (
+            <EmptyState
+              title="This commit changed nothing"
+              description={
+                detail.against_first_parent
+                  ? 'A merge that resolved to its first parent leaves no difference against it.'
+                  : 'An empty commit records a moment rather than a change.'
+              }
+            />
+          ) : (
+            <ReadOnlyPatch
+              files={detail.files}
+              {...(onFileHistory === undefined ? {} : { onFileHistory })}
+              {...(onBlame === undefined ? {} : { onBlame })}
+            />
+          )}
+        </div>
       </div>
     </div>
   );

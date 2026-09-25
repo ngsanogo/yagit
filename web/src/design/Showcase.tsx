@@ -706,7 +706,7 @@ export function Showcase() {
 
         <Section
           title="Capped text"
-          note="Two things that go together whenever a panel holds writing somebody else did. A title is clamped to two lines beside siblings that must not shrink, so a subject nobody edited cannot push the sha off the row; a body is capped in height, and the moment a box scrolls it needs a tab stop, or the ninth line is reachable by pointer alone."
+          note="Two things that go together whenever a panel holds writing somebody else did. A title is clamped to two lines beside siblings that must not shrink, so a subject nobody edited cannot push the sha off the row; a body is capped in height at sixteen lines — enough for a normal message in full — and the moment a box scrolls it needs a tab stop, or the line past the cap is reachable by pointer alone."
         >
           <div className="max-w-2xl rounded-lg border border-line bg-surface p-3">
             <div className="flex items-start gap-3">
@@ -732,7 +732,7 @@ export function Showcase() {
               tabIndex={0}
               role="group"
               aria-label="Commit message body"
-              className="mt-3 max-h-32 overflow-auto font-sans text-xs whitespace-pre-wrap text-ink-muted outline-none focus-visible:focus-ring"
+              className="mt-3 max-h-64 overflow-auto font-sans text-xs whitespace-pre-wrap text-ink-muted outline-none focus-visible:focus-ring"
             >
               {SAMPLE_BODY}
             </pre>

@@ -308,7 +308,14 @@ export function Workbench() {
   }
 
   return (
-    <div className="flex h-dvh flex-col bg-canvas">
+    // `overflow-hidden` is load-bearing. A commit's patch and the history's
+    // virtualised spacer are both taller than the window; without a clip on
+    // this shell their layout height leaks into the document, and the page
+    // itself becomes a scrollbar you can drag through empty canvas while the
+    // pane that was meant to show the patch stays a strip at the top. Every
+    // scroller in the workbench lives inside a panel; the window does not
+    // scroll.
+    <div className="flex h-dvh flex-col overflow-hidden bg-canvas">
       <Header
         repositories={open}
         active={active}

@@ -177,11 +177,13 @@ export function ChangesView({
   const side = current === undefined ? 'unstaged' : sideOf(current.file, current.row);
 
   /*
-   * The pane on the right is three quarters of the screen, and entering this
-   * view used to leave all of it saying "No file chosen". The commonest state
-   * of the screen is one to three changed files, and in every one of them the
-   * first click is a foregone conclusion the user was made to perform in front
-   * of the pane that would have answered their question.
+   * The pane on the right takes whatever width the file list leaves it —
+   * most of a wide window, still the majority once the list has shrunk on a
+   * narrow one — and entering this view used to leave all of it saying "No
+   * file chosen". The commonest state of the screen is one to three changed
+   * files, and in every one of them the first click is a foregone conclusion
+   * the user was made to perform in front of the pane that would have
+   * answered their question.
    *
    * Once, and only into an empty selection. A second automatic choice — after
    * a commit empties the list, say — would be the panel taking the pointer
@@ -412,7 +414,12 @@ export function ChangesView({
   return (
     <div className="flex min-h-0 flex-1 gap-3 p-3">
       <Panel
-        className="w-96 shrink-0"
+        // A share of the row with a ceiling, not a fixed 384px. On a narrow
+        // window the fixed width took most of what the Diff beside it needed
+        // to show a line of code; on a wide one the list does not want more
+        // than it did. The floor keeps a path readable when the window is
+        // squeezed further still.
+        className="min-w-64 w-[min(24rem,35%)] shrink-0"
         icon={<ChangesIcon />}
         title={changesTitle(staged.length, changed.length, conflicted.length)}
         flush
@@ -421,9 +428,10 @@ export function ChangesView({
           {showFilter && (
             <div className="relative shrink-0 border-b border-line px-3 py-2">
               {/* Not a Field: that one draws a label above itself and stands
-                  36px tall, and this is a strip over a list in a 384px panel.
-                  The name is on the control instead, where a screen reader
-                  reads it and the placeholder repeats it for everyone else. */}
+                  36px tall, and this is a strip over a list in a panel that
+                  caps itself at 384px. The name is on the control instead,
+                  where a screen reader reads it and the placeholder repeats
+                  it for everyone else. */}
               <FilterIcon className="pointer-events-none absolute top-1/2 left-5 -translate-y-1/2 text-ink-subtle" />
               <input
                 type="text"

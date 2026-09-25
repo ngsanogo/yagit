@@ -239,35 +239,43 @@ export function DiffView({ diff, side, onApply, busy }: DiffViewProps) {
         }}
       />
 
-      <div className="min-h-0 flex-1 overflow-auto font-mono text-xs" onKeyDown={moveByKey}>
-        <Capped lines={drawn}>Hunk buttons act on the lines drawn, not on the rest.</Capped>
+      {/* Absolute fill rather than a bare overflow-auto flex child. A tall
+          file's hunks inside `overflow-auto` still contributed their layout
+          height to the document — the page grew a scrollbar through empty
+          canvas while this pane stayed a strip. Pinning the scroller to the
+          slot keeps the content's height inside the Diff panel. The same
+          repair is on a commit's patch in CommitDetails. */}
+      <div className="relative min-h-0 flex-1">
+        <div className="absolute inset-0 overflow-auto font-mono text-xs" onKeyDown={moveByKey}>
+          <Capped lines={drawn}>Hunk buttons act on the lines drawn, not on the rest.</Capped>
 
-        {pointer !== undefined && <PointerNote note={pointer} />}
+          {pointer !== undefined && <PointerNote note={pointer} />}
 
-        {diff.hunks.map((hunk, position) => (
-          <HunkView
-            // Hunks have no identity of their own; their position in this diff
-            // is the only stable thing about them, and the whole list is
-            // replaced whenever the diff changes.
-            key={position}
-            hunk={hunk}
-            firstDrawnLine={firstLineOfHunk(diff, position)}
-            gutter={gutter}
-            actions={{
-              side,
-              busy,
-              selected,
-              tabStop: anchor ?? changed[0],
-              onToggle: toggle,
-              onApply: apply,
-            }}
-          />
-        ))}
+          {diff.hunks.map((hunk, position) => (
+            <HunkView
+              // Hunks have no identity of their own; their position in this diff
+              // is the only stable thing about them, and the whole list is
+              // replaced whenever the diff changes.
+              key={position}
+              hunk={hunk}
+              firstDrawnLine={firstLineOfHunk(diff, position)}
+              gutter={gutter}
+              actions={{
+                side,
+                busy,
+                selected,
+                tabStop: anchor ?? changed[0],
+                onToggle: toggle,
+                onApply: apply,
+              }}
+            />
+          ))}
 
-        <Truncated lines={drawn} subject="patch">
-          Staging the whole file still works — it is <code className="text-ink">git add</code>, and
-          needs no patch.
-        </Truncated>
+          <Truncated lines={drawn} subject="patch">
+            Staging the whole file still works — it is <code className="text-ink">git add</code>,
+            and needs no patch.
+          </Truncated>
+        </div>
       </div>
     </div>
   );
