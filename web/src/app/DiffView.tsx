@@ -4,6 +4,8 @@ import type { DiffHunk, DiffLine, DiffSide, FileDiff } from '../api/types';
 import { Badge } from '../components/Badge';
 import { Button } from '../components/Button';
 import { EmptyState } from '../components/EmptyState';
+import { FileIcon, MinusIcon, PlusIcon, TrashIcon } from '../components/Icons';
+import { Kbd } from '../components/Kbd';
 import { cx } from '../lib/cx';
 import { Capped, MAX_DRAWN_LINES, Truncated } from './drawnLines';
 import { pointerNote, type PointerNote as PointerNoteText } from './lfsDiff';
@@ -45,6 +47,18 @@ const SIDE_LABELS: Record<DiffSide, string> = {
   unstaged: 'not staged',
   untracked: 'not tracked',
 };
+
+/** The glyph on the action that moves lines the way a side moves them. */
+function actionGlyph(action: DiffAction) {
+  switch (action) {
+    case 'stage':
+      return <PlusIcon />;
+    case 'unstage':
+      return <MinusIcon />;
+    case 'discard':
+      return <TrashIcon />;
+  }
+}
 
 export function DiffView({ diff, side, onApply, busy }: DiffViewProps) {
   const [selected, setSelected] = useState<ReadonlySet<number>>(new Set());
@@ -225,35 +239,43 @@ export function DiffView({ diff, side, onApply, busy }: DiffViewProps) {
         }}
       />
 
-      <div className="min-h-0 flex-1 overflow-auto font-mono text-xs" onKeyDown={moveByKey}>
-        <Capped lines={drawn}>Hunk buttons act on the lines drawn, not on the rest.</Capped>
+      {/* Absolute fill rather than a bare overflow-auto flex child. A tall
+          file's hunks inside `overflow-auto` still contributed their layout
+          height to the document — the page grew a scrollbar through empty
+          canvas while this pane stayed a strip. Pinning the scroller to the
+          slot keeps the content's height inside the Diff panel. The same
+          repair is on a commit's patch in CommitDetails. */}
+      <div className="relative min-h-0 flex-1">
+        <div className="absolute inset-0 overflow-auto font-mono text-xs" onKeyDown={moveByKey}>
+          <Capped lines={drawn}>Hunk buttons act on the lines drawn, not on the rest.</Capped>
 
-        {pointer !== undefined && <PointerNote note={pointer} />}
+          {pointer !== undefined && <PointerNote note={pointer} />}
 
-        {diff.hunks.map((hunk, position) => (
-          <HunkView
-            // Hunks have no identity of their own; their position in this diff
-            // is the only stable thing about them, and the whole list is
-            // replaced whenever the diff changes.
-            key={position}
-            hunk={hunk}
-            firstDrawnLine={firstLineOfHunk(diff, position)}
-            gutter={gutter}
-            actions={{
-              side,
-              busy,
-              selected,
-              tabStop: anchor ?? changed[0],
-              onToggle: toggle,
-              onApply: apply,
-            }}
-          />
-        ))}
+          {diff.hunks.map((hunk, position) => (
+            <HunkView
+              // Hunks have no identity of their own; their position in this diff
+              // is the only stable thing about them, and the whole list is
+              // replaced whenever the diff changes.
+              key={position}
+              hunk={hunk}
+              firstDrawnLine={firstLineOfHunk(diff, position)}
+              gutter={gutter}
+              actions={{
+                side,
+                busy,
+                selected,
+                tabStop: anchor ?? changed[0],
+                onToggle: toggle,
+                onApply: apply,
+              }}
+            />
+          ))}
 
-        <Truncated lines={drawn} subject="patch">
-          Staging the whole file still works — it is <code className="text-ink">git add</code>, and
-          needs no patch.
-        </Truncated>
+          <Truncated lines={drawn} subject="patch">
+            Staging the whole file still works — it is <code className="text-ink">git add</code>,
+            and needs no patch.
+          </Truncated>
+        </div>
       </div>
     </div>
   );
@@ -312,9 +334,10 @@ function DiffHeader({
   const cameFrom = diff.old_path !== undefined && diff.old_path !== '' ? diff.old_path : undefined;
 
   return (
-    <div className="@container flex h-9 shrink-0 items-center gap-3 border-b border-line px-3">
-      <span className="flex min-w-0 items-baseline gap-2">
-        <span className="truncate font-mono text-xs text-ink" title={diff.path}>
+    <div className="@container flex h-10 shrink-0 items-center gap-3 border-b border-line bg-sunken/40 px-3">
+      <span className="flex min-w-0 items-center gap-2">
+        <FileIcon className="shrink-0 text-ink-subtle" />
+        <span className="truncate font-mono text-xs font-medium text-ink" title={diff.path}>
           {diff.path}
         </span>
         {/* Where a rename came from, in the words a commit's patch already
@@ -331,13 +354,13 @@ function DiffHeader({
             ← {cameFrom}
           </span>
         )}
-        <span className="shrink-0 text-2xs text-ink-subtle">{SIDE_LABELS[side]}</span>
+        <Badge className="shrink-0">{SIDE_LABELS[side]}</Badge>
       </span>
 
       {count === 0 ? (
-        <p className="ml-auto hidden shrink-0 text-2xs text-ink-subtle @2xl:block">
-          Click a line to choose it, Shift+click for a range, or {label.toLowerCase()} a whole hunk
-          from its header
+        <p className="ml-auto hidden shrink-0 items-center gap-1.5 text-2xs text-ink-subtle @2xl:flex">
+          Click a line to choose it, <Kbd>Shift</Kbd>
+          <span>+ click for a range, or {label.toLowerCase()} a hunk from its header</span>
         </p>
       ) : (
         <span className="ml-auto flex shrink-0 items-center gap-2">
@@ -351,11 +374,23 @@ function DiffHeader({
               button — Commit — and that is the action it is ultimately
               waiting for; staging is a step on the way. The accent badge
               beside this is what draws the eye to the selection. */}
-          <Button size="sm" variant="secondary" disabled={busy} onClick={() => onApply(primary)}>
+          <Button
+            size="sm"
+            variant="secondary"
+            leading={actionGlyph(primary)}
+            disabled={busy}
+            onClick={() => onApply(primary)}
+          >
             {label} {count === 1 ? 'line' : 'lines'}
           </Button>
           {discardable && (
-            <Button size="sm" variant="danger" disabled={busy} onClick={() => onApply('discard')}>
+            <Button
+              size="sm"
+              variant="danger"
+              leading={<TrashIcon />}
+              disabled={busy}
+              onClick={() => onApply('discard')}
+            >
               Discard
             </Button>
           )}
@@ -423,8 +458,8 @@ function HunkView({ hunk, firstDrawnLine, gutter, actions }: HunkViewProps) {
 
   return (
     <section className="group/hunk">
-      <header className="sticky top-0 flex items-center gap-2 bg-sunken px-3 py-1">
-        <span className="text-2xs text-ink-subtle">
+      <header className="sticky top-0 flex items-center gap-2 border-y border-line bg-sunken px-3 py-1">
+        <span className="text-2xs text-info">
           @@ -{hunk.old_start},{hunk.old_lines} +{hunk.new_start},{hunk.new_lines} @@
         </span>
         {hunk.heading !== '' && (
@@ -496,6 +531,7 @@ function HunkButtons({
         <Button
           size="sm"
           variant="ghost"
+          leading={<TrashIcon />}
           disabled={actions.busy || changedHere.length === 0}
           onClick={() => actions.onApply('discard', changedHere)}
         >
@@ -505,6 +541,7 @@ function HunkButtons({
       <Button
         size="sm"
         variant="ghost"
+        leading={actionGlyph(primary)}
         disabled={actions.busy || changedHere.length === 0}
         onClick={() => actions.onApply(primary, changedHere)}
       >
@@ -524,8 +561,8 @@ function HunkButtons({
  * beside it is how the two stop being read as the same colour.
  */
 const KIND_TINTS: Record<DiffLine['kind'], { whole: string; changed: string }> = {
-  added: { whole: 'bg-added/10', changed: 'bg-added/25' },
-  removed: { whole: 'bg-deleted/10', changed: 'bg-deleted/25' },
+  added: { whole: 'bg-added/12', changed: 'bg-added/30' },
+  removed: { whole: 'bg-deleted/12', changed: 'bg-deleted/30' },
   context: { whole: '', changed: '' },
 };
 
@@ -618,6 +655,9 @@ function LineView({
     gutter,
     'shrink-0 pr-2 text-right text-2xs text-ink-subtle tabular select-none',
   );
+  // A hairline after the second number, so the two gutters read as a margin
+  // and the +/- marker starts where the code does.
+  const lastNumber = cx(number, 'border-r border-line');
 
   const content = (
     <>
@@ -626,7 +666,7 @@ function LineView({
           empty rather than collapsing it is what keeps the two columns from
           jittering down the file. */}
       <span className={number}>{line.old_line === 0 ? '' : line.old_line}</span>
-      <span className={number}>{line.new_line === 0 ? '' : line.new_line}</span>
+      <span className={lastNumber}>{line.new_line === 0 ? '' : line.new_line}</span>
 
       <span className={cx('flex min-w-0 flex-1 items-start', KIND_TINTS[line.kind].whole)}>
         <span
@@ -936,8 +976,12 @@ function ReadOnlyDiff({
 
   return (
     <section className="border-b border-line last:border-b-0">
-      <header className="flex items-baseline gap-2 bg-sunken px-3 py-1.5">
-        <span className="min-w-0 flex-1 truncate font-mono text-xs text-ink" title={diff.path}>
+      <header className="flex items-center gap-2 border-b border-line bg-sunken px-3 py-1.5">
+        <FileIcon className="shrink-0 text-ink-subtle" />
+        <span
+          className="min-w-0 flex-1 truncate font-mono text-xs font-medium text-ink"
+          title={diff.path}
+        >
           {diff.path}
         </span>
         {diff.old_path !== undefined && diff.old_path !== '' && (

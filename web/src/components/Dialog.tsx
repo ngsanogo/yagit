@@ -251,13 +251,13 @@ export function Dialog({
       aria-labelledby={titleId}
       aria-describedby={description === undefined ? undefined : descriptionId}
       className={cx(
-        'm-auto w-full rounded-xl border border-line-strong bg-raised p-0 text-ink',
+        'm-auto w-full overflow-hidden rounded-xl border border-line-strong bg-raised p-0 text-ink',
         DIALOG_WIDTH[size],
         'shadow-dialog backdrop:bg-scrim backdrop:backdrop-blur-scrim',
         className,
       )}
     >
-      <div className="flex flex-col gap-4 p-5">
+      <div className="flex flex-col gap-4 p-6">
         {/*
           Plain divs, not <header> and <footer>: neither is a descendant of a
           sectioning element here, so both would map to the banner and
@@ -277,7 +277,11 @@ export function Dialog({
 
         {children}
 
-        {footer !== undefined && <div className="flex justify-end gap-2">{footer}</div>}
+        {footer !== undefined && (
+          <div className="-mx-6 -mb-6 flex justify-end gap-2 border-t border-line bg-surface px-6 py-4">
+            {footer}
+          </div>
+        )}
       </div>
     </dialog>
   );

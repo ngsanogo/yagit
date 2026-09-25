@@ -1,6 +1,7 @@
 import type { Stash } from '../api/types';
 import { Badge } from '../components/Badge';
 import { Button } from '../components/Button';
+import { PlusIcon, StashIcon } from '../components/Icons';
 import { Menu, menuItem, type MenuItem } from '../components/Menu';
 import { Panel } from '../components/Panel';
 import { QueryErrorState, type RetryableQuery } from '../components/PanelState';
@@ -79,6 +80,7 @@ export function StashPanel({
 }: StashPanelProps) {
   return (
     <Panel
+      icon={<StashIcon />}
       title={`Stashes${stashes === undefined || stashes.length === 0 ? '' : ` — ${stashes.length}`}`}
       // Sized to what it holds and capped there: a stack of three takes three
       // rows of height, and a stack of thirty scrolls inside this panel rather
@@ -172,6 +174,7 @@ function StashAction({
     <Button
       size="sm"
       variant="ghost"
+      leading={<PlusIcon />}
       onClick={onStash}
       loading={stashing}
       disabled={stashRefusal !== undefined}
@@ -232,11 +235,11 @@ function Row({
           'flex w-full min-w-0 flex-col gap-0.5 px-3 py-2 text-left',
           'transition-colors transition-instant outline-none',
           'focus-visible:focus-ring',
-          current ? 'bg-selected' : 'hover:bg-hover',
+          current ? 'bg-selected selected-edge' : 'hover:bg-hover',
         )}
       >
         <span className="flex min-w-0 items-center gap-2">
-          <span className="min-w-0 flex-1 truncate text-sm text-ink">
+          <span className="min-w-0 flex-1 truncate text-xs font-medium text-ink">
             {stash.message === '' ? stashRef(stash.index) : stash.message}
           </span>
           {/* Only where there is one. A stash made on a detached HEAD has no

@@ -1,4 +1,5 @@
 import type { LFSSupport } from '../api/types';
+import { LargeFileIcon } from '../components/Icons';
 import { Panel } from '../components/Panel';
 import { QueryErrorState, type RetryableQuery } from '../components/PanelState';
 import { cx } from '../lib/cx';
@@ -67,7 +68,7 @@ export function LFSPanel({ support, loading, error, retry, onUntrack }: LFSPanel
   }
 
   return (
-    <Panel title="Large files" className="max-h-48 shrink-0" flush>
+    <Panel title="Large files" icon={<LargeFileIcon />} className="max-h-48 shrink-0" flush>
       <div className="flex h-full flex-col overflow-auto">
         {error !== undefined && (
           <QueryErrorState

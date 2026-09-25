@@ -94,12 +94,10 @@ function Body({ detail }: { detail: StashDetail }) {
 
   return (
     <div className="flex h-full min-h-0 flex-col">
-      {/* Three quarters of the panel at most and scrolling, for the reason
-          the commit panel's header is: one that holds its height inside a
-          Panel that clips what leaves it cuts off everything under it and
-          gives no sign it has, and one free to take every pixel it asks for
-          leaves the diff at nothing. */}
-      <header className="flex max-h-3/4 min-h-0 flex-col gap-2 overflow-y-auto border-b border-line px-3 py-2.5">
+      {/* Sized to content with the same ceiling a commit's header keeps —
+          see CommitDetails. Two fifths rather than half, so a long message
+          still leaves the patch readable. */}
+      <header className="flex max-h-2/5 min-h-0 shrink-0 flex-col gap-2 overflow-y-auto border-b border-line px-3 py-2.5">
         <div className="flex min-w-0 items-start gap-2">
           {/* Two lines, then an ellipsis, with the whole message on hover.
               git writes this sentence itself — "On <branch>: <subject>" — so
@@ -144,15 +142,19 @@ function Body({ detail }: { detail: StashDetail }) {
         </div>
       </header>
 
-      <div className="min-h-0 flex-1 overflow-auto">
-        {detail.files.length === 0 ? (
-          <EmptyState
-            title="This stash holds nothing"
-            description="git makes no such stash, so this one was written by something else."
-          />
-        ) : (
-          <ReadOnlyPatch files={detail.files} />
-        )}
+      {/* Absolute fill — see CommitDetails. A tall stash patch leaked the
+          same way a commit's did: the page grew, the slot did not. */}
+      <div className="relative min-h-0 flex-1">
+        <div className="absolute inset-0 overflow-auto">
+          {detail.files.length === 0 ? (
+            <EmptyState
+              title="This stash holds nothing"
+              description="git makes no such stash, so this one was written by something else."
+            />
+          ) : (
+            <ReadOnlyPatch files={detail.files} />
+          )}
+        </div>
       </div>
     </div>
   );

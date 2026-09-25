@@ -5,6 +5,7 @@ import { api } from '../api/client';
 import type { HistoryScope, Repository } from '../api/types';
 import { Button } from '../components/Button';
 import { EmptyState } from '../components/EmptyState';
+import { HistoryIcon, SearchIcon } from '../components/Icons';
 import { Panel } from '../components/Panel';
 import { Centered, QueryErrorState } from '../components/PanelState';
 import { SegmentedControl } from '../components/SegmentedControl';
@@ -53,34 +54,28 @@ export type Inspected =
  * of them are the same slot and a disagreement between them would be a panel
  * that jumps when the kind of thing open in it changes.
  *
- * Two fifths of the column, with a floor. The ratio on its own reached zero:
- * a commit's header — subject, author, parents, the files badge — is around a
- * hundred and thirty pixels that cannot shrink, so on a short window the part
- * that disappeared was the patch, which is the whole of what reading a commit
- * means. The floor is that header plus a few lines of diff. The list above is
- * `flex-1` over a virtualised scroller, so it is the half that can afford to
- * give the pixels up.
+ * `flex-1` over whatever the list above leaves — not a fixed fraction. A
+ * click opens this panel to READ a commit (or a stash, or a path's history),
+ * so it is the main object once it is open: the list keeps a capped strip
+ * tall enough to stay oriented, and this slot takes the rest. A floor keeps
+ * a short window from collapsing the patch to nothing. `overflow-hidden`
+ * keeps a tall patch's layout height from leaking past this slot into the
+ * page.
  */
-const INSPECT_PANEL = 'h-2/5 min-h-64 shrink-0';
+const INSPECT_PANEL = 'min-h-80 flex-1 basis-0 overflow-hidden';
 
 /**
- * The magnifier on the search button.
+ * The history list's height while something is open underneath.
  *
- * Here rather than in ThemeGlyphs, which is the theme control's own set and
- * named for it; one glyph used in one place is not a shared module yet. It
- * exists because of what sits beside it — a three-segment switch drawn in the
- * same size, weight and colour as a ghost button, which left the door to the
- * search dialog reading as a fourth, unselected setting. A glyph is the one
- * mark a segment of a switch never carries.
+ * Capped, not flex-grown. Without a ceiling the list competed with the
+ * inspect slot for every spare pixel, and the patch — the reason the click
+ * happened — lost. A quarter of the column is enough to keep several rows
+ * and the sense of place; the floor is a header plus a few commits so a
+ * short window still shows something to click next. The inspect slot below
+ * takes everything left, which is what makes an ordinary commit's message
+ * and patch readable without scrolling.
  */
-function SearchGlyph() {
-  return (
-    <svg width="13" height="13" viewBox="0 0 14 14" fill="none" aria-hidden="true">
-      <circle cx="6" cy="6" r="4.25" stroke="currentColor" strokeWidth="1.3" />
-      <path d="M9.1 9.1 12.6 12.6" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />
-    </svg>
-  );
-}
+const HISTORY_WHILE_INSPECTING = 'min-h-44 max-h-[25%] shrink-0';
 
 /**
  * The history: the graph and its commits, the references beside them, and what
@@ -242,13 +237,13 @@ export function HistoryView({
   /**
    * A click on a row of the list.
    *
-   * The first one costs the list two fifths of its height, because that is
-   * when the panel below opens — so a row clicked in the lower half of the
-   * screen is behind that panel by the time its patch arrives, with
-   * aria-current on a row nobody can see and no way back to it but the eye.
-   * Following it is the same courtesy goTo already does for a reference, out
-   * of the same cached answer: the panel below asks for exactly this query, so
-   * the row costs no request of its own.
+   * The first one costs the list most of its height, because that is when
+   * the panel below opens and takes the column — so a row clicked in the
+   * lower half of the screen is behind that panel by the time its patch
+   * arrives, with aria-current on a row nobody can see and no way back to it
+   * but the eye. Following it is the same courtesy goTo already does for a
+   * reference, out of the same cached answer: the panel below asks for
+   * exactly this query, so the row costs no request of its own.
    *
    * Only the opening click. With the panel already showing something the list
    * keeps its height and the row keeps its place, and scrolling anyway would
@@ -271,10 +266,27 @@ export function HistoryView({
     <div className="flex min-h-0 flex-1 gap-3 p-3">
       {/* The list above, the chosen commit below it. Stacked rather than in a
           third column: the references stay visible either way, and a commit's
-          message and patch want the width the list does not use. */}
-      <div className="flex min-w-0 flex-1 flex-col gap-3">
+          message and patch want the width the list does not use.
+
+          `min-h-0` is load-bearing. The list's scroller paints a spacer as
+          tall as the whole history — hundreds of thousands of pixels on a
+          real repository — and without a floor of zero this column's
+          automatic minimum becomes that spacer. The flex share then grows
+          the inspect slot to match, so a short patch sits at the top of a
+          pane you can scroll forever through empty space. The viewport is
+          what must bound both halves; the list scrolls inside its own
+          panel. */}
+      <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-3">
         <Panel
-          className="min-w-0 flex-1"
+          // Full height while nothing is open underneath; a capped strip
+          // once something is, so the inspect slot below can be the main
+          // object. See HISTORY_WHILE_INSPECTING.
+          className={
+            inspected === undefined
+              ? 'min-h-0 min-w-0 flex-1'
+              : `min-w-0 ${HISTORY_WHILE_INSPECTING}`
+          }
+          icon={<HistoryIcon />}
           title={`History${history.isPending || history.error ? '' : ` — ${history.total}`}`}
           actions={
             // Two things, spaced as two: the door to a dialog, then the
@@ -285,8 +297,7 @@ export function HistoryView({
             <div className="flex items-center gap-3">
               <Button
                 size="sm"
-                variant="ghost"
-                leading={<SearchGlyph />}
+                leading={<SearchIcon />}
                 onClick={() => openDialog({ kind: 'search' })}
               >
                 Search…
@@ -323,6 +334,7 @@ export function HistoryView({
 
           {!history.isPending && !history.error && history.total === 0 && (
             <EmptyState
+              icon={<HistoryIcon size={20} />}
               title="No commits yet"
               description="This repository has no history. Make a commit and it will appear here."
             />
@@ -467,17 +479,18 @@ export function HistoryView({
           neither, and the cap on the references panel itself is what keeps the
           thousand tags scrolling inside it instead of pushing the stash off
           the bottom of the column. */}
-      {/* Twenty rem, and it was eighteen. The extra two are what the labels
-          in these panel headers now need: every one of them that opens a
-          dialog carries an ellipsis, and two of them sit beside a panel title
-          in 288 pixels. "References" was the part that gave way — the header
-          measured 262 pixels of room, the actions took 186 of it, and the
-          title needed 84 of the 64 that were left, so the one word naming the
-          panel was drawn as "REFERE…". The column is also where a branch name
-          is read, and those truncate first everywhere else too. What it costs
-          is 32 pixels of the history beside it, which is a column the commit
-          rows stopped needing when they stopped stacking. */}
-      <div className="flex w-80 shrink-0 flex-col gap-3 overflow-y-auto">
+      {/* Twenty-one rem, and it was eighteen, then twenty. The extra is what
+          the labels in these panel headers need: every one of them that opens
+          a dialog carries an ellipsis, two of them sit beside a panel title,
+          and the title now carries a glyph of its own. "References" was the
+          part that gave way each time — at twenty rem the header measured 294
+          pixels of room, the actions took 190 of it, and the title needed 102
+          of the 92 that were left, so the one word naming the panel was drawn
+          as "Referenc…". The column is also where a branch name is read, and
+          those truncate first everywhere else too. What it costs is 48 pixels
+          of the history beside it, which is a column the commit rows stopped
+          needing when they stopped stacking. */}
+      <div className="flex w-84 shrink-0 flex-col gap-3 overflow-y-auto">
         {refs.isPending && (
           <Panel title="References" className="shrink-0">
             <Centered compact>

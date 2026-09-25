@@ -1,6 +1,15 @@
 import { ABSENT_ROW, type GraphEdge } from '../api/types';
 import { laneColor } from '../design/tokens';
-import { columnCentre, DOT_RADIUS, edgePath, edgeShape, ROW_HEIGHT, rowCentre } from './geometry';
+import {
+  columnCentre,
+  DOT_RADIUS,
+  edgePath,
+  edgeShape,
+  HEAD_RING,
+  LINE_WIDTH,
+  ROW_HEIGHT,
+  rowCentre,
+} from './geometry';
 
 /**
  * The commit graph, drawn for the rows on screen and no others.
@@ -39,9 +48,26 @@ interface CommitGraphProps {
   edges: GraphEdge[];
   /** The column of a row's dot, or undefined for a row not loaded yet. */
   laneOf: (row: number) => number | undefined;
+  /**
+   * Whether a row is the commit HEAD is on, which is drawn as a ring.
+   *
+   * Asked of the list rather than worked out here: the graph knows lanes and
+   * rows, and which row is HEAD is a fact about the decorations the rows
+   * carry. Optional, so a picture with no HEAD in it — the design page, a
+   * detached history — draws plain dots.
+   */
+  isHead?: (row: number) => boolean;
 }
 
-export function CommitGraph({ first, count, width, total, edges, laneOf }: CommitGraphProps) {
+export function CommitGraph({
+  first,
+  count,
+  width,
+  total,
+  edges,
+  laneOf,
+  isHead,
+}: CommitGraphProps) {
   return (
     <svg
       aria-hidden="true"
@@ -56,7 +82,7 @@ export function CommitGraph({ first, count, width, total, edges, laneOf }: Commi
           d={path}
           fill="none"
           stroke={laneColor(lane)}
-          strokeWidth={2}
+          strokeWidth={LINE_WIDTH}
           strokeLinecap="round"
         />
       ))}
@@ -67,15 +93,29 @@ export function CommitGraph({ first, count, width, total, edges, laneOf }: Commi
         if (lane === undefined) {
           return null;
         }
-        return (
-          <circle
-            key={row}
-            cx={columnCentre(lane)}
-            cy={rowCentre(row, first)}
-            r={DOT_RADIUS}
-            fill={laneColor(lane)}
-          />
-        );
+        const cx = columnCentre(lane);
+        const cy = rowCentre(row, first);
+
+        if (isHead?.(row) === true) {
+          // A ring: the lane's colour around the panel's own ground, so the
+          // line that runs through this dot stops at its edge and the eye
+          // reads a hollow. `--color-surface` is the row's ground at rest;
+          // over a selected row it is a shade off, which is the small price of
+          // a picture that never has to know which row is selected.
+          return (
+            <circle
+              key={row}
+              cx={cx}
+              cy={cy}
+              r={DOT_RADIUS + HEAD_RING - LINE_WIDTH / 2}
+              fill="var(--color-surface)"
+              stroke={laneColor(lane)}
+              strokeWidth={LINE_WIDTH}
+            />
+          );
+        }
+
+        return <circle key={row} cx={cx} cy={cy} r={DOT_RADIUS} fill={laneColor(lane)} />;
       })}
     </svg>
   );

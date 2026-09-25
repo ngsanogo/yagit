@@ -5,10 +5,18 @@ import { api } from '../api/client';
 import type { Repository } from '../api/types';
 import { AddRepository } from './AddRepository';
 import { Badge } from '../components/Badge';
-import { Button } from '../components/Button';
+import { Button, IconButton } from '../components/Button';
 import { CommandLogPanel } from '../components/CommandLogPanel';
 import { Dialog } from '../components/Dialog';
 import { EmptyState } from '../components/EmptyState';
+import {
+  BranchIcon,
+  ChangesIcon,
+  HistoryIcon,
+  PlusIcon,
+  RepositoryIcon,
+  TerminalIcon,
+} from '../components/Icons';
 import { Centered, QueryErrorState } from '../components/PanelState';
 import { SegmentedControl } from '../components/SegmentedControl';
 import { Spinner } from '../components/Spinner';
@@ -300,7 +308,14 @@ export function Workbench() {
   }
 
   return (
-    <div className="flex h-dvh flex-col bg-canvas">
+    // `overflow-hidden` is load-bearing. A commit's patch and the history's
+    // virtualised spacer are both taller than the window; without a clip on
+    // this shell their layout height leaks into the document, and the page
+    // itself becomes a scrollbar you can drag through empty canvas while the
+    // pane that was meant to show the patch stays a strip at the top. Every
+    // scroller in the workbench lives inside a panel; the window does not
+    // scroll.
+    <div className="flex h-dvh flex-col overflow-hidden bg-canvas">
       <Header
         repositories={open}
         active={active}
@@ -335,9 +350,17 @@ export function Workbench() {
       {active === undefined ? (
         <Centered>
           <EmptyState
+            icon={<RepositoryIcon size={20} />}
             title="No repository open"
             description="Pick a repository from the scan, clone one, or open one by path. The daemon only reads inside the allowed root it was started with."
-            action={<AddRepository />}
+            action={
+              // A surface of its own for the form, because it is the whole
+              // screen: three tabs and a list drawn straight on the canvas
+              // read as a page that has not finished loading.
+              <div className="w-full max-w-xl rounded-lg border border-line bg-surface p-4 text-left shadow-panel">
+                <AddRepository />
+              </div>
+            }
           />
         </Centered>
       ) : (
@@ -441,7 +464,19 @@ function Header({
       // edge under them, and four here made a step nobody chose.
       className="flex shrink-0 items-center gap-4 border-b border-line bg-surface pr-3"
     >
-      <h1 className="shrink-0 py-2 pl-3 text-sm font-semibold text-ink">yagit</h1>
+      {/* The mark and the name. A glyph in the accent inside a tile is what
+          makes the corner of the window read as a product's rather than as
+          the first word of a sentence; the accessible name stays the word,
+          because the glyph is decoration and says so. */}
+      <h1 className="flex shrink-0 items-center gap-2 py-2 pl-3 text-sm font-semibold text-ink">
+        <span
+          aria-hidden="true"
+          className="flex size-6 items-center justify-center rounded-md bg-accent-soft text-accent"
+        >
+          <BranchIcon size={14} />
+        </span>
+        yagit
+      </h1>
 
       {repositories.length > 0 && active !== undefined && (
         <Tabs
@@ -486,6 +521,7 @@ function Header({
         <Button
           size="sm"
           variant="ghost"
+          leading={<TerminalIcon />}
           onClick={onToggleLog}
           aria-pressed={showingLog}
           className={showingLog ? 'bg-selected text-ink' : undefined}
@@ -510,7 +546,7 @@ function Header({
             something is working — that is what a spinner is for. So it
             belongs on every label that opens a dialog and on none that act on
             the click, which is why Fetch, Pull and Check out stay bare. */}
-        <Button size="sm" onClick={() => setOpening(true)}>
+        <Button size="sm" leading={<PlusIcon />} onClick={() => setOpening(true)}>
           Add repository…
         </Button>
       </div>
@@ -601,19 +637,19 @@ function useThemeChoice() {
 function ThemeButton({ choice, onCycle }: { choice: ThemeChoice; onCycle: () => void }) {
   const description = `Theme: ${THEME_NAME[choice]}. Change to ${THEME_NAME[THEME_CYCLE[choice]]}.`;
 
+  // The glyph alone, and the state in the name. "System" beside a screen
+  // glyph was the one word in the header that named a setting rather than a
+  // thing to do, and it read as a place to go. The glyph says which state the
+  // control is in; the sentence a pointer or a screen reader gets says both
+  // that and what a press does.
   return (
-    <Button
-      size="sm"
-      variant="ghost"
+    <IconButton
       onClick={onCycle}
-      leading={
+      icon={
         choice === 'system' ? <SystemGlyph /> : choice === 'light' ? <SunGlyph /> : <MoonGlyph />
       }
       aria-label={description}
-      title={description}
-    >
-      {THEME_NAME[choice]}
-    </Button>
+    />
   );
 }
 
@@ -715,11 +751,13 @@ function RepositoryView({ repository }: { repository: Repository }) {
             label="What to show of this repository"
             value={view}
             onChange={setView}
+            size="md"
             segments={[
-              { value: 'history', label: 'History' },
+              { value: 'history', label: 'History', icon: <HistoryIcon /> },
               {
                 value: 'changes',
                 label: 'Changes',
+                icon: <ChangesIcon />,
                 // The count travels with the switch rather than living inside
                 // the view it names, which is the whole reason it is here:
                 // uncommitted work has to be visible from the history too.
@@ -731,13 +769,21 @@ function RepositoryView({ repository }: { repository: Repository }) {
           {/* Which branch you are on is the first question a git client is
               opened to answer, and it was the quietest string on the screen —
               muted, unweighted, indistinguishable from the ghost labels either
-              side of it. The name now wears the colour the sidebar already
-              spends on HEAD, so the toolbar and the reference list say the
-              same fact in the same voice. The preposition stays muted: it is
-              grammar, not the answer. */}
+              side of it. It is a chip now: a bordered ground, the branch glyph
+              and the name in the colour the sidebar already spends on HEAD, so
+              the toolbar and the reference list say the same fact in the same
+              voice. The preposition stays muted: it is grammar, not the
+              answer — and it stays, because "on main" is the sentence the
+              screen reader hears and the tests read. */}
           {status.data?.branch !== undefined && status.data.branch !== '' && (
-            <span className="truncate font-mono text-xs text-ink-muted" title={status.data.branch}>
-              on <span className="font-semibold text-ref-head">{status.data.branch}</span>
+            <span
+              className="inline-flex h-8 min-w-0 items-center gap-1.5 rounded-md border border-line bg-surface px-2.5 font-mono text-xs text-ink-muted shadow-panel"
+              title={status.data.branch}
+            >
+              <BranchIcon className="shrink-0 text-ref-head" />
+              <span className="truncate">
+                on <span className="font-semibold text-ref-head">{status.data.branch}</span>
+              </span>
             </span>
           )}
           {status.data?.detached === true && <Badge tone="warning">detached HEAD</Badge>}

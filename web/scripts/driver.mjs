@@ -17,7 +17,7 @@
 import { chromium } from '@playwright/test';
 import { createInterface } from 'node:readline';
 import { mkdirSync, readdirSync } from 'node:fs';
-import { resolve } from 'node:path';
+import { dirname, isAbsolute, resolve } from 'node:path';
 
 import { captureViewport, pageLoadTimeout } from './capture.mjs';
 import { take } from './driver-line.mjs';
@@ -106,7 +106,17 @@ function nextShotNumber() {
   return Math.max(0, ...numbers.filter(Number.isInteger)) + 1;
 }
 
+// An absolute `.png` path is written where it says, outside the numbered
+// sequence. The default directory sits under `.yagit/`, which the agent
+// manifest denies to every agent — the right call for the token and the log
+// that share it, and the wrong one for a picture the agent itself just asked
+// for and now has to look at. A path of its own choosing is the way round.
 async function screenshot(name) {
+  if (isAbsolute(name) && name.endsWith('.png')) {
+    mkdirSync(dirname(name), { recursive: true });
+    await page.screenshot({ path: name, fullPage: true });
+    return name;
+  }
   mkdirSync(shotDirectory, { recursive: true });
   const label = (name === '' ? 'shot' : name).replace(/[^\w.-]/g, '-');
   const file = resolve(shotDirectory, `${String(nextShotNumber()).padStart(2, '0')}-${label}.png`);

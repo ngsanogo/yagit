@@ -22,6 +22,14 @@ import { cx } from '../lib/cx';
 export interface Segment<Value extends string> {
   value: Value;
   label: string;
+  /**
+   * A glyph before the label.
+   *
+   * For the switch that names the two faces of a repository: the history and
+   * the work tree are the two places the whole application is, and a glyph
+   * each is what makes the switch findable without reading it.
+   */
+  icon?: ReactNode;
   /** A count or a state, shown after the label. */
   badge?: ReactNode;
 }
@@ -32,6 +40,12 @@ interface SegmentedControlProps<Value extends string> {
   value: Value;
   onChange: (value: Value) => void;
   className?: string;
+  /**
+   * `md` for the switch a screen turns on — History or Changes — and `sm`,
+   * the default, for a choice inside a panel header or a dialog. The two
+   * heights are the Button's, so a switch lines up with the buttons beside it.
+   */
+  size?: 'sm' | 'md';
   /**
    * Locks the choice while the answer to the last one is still coming, or
    * while the operation it describes is running.
@@ -51,6 +65,7 @@ export function SegmentedControl<Value extends string>({
   value,
   onChange,
   className,
+  size = 'sm',
   disabled = false,
 }: SegmentedControlProps<Value>) {
   /*
@@ -132,13 +147,18 @@ export function SegmentedControl<Value extends string>({
             aria-disabled={disabled || undefined}
             onClick={disabled ? undefined : () => onChange(segment.value)}
             className={cx(
-              'inline-flex h-6 items-center gap-1.5 rounded-sm px-2.5',
-              'text-xs font-medium whitespace-nowrap',
+              'inline-flex items-center gap-1.5 rounded-sm whitespace-nowrap',
+              size === 'md' ? 'h-7 px-3 text-sm font-medium' : 'h-6 px-2.5 text-xs font-medium',
               'transition-colors transition-instant outline-none focus-visible:focus-ring',
               active ? 'bg-raised text-ink shadow-raised' : 'text-ink-muted hover:text-ink',
               disabled && 'opacity-45',
             )}
           >
+            {segment.icon !== undefined && (
+              <span className={cx('shrink-0', active ? 'text-accent' : 'text-ink-subtle')}>
+                {segment.icon}
+              </span>
+            )}
             {segment.label}
             {segment.badge}
           </button>

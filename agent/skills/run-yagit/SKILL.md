@@ -73,6 +73,11 @@ continues across runs so a before is never overwritten by its after. The driver
 prints the full path of each one; **look at the file**, a 401 page and a
 workbench are the same size on disk.
 
+An agent whose sandbox denies `.yagit/**` — this repository's own manifest
+does, for the token and the log that live beside the shots — can name the file
+instead: `shot /abs/path/to/picture.png` writes there, outside the numbered
+sequence, and the scratchpad directory is the place to point it at.
+
 | command | what it does |
 | --- | --- |
 | `open` | Exchange the token for the session cookie, load `/`, wait for the workbench |
@@ -83,7 +88,7 @@ workbench are the same size on disk.
 | `wait <selector>` | Block until the first match is visible |
 | `text <selector>` | Print the first match's text |
 | `count <selector>` | How many match |
-| `shot [name]` | Full-page screenshot into `.yagit/shots/` |
+| `shot [name]` | Full-page screenshot into `.yagit/shots/`, or to `name` when it is an absolute `.png` path |
 | `api <METHOD> <path> [json]` | Call the API with the token header |
 | `repo open\|close\|list [path\|id]` | Open a repository by path, close one by id, list the open ones |
 | `errors` | Console and page errors collected so far |
