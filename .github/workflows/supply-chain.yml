@@ -121,6 +121,11 @@ jobs:
 
       - uses: ossf/scorecard-action@2d1146689b8cda280b9bc96326124645441f03bc # v2.4.4
         with:
+          # The action refuses to start without a path to write. Nothing
+          # uploads the file: the grade that leaves this job is the one
+          # publish_results sends to the OpenSSF API.
+          results_file: scorecard.sarif
+          results_format: sarif
           # Publishing lets anyone check this repository's posture without
           # cloning it. Only ever runs on main: a fork's score is not this
           # project's.
