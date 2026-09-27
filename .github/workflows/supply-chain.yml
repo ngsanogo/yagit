@@ -103,17 +103,16 @@ jobs:
       - run: ./do audit
 
   # Scorecard grades this repository against OpenSSF's checklist — pinned
-  # dependencies, branch protection, signed releases, whether a fuzzer and a
-  # SAST run at all — and publishes the result to the Security tab. It is the
-  # meta-check: it is what notices when one of the others is quietly turned off.
+  # dependencies, branch protection, signed releases — and publishes the grade
+  # to the OpenSSF API. It is the meta-check: it is what notices when one of
+  # the others is quietly turned off.
   scorecard:
     name: OpenSSF Scorecard
     runs-on: ubuntu-latest
 
     permissions:
       contents: read # check out the code
-      security-events: write # publish the results to the Security tab
-      id-token: write # sign the results published to the Security tab
+      id-token: write # sign the results published to the OpenSSF API
 
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -122,13 +121,7 @@ jobs:
 
       - uses: ossf/scorecard-action@2d1146689b8cda280b9bc96326124645441f03bc # v2.4.4
         with:
-          results_file: scorecard.sarif
-          results_format: sarif
-          # Publishing is what puts the result on the Security tab, and what
-          # lets anyone check this repository's posture without cloning it.
-          # Only ever runs on main: a fork's score is not this project's.
+          # Publishing lets anyone check this repository's posture without
+          # cloning it. Only ever runs on main: a fork's score is not this
+          # project's.
           publish_results: ${{ github.event_name != 'pull_request' }}
-
-      - uses: github/codeql-action/upload-sarif@1c5b675653bb5c22dbe9b12b556ec555138e09fd # v4.38.1
-        with:
-          sarif_file: scorecard.sarif
