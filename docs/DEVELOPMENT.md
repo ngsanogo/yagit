@@ -144,7 +144,7 @@ same place, one of them goes stale and nobody notices.
 | `./do drive [url]` | Drive the running interface from stdin: one command per line, in a headless browser. |
 | `./do token` | Print the session token, to query the API with curl — once the stack answers it. |
 | `./do version` | Print the version this checkout would be released as, if anything warrants one. |
-| `./do agent sync\|check` | Regenerate the tool shims under `claude/` and `cursor/` from `agent/`, or verify they match. |
+| `./do agent sync\|check` | Refresh the links to `agent/` (`AGENTS.md`, `.agents/skills`), or verify they match. |
 
 `./do test e2e` starts the daemon and Vite for you, or reuses them when
 `./do up` is already running in another terminal. No test requires you to have

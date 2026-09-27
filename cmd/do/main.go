@@ -167,7 +167,7 @@ var commands = map[string]command{
 	},
 	"agent": {
 		usage:   "agent sync|check",
-		summary: "Sync or verify tool shims generated from agent/.",
+		summary: "Refresh or verify the links from agent/.",
 		run:     runAgent,
 	},
 }
@@ -278,10 +278,10 @@ type project struct {
 	directory string
 
 	// copyShims makes `agent sync` duplicate the files it would otherwise
-	// link, which is the shim tree a Windows checkout gets when the process
-	// has no right to create a symlink. Only a test sets it: os.Symlink
-	// succeeds on every machine this repository's tests run on, so that half
-	// of sync is unreachable by construction and would be executed nowhere.
+	// link, which is what a Windows checkout gets when the process has no
+	// right to create a symlink. Only a test sets it: os.Symlink succeeds on
+	// every machine this repository's tests run on, so that half of sync is
+	// unreachable by construction and would be executed nowhere.
 	copyShims bool
 }
 

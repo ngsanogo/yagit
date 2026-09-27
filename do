@@ -20,7 +20,7 @@
 #   ./do drive [url]              drive the running interface from stdin
 #   ./do token                    print the session token, to query the API with curl
 #   ./do version                  print the version this checkout would be released as
-#   ./do agent sync|check         regenerate the tool shims from agent/, or verify them
+#   ./do agent sync|check         refresh the links from agent/, or verify them
 #
 # `./do help` prints the same list from the program itself, and `./do <cmd>
 # --help` prints one command's usage.

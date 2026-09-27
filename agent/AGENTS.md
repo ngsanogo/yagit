@@ -38,7 +38,7 @@ other toolchain commands directly — CI only verifies `./do` paths.
 | `./do drive [url]` | Drive the running interface from stdin, in a headless browser |
 | `./do token` | Print session token for API calls, once the stack answers it |
 | `./do version` | Print release version from Conventional Commits since last tag |
-| `./do agent sync\|check` | Regenerate tool shims from `agent/`, or verify they match (CI gate) |
+| `./do agent sync\|check` | Refresh the links to `agent/` (`AGENTS.md`, `.agents/skills`), or verify they match |
 
 Every command takes `--help` and prints its usage without doing anything else.
 
@@ -55,6 +55,13 @@ Before a pull request is ready:
 2. `./do test` must pass
 
 `./do audit` is informative only — it queries live vulnerability databases.
+
+## Paths an agent does not read
+
+The `.ignore` file at the repository root lists them, in the same syntax as
+`.gitignore`. It covers secrets, this machine's session, build output, and
+generated files that are tracked but not worth reading. Respect it even when
+a search tool does not.
 
 ## Architecture
 
@@ -99,7 +106,18 @@ These are review rules, not decoration:
   [docs/adr/](../docs/adr/README.md). Reversing a decision means a new ADR, not
   permission from the old one.
 
-Detailed conventions: [agent/rules/](rules/).
+Always read [agent/rules/core.md](rules/core.md). Read the others when the
+change touches that part of the tree:
+
+| When the change touches | Read |
+| --- | --- |
+| Go (`cmd/`, `internal/`, `*.go`) | [agent/rules/go.md](rules/go.md) |
+| the web UI (`web/`) | [agent/rules/web.md](rules/web.md) |
+| tests | [agent/rules/testing.md](rules/testing.md) |
+
+Workflows for one task — committing, opening a pull request, running the app —
+live in [agent/skills/](skills/). `.agents/skills` is a link to that directory,
+which is where an agent looks for them.
 
 ## Commits and pull requests
 
@@ -149,6 +167,7 @@ it.
 - Run `go test`, `npm run`, or `golangci-lint` directly — use `./do`
 - Hard-code ports or tool versions outside their single source files
 - Add `_ = err` or empty error handlers without a comment explaining why
-- Edit `cursor/` or `claude/` directly — edit `agent/` and run `./do agent sync`
+- Edit `AGENTS.md` or `.agents/skills` directly — they are links. Edit `agent/`
+  and run `./do agent sync`
 - Treat ADRs as immutable law
 - Add comments that restate the code below them

@@ -1,0 +1,25 @@
+# Paths an indexer skips, and that an agent does not read. Same syntax as
+# .gitignore. Git's own list is .gitignore; this one also names tracked files
+# that are generated and not worth reading, and personal notes (`*.local.md`).
+
+# YAGIT_ROOT — the boundary the daemon refuses to open outside of. Machine
+# local and never committed; .env.example documents every key it holds.
+.env
+
+# The session token, and the end-to-end stack log: it traces every git
+# command the daemon ran and every repository path it touched. `./do test
+# e2e` prints that log itself when the stack fails to start, which is the
+# one moment it is worth reading.
+.yagit/
+
+# Dependencies, binaries, and the frontend build. `./do build` reproduces
+# all three.
+web/node_modules/
+dist/
+internal/assets/dist/
+
+# Generated, and reviewed by tooling rather than by eye.
+web/package-lock.json
+
+# Personal notes for this checkout.
+*.local.md

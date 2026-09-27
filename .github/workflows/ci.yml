@@ -262,12 +262,12 @@ jobs:
       # not necessarily materialise the committed symlinks on a Windows
       # checkout, and checking whatever it left behind would be a test of
       # git's configuration rather than of yagit's.
-      - name: Sync the agent shims
+      - name: Sync the agent links
         if: runner.os == 'Windows'
         shell: pwsh
         run: .\do.cmd agent sync
 
-      - name: Agent shims must match agent/
+      - name: Agent links must match agent/
         if: runner.os == 'Windows'
         shell: pwsh
         run: .\do.cmd agent check
