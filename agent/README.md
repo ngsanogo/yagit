@@ -1,49 +1,48 @@
 # Agent configuration
 
 Everything an AI coding agent needs to work in this repository lives here.
-Tool-specific directories at the repository root — `cursor/` and `claude/` — are
-**generated shims** that delegate here. Do not edit them by hand; run
-`./do agent sync` after changing anything under `agent/`.
+The repository publishes two links to it, and nothing else:
+
+- `AGENTS.md` at the repository root points at [`AGENTS.md`](AGENTS.md)
+- `.agents/skills` points at [`skills/`](skills/)
+
+Do not edit the links by hand. Run `./do agent sync` if one is missing, and
+`./do agent check` to verify them. CI runs the check as part of `./do lint`.
 
 ## Layout
 
 ```
 agent/
-  AGENTS.md         entry point (also linked as AGENTS.md at the repo root)
-  manifest.yaml     rule scopes, skill list, denied paths — drives ./do agent sync
+  AGENTS.md         entry point, linked as AGENTS.md at the repository root
   rules/            modular instructions, one concern per file
   skills/           workflow skills (SKILL.md per directory)
 ```
 
+`AGENTS.md` says which rule file applies to which part of the tree. Skills
+follow the [Agent Skills](https://agentskills.io) layout: a directory with a
+`SKILL.md` file and optional supporting files. `.agents/skills` is where an
+agent looks for them.
+
 ## Contributing
 
 1. Edit files under `agent/` only.
-2. Run `./do agent sync` to regenerate `cursor/` and `claude/`.
+2. Run `./do agent sync` when a link is missing, or when this checkout had to
+   copy the targets instead of linking them.
 3. Run `./do agent check` — CI runs this in the lint gate.
 
-Rules are plain Markdown without tool-specific frontmatter. The sync command
-translates scopes into each tool's format.
+On a checkout that can create symlinks, editing a file under `agent/` is
+visible immediately: the links follow the files. On a checkout that copied
+them, `./do agent check` fails until sync refreshes the copies.
 
-Skills follow the [Agent Skills](https://agentskills.io) layout: a directory
-with a `SKILL.md` file and optional supporting files.
+## Paths an agent does not read
 
-## Denied paths
+[`.ignore`](../.ignore) lists them, in the same syntax as `.gitignore`. It
+covers this machine's `.env` and `.yagit/`, the build output `./do build`
+reproduces, and `web/package-lock.json`, which is tracked and generated.
+Respect the list even when a search tool does not.
 
-The `deny:` section of the manifest lists what no agent reads: this machine's
-`.env` and `.yagit/`, and the build output `./do build` reproduces. Paths are
-repository-relative and carry a comment saying why — never anchored with a
-leading slash, which sync refuses: `/dist/**` would render as an absolute path
-from the filesystem root and deny nothing. Sync renders each entry into
-`claude/settings.json` as an anchored `Read()` rule; Cursor has no counterpart
-because its settings schema is not one this project has established. See
-[ADR 0019](../docs/adr/0019-the-manifest-carries-what-agents-may-not-read.md).
+## Personal files
 
-## Personal overrides
-
-Local-only overrides belong outside version control:
-
-- `CLAUDE.local.md` at the repository root, and `cursor/rules/local.mdc`
-  beside it — one document in the two formats the two tools read
-- `claude/settings.local.json` or `cursor/settings.local.json`
-
-These paths are listed in `.gitignore`.
+Notes that belong to one checkout match `*.local.md`. That pattern is in
+`.gitignore` and in `.ignore`. Such a file is not a way to configure the
+project.

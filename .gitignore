@@ -13,14 +13,8 @@
 # Local machine configuration (the YAGIT_ROOT path) — never tracked
 /.env
 
-# Personal agent overrides — never tracked. The two `local` rule files are one
-# document in two formats, because the two tools read different ones; they are
-# written by hand rather than by `./do agent sync`, which only generates what
-# is tracked.
-/CLAUDE.local.md
-/cursor/rules/local.mdc
-/claude/settings.local.json
-/cursor/settings.local.json
+# Personal notes for this checkout. Never tracked.
+*.local.md
 
 # Runtime state: session token, e2e fixtures, air's build directory, logs,
 # screenshots. One directory rather than three scattered ones, and air is given
