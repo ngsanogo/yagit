@@ -188,10 +188,9 @@ On `main` the ruleset requires:
 - **A pull request** before merging (no direct pushes, no administrator
   bypass).
 - **Status checks** against an up-to-date branch: `Lint`, `Test`, `Build`,
-  `Analyze go`, `Analyze javascript-typescript`, `Dependency review`,
-  `Go on macOS`, and `Go on Windows` — the job names in
-  `.github/workflows/ci.yml`, `codeql.yml` and `supply-chain.yml` are stable
-  on purpose so this list does not drift.
+  `Dependency review`, `Go on macOS`, and `Go on Windows` — the job names in
+  `.github/workflows/ci.yml` and `supply-chain.yml` are stable on purpose so
+  this list does not drift.
 - **CODEOWNERS review** on other people's changes, resolved review threads,
   and dismissal of stale reviews on new pushes.
 - **No minimum approval count** while there is one maintainer — raise it to 1

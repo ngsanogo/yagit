@@ -66,8 +66,7 @@ const maxLoggedValue = 512
 //
 // A log line is a LINE. A branch name holding a newline writes a second entry
 // of somebody else's choosing into the daemon's log, and the reader of that
-// log has no way to tell it from one yagit wrote — which is the whole of
-// CodeQL's go/log-injection, and it is right. slog's own handlers quote most
+// log has no way to tell it from one yagit wrote. slog's own handlers quote most
 // of it, but which handler is configured is a property of how the daemon was
 // started, and a guarantee that depends on that is not a guarantee.
 //
