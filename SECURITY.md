@@ -11,7 +11,7 @@ demonstrates it. Expect a first reply within a week.
 
 ## Incident response
 
-There is one maintainer. A report, or a finding from CodeQL, Dependabot or
+There is one maintainer. A report, or a finding from Dependabot or
 Scorecard, is handled in this order:
 
 1. **Triage.** What does an attacker gain, and is it already being exploited?
@@ -160,13 +160,14 @@ These are what this repository runs today. The workflows live in
 
 - Private vulnerability reporting (the form above).
 - Secret scanning and push protection.
-- CodeQL on Go and the frontend, `security-extended` query set, on every
-  pull request and weekly on `main` (`.github/workflows/codeql.yml`).
 - Dependabot on npm, Go modules and GitHub Actions, with a seven-day
   cooldown. `./do audit` is the same check a contributor runs, and covers
   the Go standard library which Dependabot does not.
-- OpenSSF Scorecard, publishing results to the repository Security tab
-  (`.github/workflows/supply-chain.yml`).
+- OpenSSF Scorecard, publishing its grade to the OpenSSF API
+  (`.github/workflows/supply-chain.yml`). The repository does not run a
+  static analyser whose licence is not an OSI-approved licence, or whose
+  terms restrict commercial use. Known vulnerabilities in dependencies are
+  covered by dependency review and by `./do audit`.
 - The install scripts, run end to end on Linux, macOS and Windows whenever they
   change and weekly (`.github/workflows/installers.yml`). They are how a release
   reaches a machine: each job downloads a published release, checks that the
@@ -184,9 +185,8 @@ requires CODEOWNERS review on other people's changes, requires review threads
 to be resolved, dismisses stale reviews on new pushes, and requires the named
 status checks below to pass against an up-to-date branch. Nobody — including
 administrators — has a bypass. The required checks are the job names in
-`.github/workflows/ci.yml`, `codeql.yml` and `supply-chain.yml`: `Lint`,
-`Test`, `Build`, `Go on macOS`, `Go on Windows`, `Analyze go`,
-`Analyze javascript-typescript`, and `Dependency review`.
+`.github/workflows/ci.yml` and `supply-chain.yml`: `Lint`, `Test`, `Build`,
+`Go on macOS`, `Go on Windows`, and `Dependency review`.
 
 It does **not** require a minimum number of approving reviews. There is one
 maintainer; GitHub will not count a self-approval, and inventing a second
@@ -197,9 +197,8 @@ are accepted risk, not a missing toggle.
 
 ### What Scorecard is expected to keep complaining about
 
-Scorecard grades the repository and opens code-scanning alerts for low scores.
-Some of those alerts are real gaps; some are the wrong shape for a
-one-maintainer project that is days old. Treat them as follows:
+Scorecard grades the repository. Some checks stay low on purpose for a
+one-maintainer project. Treat them as follows:
 
 | Check | Expected | Why |
 | --- | --- | --- |
@@ -207,11 +206,10 @@ one-maintainer project that is days old. Treat them as follows:
 | Code-Review | Low until there are other reviewers | Merges by the sole maintainer have no external approval. That is honest, not an oversight. |
 | Maintained | Low for the first 90 days | Scorecard refuses to credit a repository younger than ninety days. Revisit after that window; commit activity is already there. |
 | CII-Best-Practices | Low until a badge is earned | The OpenSSF Best Practices badge is a separate questionnaire at bestpractices.dev. Fill it when the project has enough history to answer in substance, not to silence the alert. |
+| SAST | Low | No static analyser runs. The one that used to was dropped because its licence is not an OSI-approved licence and restricts commercial use. Dependency review and `./do audit` remain. |
 
-A banner that says Scorecard is "reporting errors" on the code-scanning tools
-page usually means those findings (SARIF level `error`), not that the workflow
-failed. The Scorecard job in `supply-chain.yml` is the place to look if the
-upload itself is broken.
+The Scorecard job in `supply-chain.yml` is where a failed run shows up. The
+grade itself is the one published to the OpenSSF API.
 
 ## Design consequences
 
