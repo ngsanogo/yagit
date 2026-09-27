@@ -1,6 +1,8 @@
 # 0013 — Agent configuration is tool-agnostic
 
-**Status:** new.
+**Status:** refined by [0037](0037-the-repository-ships-the-open-agent-format-only.md).
+Instructions still live under `agent/`. The generated per-tool directories do
+not.
 
 ## The problem
 
@@ -14,10 +16,10 @@ one copy goes stale.
 All agent instructions live under `agent/` at the repository root. Nothing
 tool-specific is written there.
 
-Two shim directories — `cursor/` and `claude/` — are generated from `agent/` by
-`./do agent sync`. They contain translated rule frontmatter and symlinks to
-skills. Root symlinks (`.cursor`, `.claude`, `AGENTS.md`, `CLAUDE.md`) point
-into those shims so each tool discovers configuration in its expected place.
+A shim directory per tool is generated from `agent/` by `./do agent sync`.
+Each one contains translated rule frontmatter and symlinks to skills. Links at
+the repository root point into those shims so a tool discovers configuration
+where it looks. `AGENTS.md` is one of those links.
 
 `./do agent check` verifies the shims match `agent/`; it runs as part of
 `./do lint`.
@@ -29,9 +31,8 @@ into those shims so each tool discovers configuration in its expected place.
 - Rule scopes are declared once in `agent/manifest.yaml` and translated into
   each tool's frontmatter format by the sync command — a small amount of
   machinery to avoid duplicating rule bodies.
-- Personal overrides (`CLAUDE.local.md`, `settings.local.json`) stay outside
-  version control; tool-specific permission files are not in scope yet and would
-  live in the shims only if added later.
+- Personal overrides stay outside version control. Tool-specific permission
+  files are not in scope yet and would live in the shims only if added later.
 
 ## What was decided against
 

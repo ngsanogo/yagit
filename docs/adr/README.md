@@ -19,13 +19,13 @@ a record that says so and why — not asking permission from the old one.
 | [0010](0010-every-shipped-platform-is-a-gate.md) | Every platform we ship a binary for runs a gate | new |
 | [0011](0011-tailwind-generates-the-utilities.md) | Tailwind generates the utilities from `tokens.css` | kept |
 | [0012](0012-lanes-are-assigned-in-the-daemon.md) | Lanes are assigned in the daemon, and the history is held there | new |
-| [0013](0013-agent-config-is-tool-agnostic.md) | Agent configuration is tool-agnostic, under `agent/` | new |
+| [0013](0013-agent-config-is-tool-agnostic.md) | Agent configuration is tool-agnostic, under `agent/` | refined by [0037](0037-the-repository-ships-the-open-agent-format-only.md) |
 | [0014](0014-a-breaking-configuration-change-announces-itself.md) | A breaking configuration change announces itself, starting with the refusal | new |
 | [0015](0015-the-work-tree-is-polled.md) | The repository is watched, the work tree is polled | completes 0008 |
 | [0016](0016-the-graph-draws-what-is-checked-out.md) | The graph draws what is checked out, and every ref is a choice | new |
 | [0017](0017-yagit-edits-files.md) | yagit edits files, and that is not a git operation | new |
 | [0018](0018-overlays-are-the-platforms.md) | Overlays are the platform's top layer, not a library's | new |
-| [0019](0019-the-manifest-carries-what-agents-may-not-read.md) | The manifest carries what agents may not read | completes 0013 |
+| [0019](0019-the-manifest-carries-what-agents-may-not-read.md) | The manifest carries what agents may not read | **reversed by [0037](0037-the-repository-ships-the-open-agent-format-only.md)** |
 | [0020](0020-the-network-is-gits-and-so-are-the-credentials.md) | The network is git's, and so are the credentials | new |
 | [0021](0021-a-shown-command-is-not-a-setting.md) | A command the interface shows is a command configuration cannot change | new |
 | [0022](0022-a-merge-is-checked-before-it-runs.md) | A merge is checked against the repository before it runs | completes 0021 |
@@ -43,6 +43,7 @@ a record that says so and why — not asking permission from the old one.
 | [0034](0034-the-diff-is-drawn-not-edited.md) | The diff is drawn, not edited | **reverses [0004](0004-diffs-are-codemirror.md)** |
 | [0035](0035-secrets-get-an-owner-only-acl-on-windows.md) | Secrets get an owner-only ACL on Windows | new |
 | [0036](0036-a-reverse-proxy-is-a-public-url-not-a-wider-listen.md) | A reverse proxy is a public URL, not a wider listen address | new |
+| [0037](0037-the-repository-ships-the-open-agent-format-only.md) | The repository ships the open agent format only | reverses the shim half of 0013, and 0019 |
 
 ## Alternatives considered without a full record
 

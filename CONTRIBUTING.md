@@ -230,8 +230,8 @@ user-facing strings — so nobody has to guess which half they are reading.
 ## Agent configuration
 
 Instructions for AI coding agents live in [`agent/`](agent/). That directory is
-the only place to edit them. The `cursor/` and `claude/` directories at the
-repository root are generated shims — run `./do agent sync` after changing
-`agent/`, and `./do agent check` (part of `./do lint`) verifies they match.
+the only place to edit them. `AGENTS.md` and `.agents/skills` at the repository
+root are links to it — run `./do agent sync` if a link is missing, and
+`./do agent check` (part of `./do lint`) verifies they match.
 
 See [`agent/README.md`](agent/README.md) for the layout.
