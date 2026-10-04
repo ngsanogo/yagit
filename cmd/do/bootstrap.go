@@ -47,7 +47,7 @@ func (p *project) bootstrap(withBrowsers bool) error {
 // the frontend install compares the lockfile it recorded against the one on
 // disk. Both questions answer themselves; a stamp for the pair would be a
 // third thing to keep true, and the first `./do up` after a `git pull` would
-// pay a full `npm ci` for a lockfile that had not changed.
+// pay a full install for a lockfile that had not changed.
 func (p *project) ensureBootstrapped() error {
 	if err := p.ensureStateDirectory(); err != nil {
 		return err

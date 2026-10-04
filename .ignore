@@ -19,7 +19,7 @@ dist/
 internal/assets/dist/
 
 # Generated, and reviewed by tooling rather than by eye.
-web/package-lock.json
+web/pnpm-lock.yaml
 
 # Personal notes for this checkout.
 *.local.md

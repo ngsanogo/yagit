@@ -66,7 +66,7 @@ jobs:
           cache: false
 
       # The caches below name paths inside .yagit/, which is where the shim
-      # points mise, Go, npm and Playwright. Caching ~/.npm or the default mise
+      # points mise, Go, pnpm and Playwright. Caching pnpm's or mise's default
       # directory would restore data that nothing in the job goes on to read.
       - name: Cache the toolchain
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
@@ -86,12 +86,12 @@ jobs:
           key: go-${{ runner.os }}-${{ hashFiles('go.sum', 'mise.lock') }}
           restore-keys: go-${{ runner.os }}-
 
-      - name: Cache npm downloads
+      - name: Cache the pnpm store
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
-          path: .yagit/npm-cache
-          key: npm-${{ runner.os }}-${{ hashFiles('web/package-lock.json') }}
-          restore-keys: npm-${{ runner.os }}-
+          path: .yagit/pnpm-store
+          key: pnpm-${{ runner.os }}-${{ hashFiles('web/pnpm-lock.yaml') }}
+          restore-keys: pnpm-${{ runner.os }}-
 
       - run: ./do lint
 
@@ -116,7 +116,7 @@ jobs:
           cache: false
 
       # The caches below name paths inside .yagit/, which is where the shim
-      # points mise, Go, npm and Playwright. Caching ~/.npm or the default mise
+      # points mise, Go, pnpm and Playwright. Caching pnpm's or mise's default
       # directory would restore data that nothing in the job goes on to read.
       - name: Cache the toolchain
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
@@ -136,12 +136,12 @@ jobs:
           key: go-${{ runner.os }}-${{ hashFiles('go.sum', 'mise.lock') }}
           restore-keys: go-${{ runner.os }}-
 
-      - name: Cache npm downloads
+      - name: Cache the pnpm store
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
-          path: .yagit/npm-cache
-          key: npm-${{ runner.os }}-${{ hashFiles('web/package-lock.json') }}
-          restore-keys: npm-${{ runner.os }}-
+          path: .yagit/pnpm-store
+          key: pnpm-${{ runner.os }}-${{ hashFiles('web/pnpm-lock.yaml') }}
+          restore-keys: pnpm-${{ runner.os }}-
 
       # Chromium is ~150 MB. Keyed on the lockfile so the cache is dropped
       # exactly when the pinned Playwright — and thus the browser — changes.
@@ -149,7 +149,7 @@ jobs:
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: .yagit/browsers
-          key: playwright-${{ runner.os }}-${{ hashFiles('web/package-lock.json') }}
+          key: playwright-${{ runner.os }}-${{ hashFiles('web/pnpm-lock.yaml') }}
 
       # `./do test` starts the daemon and Vite by itself for the end-to-end
       # tests, so there is nothing to launch here.
@@ -215,7 +215,7 @@ jobs:
           cache: false
 
       # The caches below name paths inside .yagit/, which is where the shim
-      # points mise, Go, npm and Playwright. Caching ~/.npm or the default mise
+      # points mise, Go, pnpm and Playwright. Caching pnpm's or mise's default
       # directory would restore data that nothing in the job goes on to read.
       - name: Cache the toolchain
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
@@ -293,7 +293,7 @@ jobs:
           cache: false
 
       # The caches below name paths inside .yagit/, which is where the shim
-      # points mise, Go, npm and Playwright. Caching ~/.npm or the default mise
+      # points mise, Go, pnpm and Playwright. Caching pnpm's or mise's default
       # directory would restore data that nothing in the job goes on to read.
       - name: Cache the toolchain
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
@@ -313,12 +313,12 @@ jobs:
           key: go-${{ runner.os }}-${{ hashFiles('go.sum', 'mise.lock') }}
           restore-keys: go-${{ runner.os }}-
 
-      - name: Cache npm downloads
+      - name: Cache the pnpm store
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
-          path: .yagit/npm-cache
-          key: npm-${{ runner.os }}-${{ hashFiles('web/package-lock.json') }}
-          restore-keys: npm-${{ runner.os }}-
+          path: .yagit/pnpm-store
+          key: pnpm-${{ runner.os }}-${{ hashFiles('web/pnpm-lock.yaml') }}
+          restore-keys: pnpm-${{ runner.os }}-
 
       # `./do test release` drives the built binary in a browser, so this job
       # needs Chromium as much as the test job does.
@@ -326,7 +326,7 @@ jobs:
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: .yagit/browsers
-          key: playwright-${{ runner.os }}-${{ hashFiles('web/package-lock.json') }}
+          key: playwright-${{ runner.os }}-${{ hashFiles('web/pnpm-lock.yaml') }}
 
       - run: ./do build
 

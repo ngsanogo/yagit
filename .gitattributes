@@ -15,7 +15,7 @@
 # of language stats. Deliberately NOT `-diff`: that marks a file binary, and a
 # lockfile nobody can read in review is how an unresolvable dependency set gets
 # merged.
-web/package-lock.json linguist-generated=true
+web/pnpm-lock.yaml linguist-generated=true
 mise.lock linguist-generated=true
 
 # Vite's output is committed only as an empty placeholder, but keep the

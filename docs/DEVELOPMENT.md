@@ -5,8 +5,8 @@ use the one-line installer in the [README](../README.md) once a release exists.
 
 ## Requirements
 
-[mise](https://mise.jdx.dev), and nothing else. It installs Go, Node, air,
-golangci-lint, shellcheck, actionlint and zizmor at the versions pinned in
+[mise](https://mise.jdx.dev), and nothing else. It installs Go, Node, pnpm,
+air, golangci-lint, shellcheck, actionlint and zizmor at the versions pinned in
 [`mise.toml`](../mise.toml) — and at the checksums pinned in
 [`mise.lock`](../mise.lock) — in user space, without sudo and without touching
 `/usr/local`.
@@ -74,8 +74,8 @@ for it again only when its own session cookie is gone. `./do up --new-token`
 replaces it, and logs every browser out.
 
 Everything the checkout needs at runtime lives under `.yagit/` in the
-repository — the toolchain mise installs, Go's build and module caches, npm's
-cache, Playwright's browsers, the session token, the logs. Nothing is written
+repository — the toolchain mise installs, Go's build and module caches, pnpm's
+store, Playwright's browsers, the session token, the logs. Nothing is written
 to your home directory, and removing the clone removes all of it.
 
 `./do up` installs what it needs on first run. `./do bootstrap --browsers`
@@ -123,7 +123,7 @@ own default, which every other Vite project on the machine would also want.
 ## Commands
 
 Everything goes through `./do`. There is no second path: no Makefile, no
-`npm run` to type by hand, no container to build. When two paths lead to the
+`pnpm run` to type by hand, no container to build. When two paths lead to the
 same place, one of them goes stale and nobody notices.
 
 | Command | Effect |
@@ -189,7 +189,7 @@ what it costs is in [docs/adr/](adr/README.md).
   ports in `cmd/do/main.go`, the visual values in `tokens.css`. A value written
   in three files is a value that will drift.
 - **Everything third-party is pinned by content, not by name.** `mise.lock`
-  holds a SHA256 per tool per platform, `web/package-lock.json` does the same
+  holds a SHA256 per tool per platform, `web/pnpm-lock.yaml` does the same
   for the frontend, and every GitHub Action is referenced by commit digest. A
   version tag is a mutable pointer someone else controls; a hash is not.
 - **The daemon listens on the loopback unless told otherwise**, and what

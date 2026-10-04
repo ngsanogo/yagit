@@ -15,13 +15,13 @@
 # mise.lock beside this file is not a second source: it is a SHA256 for each of
 # these versions on every platform, so a contributor joining next month gets
 # the same bytes as CI — and a download that does not match is refused instead
-# of installed. Same relationship as package.json to package-lock.json.
+# of installed. Same relationship as package.json to pnpm-lock.yaml.
 #
 # Changing a version here updates the lockfile for THIS platform on the next
 # `mise install`. Run `mise lock` to refresh all of them; CI goes red on a
 # lockfile that only covers the machine it was edited on.
 #
-# Playwright is deliberately absent: it is an npm dev dependency of the
+# Playwright is deliberately absent: it is a dev dependency of the
 # frontend, pinned in web/package.json, and listing it here too would recreate
 # exactly that duplication.
 
@@ -40,6 +40,16 @@ go = "1.27.1"
 
 # The frontend.
 node = "26.10.0"
+
+# The frontend's package manager. Pinned here like every other tool, because
+# Node stopped shipping corepack with 25 and nothing else would fetch it.
+#
+# web/package.json repeats the version in `packageManager`, which is the one
+# value this file does not hold alone. pnpm reads that field, and
+# web/pnpm-workspace.yaml tells it to refuse a mismatch rather than download
+# the other version — so the two cannot drift without the first command
+# saying so.
+pnpm = "12.9.0"
 
 # Hot reload for the daemon during `./do dev` (see .air.toml).
 air = "1.67.4"

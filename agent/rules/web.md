@@ -58,10 +58,10 @@ first frame current.
 
 ## Commands
 
-Use `./do up`, `./do test web`, `./do test e2e`, `./do lint` — not `npm run`
+Use `./do up`, `./do test web`, `./do test e2e`, `./do lint` — not `pnpm run`
 directly. `./do` ensures the toolchain and environment match CI.
 
 ## Formatting
 
-Prettier and ESLint via `./do lint` (`npm run lint` and `npm run fmt:check`
+Prettier and ESLint via `./do lint` (`pnpm run lint` and `pnpm run fmt:check`
 inside `./do` only).

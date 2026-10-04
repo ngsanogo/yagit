@@ -17,7 +17,7 @@ session. Full architecture:
 
 ## Commands
 
-Every project action goes through `./do`. Do not run `go test`, `npm run`, or
+Every project action goes through `./do`. Do not run `go test`, `pnpm run`, or
 other toolchain commands directly — CI only verifies `./do` paths.
 
 | Command | Effect |
@@ -43,7 +43,7 @@ other toolchain commands directly — CI only verifies `./do` paths.
 Every command takes `--help` and prints its usage without doing anything else.
 
 Prerequisite: [mise](https://mise.jdx.dev) — installs pinned toolchain from
-`mise.toml` / `mise.lock`. The `./do` shim points mise, Go, npm and Playwright
+`mise.toml` / `mise.lock`. The `./do` shim points mise, Go, pnpm and Playwright
 at directories under `.yagit/`, so everything the checkout downloads lives
 inside it and `rm -rf` on the clone removes all of it.
 
@@ -164,7 +164,7 @@ it.
 
 ## Do not
 
-- Run `go test`, `npm run`, or `golangci-lint` directly — use `./do`
+- Run `go test`, `pnpm run`, or `golangci-lint` directly — use `./do`
 - Hard-code ports or tool versions outside their single source files
 - Add `_ = err` or empty error handlers without a comment explaining why
 - Edit `AGENTS.md` or `.agents/skills` directly — they are links. Edit `agent/`

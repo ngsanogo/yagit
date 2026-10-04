@@ -68,7 +68,7 @@ func (p *project) startDevStack(environment []string, output io.Writer) (*devSta
 
 	launches := [][]string{
 		{"air", "-c", ".air.toml"},
-		{"npm", "--prefix", "web", "run", "dev"},
+		{"pnpm", "--dir", "web", "run", "dev"},
 	}
 
 	for _, launch := range launches {

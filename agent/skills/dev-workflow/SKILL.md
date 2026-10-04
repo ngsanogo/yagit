@@ -1,6 +1,6 @@
 ---
 name: dev-workflow
-description: Run yagit development, build, test, and lint commands through ./do. Use when starting dev servers, running tests, linting, building, or when tempted to run go/npm commands directly.
+description: Run yagit development, build, test, and lint commands through ./do. Use when starting dev servers, running tests, linting, building, or when tempted to run go/pnpm commands directly.
 ---
 
 # Development workflow
@@ -25,7 +25,7 @@ The token is the checkout's, not the run's: stopping and starting the stack
 leaves an open browser tab logged in. `./do up --new-token` replaces it, and
 logs every browser out.
 
-The toolchain (mise, Go caches, npm cache, Playwright browsers) lives under
+The toolchain (mise, Go caches, pnpm store, Playwright browsers) lives under
 `.yagit/` in the checkout — removing the clone removes all of it. `./do up`
 bootstraps on first run; `./do bootstrap --browsers` adds Chromium for e2e.
 

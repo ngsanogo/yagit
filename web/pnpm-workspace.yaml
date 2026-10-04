@@ -1,0 +1,15 @@
+# pnpm's settings for the frontend. Two, and each closes a door pnpm leaves
+# open by default.
+
+# pnpm compares itself with `packageManager` in package.json, and by default
+# answers a mismatch by downloading the other version and running that — a
+# binary mise.lock never checked. mise.toml is where the version is chosen;
+# when the two disagree the answer is to say so, not to pick one quietly.
+pmOnFail: error
+
+# `pnpm run` checks node_modules against the lockfile first, and by default
+# answers a mismatch by installing — which rewrites pnpm-lock.yaml to agree
+# with whatever package.json says. ./do installs with --frozen-lockfile so
+# that the lockfile only ever changes on purpose; a script that repairs it on
+# the way past would be the same quiet rewrite by another route.
+verifyDepsBeforeRun: error

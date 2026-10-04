@@ -15,16 +15,17 @@ import (
 // TestTerminateProcessTreeTakesTheChildrenToo covers the reason this function
 // signals a group rather than a process.
 //
-// `npm run dev` does not forward SIGTERM to the Vite it spawned. Killing npm's
-// own pid leaves Vite orphaned, its port held, and the next `./do dev`
-// failing on a strictPort error that names nothing useful. The shape below is
-// that one: a parent that ignores the signal, and a child that would outlive
-// it.
+// A parent does not necessarily forward SIGTERM to what it spawned. Killing
+// its own pid then leaves the child orphaned, its port held, and the next
+// `./do dev` failing on an error that names nothing useful — air and the
+// daemon it rebuilds, or a package manager and its Vite. The shape below is
+// that one: a parent that does not pass the signal on, and a child that would
+// outlive it.
 func TestTerminateProcessTreeTakesTheChildrenToo(t *testing.T) {
 	// A parent and a long-lived child, in one process group.
 	//
 	// The parent is deliberately not made to ignore SIGTERM. An earlier draft
-	// of this test used `trap '' TERM` to model npm, and it hung: a
+	// of this test used `trap '' TERM` to model such a parent, and it hung: a
 	// disposition of SIG_IGN is inherited across fork and exec, so the child
 	// ignored the signal too and nothing ever died. What distinguishes a group
 	// kill from a pid kill needs no trap — signalling the parent's pid alone

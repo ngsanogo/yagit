@@ -110,7 +110,7 @@ func parseStackFlags(command string, args []string) (stackOptions, error) {
 // was found out after `--restart` had already stopped the stack that was
 // working, and reported from the tail of its log rather than on this terminal.
 // Before the bootstrap as well, for the reason parseStackFlags gives: a line of
-// .env to fix should cost a sentence, not an `npm ci`.
+// .env to fix should cost a sentence, not an install.
 func (p *project) startStack(options stackOptions) error {
 	config, err := p.loadConfiguration()
 	if err != nil {
@@ -196,7 +196,7 @@ func runLogs(p *project, args []string) error {
 // It writes to the streams it was given, and opens no log of its own. `./do
 // up` points both at .yagit/dev.log before starting this process, which is
 // what puts a failure that happens BEFORE the stack starts — an unreadable
-// YAGIT_ROOT, a missing npm, a port already held — into the log the parent
+// YAGIT_ROOT, a missing pnpm, a port already held — into the log the parent
 // prints when its wait runs out. Opening the log here would truncate it and
 // then write that one line to a stream no terminal is attached to.
 func runStackSupervise(p *project) error {

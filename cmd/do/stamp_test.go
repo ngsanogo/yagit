@@ -11,11 +11,11 @@ import (
 //
 // `git checkout` and `git pull` rewrite the mtime of every file they touch,
 // identical contents included. A fingerprint made of timestamps would call the
-// frontend stale after every branch switch and charge a full `npm ci` for it —
+// frontend stale after every branch switch and charge an install for it —
 // and would restart a perfectly healthy background stack while it was at it.
 func TestFingerprintFollowsContentsAndNotTimestamps(t *testing.T) {
 	p := newProject(t)
-	lockfile := p.path("web", "package-lock.json")
+	lockfile := p.path("web", "pnpm-lock.yaml")
 	writeFile(t, lockfile, `{"one": true}`)
 
 	before, err := p.fingerprint(frontendStamp)
@@ -57,7 +57,7 @@ func TestFingerprintTellsMissingFromEmpty(t *testing.T) {
 		t.Fatalf("fingerprint: %v", err)
 	}
 
-	writeFile(t, p.path("web", "package-lock.json"), "")
+	writeFile(t, p.path("web", "pnpm-lock.yaml"), "")
 	empty, err := p.fingerprint(frontendStamp)
 	if err != nil {
 		t.Fatalf("fingerprint: %v", err)
@@ -70,7 +70,7 @@ func TestFingerprintTellsMissingFromEmpty(t *testing.T) {
 
 func TestStampIsCurrentOnlyAfterItIsRecorded(t *testing.T) {
 	p := newProject(t)
-	writeFile(t, p.path("web", "package-lock.json"), `{"one": true}`)
+	writeFile(t, p.path("web", "pnpm-lock.yaml"), `{"one": true}`)
 
 	if p.stampIsCurrent(frontendStamp) {
 		t.Error("work that was never recorded must not count as done")
@@ -83,7 +83,7 @@ func TestStampIsCurrentOnlyAfterItIsRecorded(t *testing.T) {
 		t.Error("work recorded for these sources must count as done")
 	}
 
-	writeFile(t, p.path("web", "package-lock.json"), `{"two": true}`)
+	writeFile(t, p.path("web", "pnpm-lock.yaml"), `{"two": true}`)
 	if p.stampIsCurrent(frontendStamp) {
 		t.Error("a source that moved must make the stamp stale")
 	}
@@ -93,7 +93,7 @@ func TestStampIsCurrentOnlyAfterItIsRecorded(t *testing.T) {
 // daemon rebuilt against it, and air watches .go files rather than go.sum.
 func TestStackStampWatchesBothLockfiles(t *testing.T) {
 	p := newProject(t)
-	writeFile(t, p.path("web", "package-lock.json"), "{}")
+	writeFile(t, p.path("web", "pnpm-lock.yaml"), "{}")
 	writeFile(t, p.path("go.sum"), "one\n")
 
 	if err := p.recordStamp(stackStamp); err != nil {

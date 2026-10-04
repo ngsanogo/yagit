@@ -16,7 +16,7 @@ cd yagit
 
 `./do` installs the pinned toolchain and the frontend dependencies on its own —
 there is no separate setup step to remember. All of it goes into `.yagit/`
-inside the checkout: mise's tools, Go's build and module caches, npm's cache,
+inside the checkout: mise's tools, Go's build and module caches, pnpm's store,
 Playwright's browsers. Nothing lands in your home directory, and `rm -rf` on
 the clone takes the lot with it.
 
@@ -37,7 +37,7 @@ prints it from the program itself, and `./do <command> --help` prints one
 command's usage without running it.
 
 This is not a style preference. `./do` is what CI runs, so anything you do
-outside it is unverified. If you find yourself typing `go test` or `npm run` by
+outside it is unverified. If you find yourself typing `go test` or `pnpm run` by
 hand, either the command belongs in `./do` or you are about to be surprised.
 
 `./do lint` and `./do test` are the gates. Both must pass before a pull request
