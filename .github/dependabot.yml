@@ -19,23 +19,19 @@ updates:
       default-days: 7
 
     groups:
-      # The linting and type-checking stack moves as one, major versions
-      # included.
+      # The linter and the compiler move as one, major versions included.
       #
-      # These packages constrain each other through peer dependencies, and
-      # splitting them produced a tree npm could not resolve at all: @eslint/js
-      # 10 landed while eslint was still 9, and `npm ci` refused the result.
-      # One pull request per package is one chance per package to merge half a
-      # migration.
+      # oxlint declares oxlint-tsgolint as a peer dependency with a floor, and
+      # oxlint-tsgolint carries its own TypeScript 7 to read types with — the
+      # same language `tsc --noEmit` checks from the typescript package. One
+      # pull request for the three keeps the linter, the checker inside it and
+      # the compiler beside it on the same TypeScript; one per package is one
+      # chance per package to merge a third of that.
       tooling:
         patterns:
-          - eslint
-          - "@eslint/*"
-          - "eslint-plugin-*"
+          - oxlint
+          - oxlint-tsgolint
           - typescript
-          - typescript-eslint
-          - "@typescript-eslint/*"
-          - globals
         update-types: [major, minor, patch]
 
       # vitest and its plugins move as one, major versions included.
@@ -59,16 +55,6 @@ updates:
         update-types: [minor, patch]
 
     ignore:
-      # typescript cannot leave 6 while typescript-eslint reads the types.
-      # Every release of it, canary included, declares `typescript >=4.8.4
-      # <6.1.0` as a peer dependency: 7 is the native compiler and the lint
-      # ecosystem has not followed. npm refuses the combination outright, so
-      # the bump cannot even install, let alone be merged. Unignore this when
-      # typescript-eslint accepts 7 — check with
-      # `npm view typescript-eslint peerDependencies`.
-      - dependency-name: "typescript"
-        update-types: [version-update:semver-major]
-
       # @types/node must track the node major pinned in mise.toml, or the types
       # describe APIs the runtime does not have. Bump it when node moves, not
       # before.

@@ -45,6 +45,7 @@ a record that says so and why — not asking permission from the old one.
 | [0036](0036-a-reverse-proxy-is-a-public-url-not-a-wider-listen.md) | A reverse proxy is a public URL, not a wider listen address | new |
 | [0037](0037-the-repository-ships-the-open-agent-format-only.md) | The repository ships the open agent format only | reverses the shim half of 0013, and 0019 |
 | [0038](0038-the-frontend-is-installed-by-pnpm.md) | The frontend is installed by pnpm | **reversed** — it was npm |
+| [0039](0039-the-frontend-is-linted-by-oxlint.md) | The frontend is linted by oxlint, on TypeScript 7 | **reversed** — it was ESLint, holding TypeScript on 6 |
 
 ## Alternatives considered without a full record
 
@@ -65,9 +66,5 @@ because nothing about the answer is subtle.
   someone else controls.
 - **Vite, Vitest, Playwright, React 19.** Boring, current, and each is what the
   rest of the ecosystem assumes.
-- **TypeScript stays on 6.** 7 is the native compiler and is out, but every
-  release of `typescript-eslint`, canary included, declares
-  `typescript >=4.8.4 <6.1.0` as a peer dependency, so npm refuses the
-  combination outright — the bump cannot install, let alone be reviewed. The
-  ignore rule in `.github/dependabot.yml` says so, and it is still true. Check
-  it with `npm view typescript-eslint peerDependencies`.
+- **TypeScript stays on 6** stood here until the linter that required it
+  left. [0039](0039-the-frontend-is-linted-by-oxlint.md) is the full record.

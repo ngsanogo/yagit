@@ -420,6 +420,7 @@ function Body({
               a date and the list's order is topological rather than
               chronological, so the hour is the one thing that puts two of them
               in order — and the daemon has been sending it all along. */}
+          {/* oxlint-disable-next-line react/purity -- the clock, read at render on purpose: see formatRelativeTime */}
           <span title={formatExactTime(authored)}>{formatRelativeTime(authored, new Date())}</span>
 
           {/* Only when the two differ, which is what makes it worth saying: a
@@ -427,6 +428,7 @@ function Body({
               identical pair on every commit is how a field stops being read. */}
           {detail.committer !== detail.author && (
             <span title={formatExactTime(committed)}>
+              {/* oxlint-disable-next-line react/purity -- the clock, read at render on purpose: see formatRelativeTime */}
               committed by {detail.committer}, {formatRelativeTime(committed, new Date())}
             </span>
           )}

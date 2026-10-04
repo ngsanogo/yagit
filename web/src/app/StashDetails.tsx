@@ -131,6 +131,7 @@ function Body({ detail }: { detail: StashDetail }) {
               the string it was attached to. A stash is made and put back
               within a day more often than any other object here, and the hour
               is what tells two of them apart. */}
+          {/* oxlint-disable-next-line react/purity -- the clock, read at render on purpose: see formatRelativeTime */}
           <span title={formatExactTime(made)}>{formatRelativeTime(made, new Date())}</span>
           <code className="font-mono" title={detail.sha}>
             {shortenSha(detail.sha)}

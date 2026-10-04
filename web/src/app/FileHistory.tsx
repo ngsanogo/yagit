@@ -121,6 +121,7 @@ export function HistoryRow({ commit, onSelect }: { commit: Commit; onSelect: () 
               orders them inside it — and this list, unlike the history, is
               short enough that the missing hour is the whole question a
               reader brought to it. */}
+          {/* oxlint-disable-next-line react/purity -- the clock, read at render on purpose: see formatRelativeTime */}
           <span title={formatExactTime(when)}>{formatRelativeTime(when, new Date())}</span>
         </span>
       </button>
