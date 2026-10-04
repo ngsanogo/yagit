@@ -7,13 +7,15 @@
 # Versions live HERE and nowhere else. A version pinned in two places always
 # ends up drifting.
 #
-# mise.lock beside this file is not a second source: it is what these versions
-# resolved to, plus a SHA256 for every tool on every platform. `go = "1.27"`
-# below is an intent; the lockfile records that it meant go 1.27.0 and exactly
-# which bytes those were, so a contributor joining next month gets the same
-# compiler as CI rather than whatever 1.27.x shipped meanwhile — and a download
-# that does not match is refused instead of installed. Same relationship as
-# package.json to package-lock.json.
+# Every version below is exact — never a floating major or minor. `node = "22"`
+# once stood here: the lockfile froze it on the 22.x of the day it was written,
+# later patches of that line never arrived, and nothing in this file said which
+# one was meant. A version a person can read is the version that is installed.
+#
+# mise.lock beside this file is not a second source: it is a SHA256 for each of
+# these versions on every platform, so a contributor joining next month gets
+# the same bytes as CI — and a download that does not match is refused instead
+# of installed. Same relationship as package.json to package-lock.json.
 #
 # Changing a version here updates the lockfile for THIS platform on the next
 # `mise install`. Run `mise lock` to refresh all of them; CI goes red on a
@@ -34,16 +36,16 @@ lockfile = true
 
 [tools]
 # The daemon. Must match the `go` directive in go.mod.
-go = "1.27"
+go = "1.27.1"
 
 # The frontend.
-node = "22"
+node = "26.10.0"
 
 # Hot reload for the daemon during `./do dev` (see .air.toml).
 air = "1.67.4"
 
 # Static analysis for Go (see .golangci.yml).
-golangci-lint = "2.13.2"
+golangci-lint = "2.14.0"
 
 # Static analysis for the ./do shim, which is the one piece of shell left in the
 # project and which nothing else checks. Pinned rather than "latest" because
