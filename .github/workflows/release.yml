@@ -55,6 +55,7 @@ jobs:
       # reason spelled out in the publish job below.
       - uses: jdx/mise-action@94c60b39bc2d90ab2f9bab27f38d3cc4812c1834 # v5.1.0
         with:
+          version: 2026.10.2
           install: false
           cache: false
 
@@ -100,6 +101,10 @@ jobs:
 
       - uses: jdx/mise-action@94c60b39bc2d90ab2f9bab27f38d3cc4812c1834 # v5.1.0
         with:
+          # The mise that mise.toml names, and so the one this commit's CI ran
+          # on. ./do lint holds it to min_version there.
+          version: 2026.10.2
+
           # No cache on the release path. A cache is writable by any workflow
           # run on any branch, so a poisoned entry restored here would end up
           # inside a published binary. Downloading the toolchain again costs a

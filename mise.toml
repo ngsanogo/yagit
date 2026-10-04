@@ -25,6 +25,17 @@
 # frontend, pinned in web/package.json, and listing it here too would recreate
 # exactly that duplication.
 
+# mise itself. An older mise refuses to read this file at all — "mise version
+# X is required, but you are using Y" — so `./do` never installs the toolchain
+# with a mise older than CI's, and CI runs exactly this one.
+#
+# Top-level, above the first table: below one, TOML files it under that table
+# and mise never sees it. The workflows repeat it as `version:` on every
+# jdx/mise-action step, because the action installs mise before anything can
+# read this file. That repeat is sanctioned and held to this line: `./do lint`
+# fails on a step that names another version, or none.
+min_version = "2026.10.2"
+
 [settings]
 # Keep mise.lock current automatically.
 #
@@ -44,11 +55,11 @@ node = "26.10.0"
 # The frontend's package manager. Pinned here like every other tool, because
 # Node stopped shipping corepack with 25 and nothing else would fetch it.
 #
-# web/package.json repeats the version in `packageManager`, which is the one
-# value this file does not hold alone. pnpm reads that field, and
-# web/pnpm-workspace.yaml tells it to refuse a mismatch rather than download
-# the other version — so the two cannot drift without the first command
-# saying so.
+# web/package.json repeats the version in `packageManager`, which makes it one
+# of two values this file does not hold alone — min_version above is the
+# other. pnpm reads that field, and web/pnpm-workspace.yaml tells it to refuse
+# a mismatch rather than download the other version — so the two cannot drift
+# without the first command saying so.
 pnpm = "12.9.0"
 
 # Hot reload for the daemon during `./do dev` (see .air.toml).
