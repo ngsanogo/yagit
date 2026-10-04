@@ -1,10 +1,26 @@
 version: 2
 
+# One schedule for all three ecosystems: Monday, 05:00.
+#
+# They used to arrive on three — npm and Go weekly at an hour nobody chose,
+# the actions monthly. A bump is reviewed against the others that
+# came with it, and an action, a Go module and an npm package proposed on the
+# same morning are one sitting where three schedules were three interruptions.
+# Early Monday, so the pull requests and their CI runs are already there when
+# the week starts. A month was also a long time for a pinned action to trail
+# its own fixes, on top of the cooldown below.
+#
+# And one shape: minor and patch releases grouped into a single pull request
+# per ecosystem, majors one by one. A major is the release that asks to be
+# read; the rest is routine, and routine in fifteen pull requests is noise.
 updates:
   - package-ecosystem: npm
     directory: /web
     schedule:
       interval: weekly
+      day: monday
+      time: "05:00"
+      timezone: Europe/Paris
     open-pull-requests-limit: 5
 
     # A compromised release is usually caught and yanked within days. A
@@ -48,8 +64,7 @@ updates:
           - "@vitest/*"
         update-types: [major, minor, patch]
 
-      # Everything else, minor and patch only: fifteen separate pull requests
-      # for routine bumps is not review, it is noise.
+      # Everything else, minor and patch only.
       frontend:
         patterns: ["*"]
         update-types: [minor, patch]
@@ -65,18 +80,32 @@ updates:
     directory: /
     schedule:
       interval: weekly
+      day: monday
+      time: "05:00"
+      timezone: Europe/Paris
 
     # See the npm block above.
     cooldown:
       default-days: 7
 
+    groups:
+      go:
+        patterns: ["*"]
+        update-types: [minor, patch]
 
   - package-ecosystem: github-actions
     directory: /
     schedule:
-      interval: monthly
+      interval: weekly
+      day: monday
+      time: "05:00"
+      timezone: Europe/Paris
 
     # See the npm block above.
     cooldown:
       default-days: 7
 
+    groups:
+      actions:
+        patterns: ["*"]
+        update-types: [minor, patch]
