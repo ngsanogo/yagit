@@ -183,7 +183,7 @@ func (p *project) testReleaseBrowser(baseURL, token string) error {
 		return err
 	}
 
-	command, err := p.tool("npm", "--prefix", "web", "run", "test:release")
+	command, err := p.tool("pnpm", "--dir", "web", "run", "test:release")
 	if err != nil {
 		return err
 	}

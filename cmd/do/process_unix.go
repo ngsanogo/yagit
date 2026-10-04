@@ -13,10 +13,18 @@ import (
 // Stopping the development stack means stopping process *trees*, not
 // processes.
 //
-// `npm run dev` does not forward SIGTERM to the Vite it spawned (measured):
-// killing npm's own pid leaves Vite orphaned, its port taken, and the next
-// `./do dev` failing on an inexplicable strictPort error. The same holds for
-// air and the daemon binary it rebuilds.
+// A parent does not necessarily forward SIGTERM to what it spawned. air does
+// not, for the daemon binary it rebuilds; and the package manager this project
+// first ran Vite under did not either (measured): killing its own pid left
+// Vite orphaned, its port taken, and the next `./do dev` failing on an
+// inexplicable strictPort error.
+//
+// pnpm does forward it (measured on 12.9.0): it puts the script in a process
+// group of its own, passes SIGTERM on to that group, and leaves a watcher
+// behind that kills the group should pnpm itself die. So the group signal
+// below reaches pnpm alone, and pnpm does the rest. Signalling the group stays
+// the rule all the same: air still needs it, and it asks nothing of whoever
+// runs Vite next.
 //
 // Unix and Windows solve this differently enough to deserve a file each,
 // rather than a runtime.GOOS branch inside one.

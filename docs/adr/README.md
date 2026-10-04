@@ -30,7 +30,7 @@ a record that says so and why — not asking permission from the old one.
 | [0021](0021-a-shown-command-is-not-a-setting.md) | A command the interface shows is a command configuration cannot change | new |
 | [0022](0022-a-merge-is-checked-before-it-runs.md) | A merge is checked against the repository before it runs | completes 0021 |
 | [0023](0023-a-rebase-is-read-in-both-directions.md) | A rebase is read in both directions, and says what it takes away | extends 0022 |
-| [0024](0024-the-checkout-owns-its-toolchain.md) | The checkout owns its toolchain, under `.yagit/` | amends 0009 |
+| [0024](0024-the-checkout-owns-its-toolchain.md) | The checkout owns its toolchain, under `.yagit/` | amends 0009, amended by [0038](0038-the-frontend-is-installed-by-pnpm.md) |
 | [0025](0025-the-stack-runs-in-the-background.md) | The stack runs in the background, and what it started is recorded | new |
 | [0026](0026-the-session-token-outlives-the-run.md) | The session token outlives the run that minted it | extends 0025 |
 | [0027](0027-the-stack-is-asked-not-a-file.md) | Whether a stack is up is asked of the port, not of a file | **reverses** the second token file of 0026 |
@@ -44,6 +44,7 @@ a record that says so and why — not asking permission from the old one.
 | [0035](0035-secrets-get-an-owner-only-acl-on-windows.md) | Secrets get an owner-only ACL on Windows | new |
 | [0036](0036-a-reverse-proxy-is-a-public-url-not-a-wider-listen.md) | A reverse proxy is a public URL, not a wider listen address | new |
 | [0037](0037-the-repository-ships-the-open-agent-format-only.md) | The repository ships the open agent format only | reverses the shim half of 0013, and 0019 |
+| [0038](0038-the-frontend-is-installed-by-pnpm.md) | The frontend is installed by pnpm | **reversed** — it was npm |
 
 ## Alternatives considered without a full record
 
@@ -59,7 +60,7 @@ because nothing about the answer is subtle.
 - **mise, with a lockfile.** One prerequisite, user space, no sudo, a checksum
   per tool per platform. Nix is stronger and asks far more of a contributor;
   Docker moves the problem into a daemon that is itself a prerequisite.
-- **Every third party pinned by content.** `mise.lock`, `package-lock.json`,
+- **Every third party pinned by content.** `mise.lock`, `pnpm-lock.yaml`,
   and a commit digest for every GitHub Action. A tag is a mutable pointer
   someone else controls.
 - **Vite, Vitest, Playwright, React 19.** Boring, current, and each is what the

@@ -62,7 +62,7 @@ jobs:
 
   # The vulnerability databases, asked directly rather than through GitHub.
   #
-  # Dependabot watches web/package-lock.json and, since fsnotify arrived, the
+  # Dependabot watches web/pnpm-lock.yaml and, since fsnotify arrived, the
   # one entry in go.mod. What it does not watch on either side is the Go
   # standard library — which every line of the daemon runs on, and which gets
   # advisories like anything else. govulncheck is what covers it, and
@@ -92,13 +92,14 @@ jobs:
           path: .yagit/mise
           key: mise-${{ runner.os }}-${{ hashFiles('mise.lock', 'mise.toml') }}
 
-      # .yagit/npm-cache, not ~/.npm: the shim points npm at the checkout.
-      - name: Cache npm downloads
+      # .yagit/pnpm-store, not pnpm's default under the home directory: the
+      # shim points pnpm at the checkout.
+      - name: Cache the pnpm store
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
-          path: .yagit/npm-cache
-          key: npm-${{ runner.os }}-${{ hashFiles('web/package-lock.json') }}
-          restore-keys: npm-${{ runner.os }}-
+          path: .yagit/pnpm-store
+          key: pnpm-${{ runner.os }}-${{ hashFiles('web/pnpm-lock.yaml') }}
+          restore-keys: pnpm-${{ runner.os }}-
 
       - run: ./do audit
 

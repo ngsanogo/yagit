@@ -442,7 +442,7 @@ publishes `AGENTS.md` and `.agents/skills` as links to that tree, refreshed by
 
 ## Toolchain
 
-Everything runs natively. `mise.toml` pins Go, Node, air, golangci-lint,
+Everything runs natively. `mise.toml` pins Go, Node, pnpm, air, golangci-lint,
 shellcheck, actionlint and zizmor; `mise` is the only prerequisite — on every
 platform, which it was not while `./do` needed a bash newer than the one macOS
 ships — and `./do` is the only entry point. It is a short `sh` shim that points

@@ -29,7 +29,7 @@ func runBuild(p *project, _ []string) error {
 	if err := p.emptyEmbeddedAssets(); err != nil {
 		return err
 	}
-	if err := p.npm("run", "build"); err != nil {
+	if err := p.pnpm("run", "build"); err != nil {
 		return err
 	}
 	if err := p.verifyAssetsAreFiles(); err != nil {
@@ -283,7 +283,7 @@ func (p *project) testWebCoverage() error {
 	if err := p.ensureFrontendDependencies(); err != nil {
 		return err
 	}
-	return p.npm("run", "test:coverage")
+	return p.pnpm("run", "test:coverage")
 }
 
 func (p *project) testWeb() error {
@@ -291,7 +291,7 @@ func (p *project) testWeb() error {
 	if err := p.ensureFrontendDependencies(); err != nil {
 		return err
 	}
-	return p.npm("run", "test")
+	return p.pnpm("run", "test")
 }
 
 // testEndToEnd runs Playwright against a daemon and a Vite.
@@ -310,7 +310,7 @@ func (p *project) testEndToEnd() error {
 	}
 
 	playwright := func(token string) error {
-		command, err := p.tool("npm", "--prefix", "web", "run", "test:e2e")
+		command, err := p.tool("pnpm", "--dir", "web", "run", "test:e2e")
 		if err != nil {
 			return err
 		}
@@ -511,10 +511,10 @@ func runLint(p *project, _ []string) error {
 	if err := p.ensureFrontendDependencies(); err != nil {
 		return err
 	}
-	if err := p.npm("run", "lint"); err != nil {
+	if err := p.pnpm("run", "lint"); err != nil {
 		return err
 	}
-	if err := p.npm("run", "fmt:check"); err != nil {
+	if err := p.pnpm("run", "fmt:check"); err != nil {
 		return err
 	}
 
@@ -660,7 +660,7 @@ func runAudit(p *project, _ []string) error {
 	// --audit-level=low, meaning everything. A threshold is how a moderate
 	// advisory in a build tool sits unread for a year; this tree is small
 	// enough that every finding is worth the minute it takes to read.
-	return p.npm("audit", "--audit-level=low")
+	return p.pnpm("audit", "--audit-level=low")
 }
 
 func runFormat(p *project, _ []string) error {
@@ -673,7 +673,7 @@ func runFormat(p *project, _ []string) error {
 	if err := p.ensureFrontendDependencies(); err != nil {
 		return err
 	}
-	return p.npm("run", "fmt")
+	return p.pnpm("run", "fmt")
 }
 
 // ---------------------------------------------------------------------------

@@ -1,7 +1,7 @@
 // Command do is yagit's single entry point.
 //
 // One project action, one subcommand here. There is no second path: no
-// Makefile, no `npm run` to type by hand, no container to build. When two
+// Makefile, no `pnpm run` to type by hand, no container to build. When two
 // paths lead to the same place, one of them goes stale and nobody notices.
 //
 // It is invoked through the `./do` shim, which installs the toolchain pinned
@@ -64,7 +64,7 @@ const (
 //
 // `./...` from the root would also descend into web/node_modules, where some
 // npm packages ship Go sources as examples. The pattern below says exactly
-// where our code lives, and will still say it when the npm tree changes.
+// where our code lives, and will still say it when that tree changes.
 var goPackages = []string{"./cmd/...", "./internal/..."}
 
 // buildTargets are what `do build` produces. Building for every mainstream
@@ -227,7 +227,7 @@ func dispatch(args []string) error {
 
 	// Before the command runs, and therefore before anything it would install,
 	// start or delete. Asking how a command is spelled is not a reason to pay
-	// for an `npm ci` — and it is not a failure either, so it exits 0.
+	// for an install — and it is not a failure either, so it exits 0.
 	if helpRequested(args) {
 		printCommandHelp(chosen)
 		return nil

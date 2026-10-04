@@ -46,20 +46,25 @@ fi
 YAGIT_STATE="$PWD/.yagit"
 mkdir -p "$YAGIT_STATE/mise" "$YAGIT_STATE/mise-cache" "$YAGIT_STATE/mise-state" \
          "$YAGIT_STATE/go-cache" "$YAGIT_STATE/go-mod-cache" \
-         "$YAGIT_STATE/npm-cache" "$YAGIT_STATE/browsers"
+         "$YAGIT_STATE/pnpm-store" "$YAGIT_STATE/pnpm-cache" "$YAGIT_STATE/pnpm-state" \
+         "$YAGIT_STATE/browsers"
 chmod 700 "$YAGIT_STATE"
 
 # Everything this project downloads or compiles lands inside the checkout, so
 # that removing the clone removes all of it and no two checkouts can disagree
 # about a tool version. mise gets all three of its directories: leaving the
 # cache and the state under $HOME would make "everything lives under .yagit/"
-# almost true, which is worse than not claiming it.
+# almost true, which is worse than not claiming it. pnpm gets its three for
+# the same reason, and the store for one more: pnpm hard-links packages out of
+# it into web/node_modules, which only works within one filesystem.
 export MISE_DATA_DIR="$YAGIT_STATE/mise"
 export MISE_CACHE_DIR="$YAGIT_STATE/mise-cache"
 export MISE_STATE_DIR="$YAGIT_STATE/mise-state"
 export GOCACHE="$YAGIT_STATE/go-cache"
 export GOMODCACHE="$YAGIT_STATE/go-mod-cache"
-export npm_config_cache="$YAGIT_STATE/npm-cache"
+export pnpm_config_store_dir="$YAGIT_STATE/pnpm-store"
+export pnpm_config_cache_dir="$YAGIT_STATE/pnpm-cache"
+export pnpm_config_state_dir="$YAGIT_STATE/pnpm-state"
 export PLAYWRIGHT_BROWSERS_PATH="$YAGIT_STATE/browsers"
 
 # -modcacherw is what keeps `rm -rf yagit/` from failing.

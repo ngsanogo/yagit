@@ -65,19 +65,19 @@ func (p *project) capture(name string, arguments ...string) (string, error) {
 	return strings.TrimSpace(string(output)), nil
 }
 
-// npm runs npm against the frontend workspace.
-func (p *project) npm(arguments ...string) error {
-	return p.run("npm", append([]string{"--prefix", "web"}, arguments...)...)
+// pnpm runs pnpm against the frontend workspace.
+func (p *project) pnpm(arguments ...string) error {
+	return p.run("pnpm", append([]string{"--dir", "web"}, arguments...)...)
 }
 
 // ---------------------------------------------------------------------------
 // Frontend dependencies
 // ---------------------------------------------------------------------------
 
-// nodeBinary is the path of a binary npm linked into web/node_modules/.bin.
+// nodeBinary is the path of a binary pnpm linked into web/node_modules/.bin.
 //
-// npm writes a .cmd wrapper on Windows and a symlink everywhere else; naming
-// the extensionless one there would look like a missing install.
+// pnpm writes a .cmd wrapper on Windows and a shell script everywhere else;
+// naming the extensionless one there would look like a missing install.
 func (p *project) nodeBinary(name string) string {
 	if runtime.GOOS == "windows" {
 		name += ".cmd"
@@ -88,18 +88,19 @@ func (p *project) nodeBinary(name string) string {
 // ensureFrontendDependencies installs web/node_modules when it is absent, or
 // when it was installed from a different lockfile.
 //
-// `npm ci` reproduces the lockfile exactly, where `npm install` would quietly
-// rewrite it — and it deletes node_modules first, so it costs minutes. What
-// decides is the lockfile's content, recorded at the last successful install:
-// a timestamp comparison would reinstall the whole tree after every `git
-// checkout`, which rewrites mtimes without changing a byte.
+// `--frozen-lockfile` installs exactly what the lockfile records and fails
+// when package.json asks for something else, where a plain `pnpm install`
+// would quietly rewrite the lockfile to agree. What decides whether it runs at
+// all is the lockfile's content, recorded at the last successful install: a
+// timestamp comparison would reinstall after every `git checkout`, which
+// rewrites mtimes without changing a byte.
 func (p *project) ensureFrontendDependencies() error {
 	if p.frontendDependenciesAreCurrent() {
 		return nil
 	}
 
 	info("installing frontend dependencies")
-	if err := p.npm("ci", "--no-audit", "--no-fund"); err != nil {
+	if err := p.pnpm("install", "--frozen-lockfile"); err != nil {
 		return err
 	}
 	return p.recordStamp(frontendStamp)
@@ -109,7 +110,7 @@ func (p *project) ensureFrontendDependencies() error {
 // lockfile asks for.
 //
 // Both halves are needed. The stamp answers "installed from this lockfile",
-// and the binary answers "still on disk" — an interrupted `npm ci`, or a
+// and the binary answers "still on disk" — an interrupted install, or a
 // deleted node_modules, leaves a stamp that is true about an install that is
 // no longer there.
 func (p *project) frontendDependenciesAreCurrent() bool {
@@ -129,9 +130,9 @@ func (p *project) ensurePlaywrightBrowser() error {
 		return err
 	}
 
-	// The local binary, not `npm exec`: with --yes npm would silently fetch a
-	// Playwright from the registry when the local one is missing, and drive
-	// the browsers with a version other than the one pinned in
+	// The local binary by its path, not `pnpm dlx`: that one fetches a
+	// Playwright from the registry whatever is installed here, and would
+	// drive the browsers with a version other than the one pinned in
 	// web/package.json.
 	playwright := p.nodeBinary("playwright")
 	if _, err := os.Stat(playwright); err != nil {
