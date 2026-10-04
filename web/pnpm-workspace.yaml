@@ -1,5 +1,5 @@
-# pnpm's settings for the frontend. Two, and each closes a door pnpm leaves
-# open by default.
+# pnpm's settings for the frontend. Each closes a door pnpm leaves open by
+# default.
 
 # pnpm compares itself with `packageManager` in package.json, and by default
 # answers a mismatch by downloading the other version and running that — a
@@ -13,3 +13,9 @@ pmOnFail: error
 # that the lockfile only ever changes on purpose; a script that repairs it on
 # the way past would be the same quiet rewrite by another route.
 verifyDepsBeforeRun: error
+
+# `pnpm add` writes the version it resolved, not a range around it. Every
+# entry in package.json is an exact version: a range there is a second answer
+# to "which one?", and the lockfile is supposed to be the only place that
+# question has to be looked up.
+savePrefix: ''
