@@ -53,7 +53,10 @@ jobs:
           persist-credentials: false
 
       # mise.toml is the single source of tool versions: CI installs exactly
-      # what a contributor's machine installs. Nothing is pinned twice here.
+      # what a contributor's machine installs. One number is written twice:
+      # the action installs mise before anything can read mise.toml, so
+      # `version:` repeats its min_version on every step that uses the action,
+      # and `./do lint` fails on a step where the two disagree.
       #
       # The action installs only the mise binary. The tools it manages are
       # installed by the ./do shim, into .yagit/mise, because that is what
@@ -61,14 +64,15 @@ jobs:
       # would download the whole toolchain twice, the second copy into a
       # directory nothing afterwards reads.
       #
-      # Which mise that is: the newest release that is at least a day old,
-      # the action's default since v5. mise is the one tool nothing here pins,
-      # and its version shows in one place — a newer mise can fill in an entry
-      # of mise.lock that an older one left incomplete, and the Build job's
-      # clean-tree check then reports the lockfile as modified. The cure is
-      # `mise lock` on that newer mise, not a retry.
+      # Which mise that is matters, so it is pinned rather than left to the
+      # action's default, the newest release at least a day old. A newer mise
+      # can fill in an entry of mise.lock that an older one left incomplete,
+      # and the Build job's clean-tree check then reports the lockfile as
+      # modified. Raising the version therefore comes with `mise lock` run on
+      # the new mise, in the same change.
       - uses: jdx/mise-action@94c60b39bc2d90ab2f9bab27f38d3cc4812c1834 # v5.1.0
         with:
+          version: 2026.10.2
           install: false
           cache: false
 
@@ -119,6 +123,7 @@ jobs:
       # whole toolchain twice into a directory nothing afterwards reads.
       - uses: jdx/mise-action@94c60b39bc2d90ab2f9bab27f38d3cc4812c1834 # v5.1.0
         with:
+          version: 2026.10.2
           install: false
           cache: false
 
@@ -218,6 +223,7 @@ jobs:
       # whole toolchain twice into a directory nothing afterwards reads.
       - uses: jdx/mise-action@94c60b39bc2d90ab2f9bab27f38d3cc4812c1834 # v5.1.0
         with:
+          version: 2026.10.2
           install: false
           cache: false
 
@@ -296,6 +302,7 @@ jobs:
       # whole toolchain twice into a directory nothing afterwards reads.
       - uses: jdx/mise-action@94c60b39bc2d90ab2f9bab27f38d3cc4812c1834 # v5.1.0
         with:
+          version: 2026.10.2
           install: false
           cache: false
 
