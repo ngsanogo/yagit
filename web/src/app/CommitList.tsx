@@ -106,7 +106,7 @@ export function CommitList({
   // rather than left to warn on every run, because a warning that always
   // appears is one people stop reading. If the compiler is ever turned on,
   // this is the line to come back to.
-  // eslint-disable-next-line react-hooks/incompatible-library
+  // oxlint-disable-next-line react/incompatible-library
   const virtualizer = useVirtualizer({
     count: total,
     getScrollElement: () => scrollElement.current,
@@ -718,6 +718,7 @@ export function CommitRowView({
         {/* `now` is passed in rather than read inside: the same list rendered
             twice in one frame must not disagree with itself about the time,
             and a pure function of two dates is testable. */}
+        {/* oxlint-disable-next-line react/purity -- the clock, read at render on purpose: see formatRelativeTime */}
         {formatRelativeTime(committedAt, new Date())}
       </span>
 

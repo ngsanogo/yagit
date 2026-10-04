@@ -63,5 +63,5 @@ directly. `./do` ensures the toolchain and environment match CI.
 
 ## Formatting
 
-Prettier and ESLint via `./do lint` (`pnpm run lint` and `pnpm run fmt:check`
+Prettier and oxlint via `./do lint` (`pnpm run lint` and `pnpm run fmt:check`
 inside `./do` only).

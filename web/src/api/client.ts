@@ -109,7 +109,15 @@ function withRequestTimeout(caller: AbortSignal | null | undefined, afterMs: num
   return caller === null || caller === undefined ? timeout : AbortSignal.any([caller, timeout]);
 }
 
-interface RequestOptions extends RequestInit {
+interface RequestOptions extends Omit<RequestInit, 'headers'> {
+  /**
+   * A plain record, and nothing else fetch would accept. `request` merges
+   * these into its own with a spread, and the other shapes — a Headers
+   * object, a list of pairs — spread into nothing or into their indices,
+   * silently.
+   */
+  headers?: Record<string, string>;
+
   /**
    * How long to wait, when the ordinary deadline is the wrong one.
    *

@@ -13,11 +13,10 @@ import { openDesignSystem } from './session';
  * the JSX says, and it reports the whole page rather than the part someone
  * thought to check.
  *
- * There is deliberately no eslint-plugin-jsx-a11y beside it. No published
- * version accepts eslint 10, which this project runs, and forcing the peer
- * dependency leaves a silent hole: the plugin reads JSX, so a missing
- * accessible name that comes from a runtime prop, a contrast ratio, or a focus
- * order is invisible to it and is precisely what axe measures here.
+ * The linter's JSX accessibility rules are deliberately not enabled beside
+ * it. A rule that reads JSX leaves a silent hole: a missing accessible name
+ * that comes from a runtime prop, a contrast ratio, or a focus order is
+ * invisible to it and is precisely what axe measures here.
  */
 
 async function openShowcase(page: Page) {
