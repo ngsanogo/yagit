@@ -53,7 +53,7 @@ jobs:
       # .yagit/mise, so anything installed here would be downloaded twice and
       # read never — and this workflow caches nothing on purpose, for the
       # reason spelled out in the publish job below.
-      - uses: jdx/mise-action@c2a87611a18de5b3828c5652fe268e992400cb5c # v4.3.0
+      - uses: jdx/mise-action@94c60b39bc2d90ab2f9bab27f38d3cc4812c1834 # v5.1.0
         with:
           install: false
           cache: false
@@ -98,7 +98,7 @@ jobs:
           # the repository. Nothing here pushes, so nothing here needs it.
           persist-credentials: false
 
-      - uses: jdx/mise-action@c2a87611a18de5b3828c5652fe268e992400cb5c # v4.3.0
+      - uses: jdx/mise-action@94c60b39bc2d90ab2f9bab27f38d3cc4812c1834 # v5.1.0
         with:
           # No cache on the release path. A cache is writable by any workflow
           # run on any branch, so a poisoned entry restored here would end up
@@ -156,7 +156,7 @@ jobs:
       # npm packages. They ship inside the executable and belong in the
       # inventory of what someone is running.
       - name: Bill of materials
-        uses: anchore/sbom-action@3ad7283483fc7af8ff2b4ea19663c2d5ca935e26 # v0.24.2
+        uses: anchore/sbom-action@66cbf4bc1f1c0d2edc94016e65bc221b6bb0ad6c # v0.24.3
         with:
           path: .
           format: spdx-json
