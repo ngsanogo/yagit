@@ -37,6 +37,15 @@ const DAY = 24 * HOUR;
  *
  * Past a week it switches to an absolute date: at that distance "47 days ago"
  * no longer helps anyone place an event, whereas a date does.
+ *
+ * `now` is a parameter, and components pass `new Date()` as they render. That
+ * read of the clock is deliberate: a relative time is only true as of the
+ * render that printed it, and handing the clock in is what keeps this function
+ * pure and testable. The linter's purity rule reports each of those reads —
+ * a render that depends on the time cannot be memoized — so each carries a
+ * suppression that points here. The React Compiler, which would cache the
+ * value stale, is not enabled in this project; if it ever is, those lines are
+ * the ones to come back to.
  */
 export function formatRelativeTime(value: Date, now: Date): string {
   const elapsed = now.getTime() - value.getTime();
@@ -130,6 +139,7 @@ export function initialsFromName(name: string): string {
   // "👩 Smith" returns half a surrogate pair: a lone \uD83D, which is not
   // well-formed text and renders as a replacement character.
   const initial = (word: string | undefined): string =>
+    // oxlint-disable-next-line typescript/no-misused-spread -- code points are what is wanted here
     word === undefined ? '' : ([...word][0] ?? '');
 
   const first = initial(words[0]);

@@ -125,6 +125,7 @@ function BlameRow({
   onSelectCommit: (sha: string) => void;
   onLineHistory: (line: number) => void;
 }) {
+  // oxlint-disable-next-line react/purity -- the clock, read at render on purpose: see formatRelativeTime
   const when = formatRelativeTime(new Date(line.date), new Date());
   const label = `${line.author}, ${when} — ${line.subject}`;
 

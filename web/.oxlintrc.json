@@ -1,0 +1,130 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+
+  // The two plugins beside oxlint's core rules: the TypeScript rules, and the
+  // React ones — which is where the rules of hooks and the React Compiler's
+  // checks live. Naming them replaces oxlint's default set rather than adding
+  // to it, on purpose: nothing below was chosen from a plugin not listed here.
+  "plugins": ["typescript", "react"],
+
+  "options": {
+    // Rules that read types run through oxlint-tsgolint, against the same
+    // tsconfig.json `tsc --noEmit` checks.
+    "typeAware": true,
+
+    // A suppression that no longer suppresses anything is a comment that has
+    // started to lie. `--deny-warnings` in package.json makes it fail the run.
+    "reportUnusedDisableDirectives": "warn"
+  },
+
+  // The language's own globals, everywhere. What a file may reach beyond them
+  // is said per directory, in the overrides at the bottom.
+  "env": { "builtin": true },
+
+  "ignorePatterns": ["dist", "node_modules", "test-results", "playwright-report"],
+
+  "categories": {
+    // Code that is wrong or does nothing. oxlint's own default tier, and with
+    // `typeAware` it includes the rules that need the type checker — a promise
+    // nobody awaits, a spread that silently yields nothing.
+    "correctness": "error"
+
+    // The other tiers stay off. Each mixes real findings with house style this
+    // project has not adopted, so the rules wanted from them are named one by
+    // one under "rules" — a rule here is on because somebody chose it.
+  },
+
+  "rules": {
+    // ---- Rules outside the correctness tier, named so that they run. ----
+
+    "no-array-constructor": "error",
+    "no-case-declarations": "error",
+    "no-empty": "error",
+    "no-fallthrough": "error",
+    "no-prototype-builtins": "error",
+    "no-regex-spaces": "error",
+    "no-unexpected-multiline": "error",
+    "no-useless-assignment": "error",
+    "preserve-caught-error": "error",
+
+    "typescript/ban-ts-comment": "error",
+    "typescript/no-empty-object-type": "error",
+    "typescript/no-explicit-any": "error",
+    "typescript/no-namespace": "error",
+    "typescript/no-require-imports": "error",
+    "typescript/no-unnecessary-type-constraint": "error",
+    "typescript/no-unsafe-function-type": "error",
+
+    "react/rules-of-hooks": "error",
+
+    // ---- Rules in the tier already, restated for an option or a level. ----
+
+    // `while (true)` is how a loop that ends from inside is written.
+    "no-constant-condition": ["error", { "checkLoops": "allExceptWhileTrue" }],
+
+    // The TypeScript counterpart of the "never write _ = err" rule on the Go
+    // side: an ignored value has to be ignored on purpose, under a name that
+    // says so.
+    "no-unused-vars": ["error", { "argsIgnorePattern": "^_" }],
+
+    // Warnings rather than errors in the React plugin's own recommended set,
+    // which is where these three levels come from. The last two report what
+    // the React Compiler could not optimise, and the compiler is not enabled
+    // in this project — vite.config.ts runs plugin-react without it.
+    // `--deny-warnings` fails the run on any of them all the same: a warning
+    // that is allowed to stand is one people stop reading.
+    "react/exhaustive-deps": "warn",
+    "react/incompatible-library": "warn",
+    "react/unsupported-syntax": "warn"
+  },
+
+  "overrides": [
+    {
+      // TypeScript answers these itself, and better: it knows a global that
+      // exists only as a type, and an overload is not a redeclaration.
+      "files": ["**/*.{ts,tsx}"],
+      "env": { "browser": true },
+      "rules": {
+        "no-undef": "off",
+        "no-redeclare": "off",
+
+        // TypeScript files only. public/theme.js is a classic script written
+        // with `var`, and these four were never asked of it.
+        "no-var": "error",
+        "prefer-const": "error",
+        "prefer-rest-params": "error",
+        "prefer-spread": "error"
+      }
+    },
+    {
+      // The one place nothing type-checks: plain JavaScript. Here a misspelt
+      // global is found by this rule or by nobody.
+      "files": ["**/*.{js,mjs}"],
+      "rules": {
+        "no-undef": "error",
+        "no-redeclare": ["error", { "builtinGlobals": true }],
+
+        // No `_` convention here: these files have no signature to satisfy,
+        // so an unused argument is simply unused. The options are spelled out
+        // because oxlint, given none, ignores every name that starts with `_`.
+        "no-unused-vars": ["error", { "vars": "all", "args": "after-used" }]
+      }
+    },
+    {
+      // The project's tooling runs under Node, not in the browser, so it uses
+      // process, console and the node: modules. Without this block no-undef
+      // flags every one of them — an avalanche of false positives, and a
+      // linter people learn to ignore is no longer worth anything.
+      "files": ["scripts/**/*.{js,mjs}", "e2e/**/*.ts", "*.config.{js,ts}"],
+      "env": { "node": true }
+    },
+    {
+      // public/ is copied into the build byte for byte and runs in the browser
+      // before the bundle does — it is the one place in this project that is
+      // browser JavaScript without being TypeScript, so it needs the browser
+      // globals the TypeScript block above grants and nothing else does.
+      "files": ["public/**/*.js"],
+      "env": { "browser": true }
+    }
+  ]
+}

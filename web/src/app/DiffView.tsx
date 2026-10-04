@@ -816,6 +816,7 @@ function Span({ span, tint }: { span: LineSpan; tint: string }) {
 
 /** A middle dot per space, an arrow per tab — and the tab itself, for width. */
 function glyphsFor(text: string): string {
+  // oxlint-disable-next-line typescript/no-misused-spread -- one glyph per code point of whitespace
   return [...text].map((character) => (character === '\t' ? '→\t' : '·')).join('');
 }
 

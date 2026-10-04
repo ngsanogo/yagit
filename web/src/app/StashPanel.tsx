@@ -254,6 +254,7 @@ function Row({
               is a bare date, so this hover used to hand back the string
               underneath it; a stack of stashes made in one afternoon is the
               ordinary case, and the hour is the only thing that orders them. */}
+          {/* oxlint-disable-next-line react/purity -- the clock, read at render on purpose: see formatRelativeTime */}
           <span title={formatExactTime(made)}>{formatRelativeTime(made, new Date())}</span>
         </span>
       </button>

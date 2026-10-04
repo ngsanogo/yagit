@@ -29,11 +29,10 @@ rather than as a violation, and the scan asserts only on violations.
 
 `prefers-reduced-motion` is honoured in `web/src/design/base.css`.
 
-There is deliberately no `eslint-plugin-jsx-a11y`. No published version
-accepts eslint 10, which this project runs, and forcing the peer dependency
-leaves a silent hole: the plugin reads JSX, so a missing accessible name that
-comes from a runtime prop, a contrast ratio, or a focus order is invisible to
-it — and is precisely what axe measures.
+The linter's JSX accessibility rules are deliberately not what this rests on,
+and they are not enabled. A rule that reads JSX leaves a silent hole: a missing
+accessible name that comes from a runtime prop, a contrast ratio, or a focus
+order is invisible to it — and is precisely what axe measures.
 
 yagit is a local web UI served by a daemon. There is no mobile app and no
 separate marketing site to keep in sync.

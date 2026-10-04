@@ -15,7 +15,7 @@
     "test": "vitest run",
     "test:e2e": "playwright test",
     "test:release": "playwright test --config playwright.release.config.ts",
-    "lint": "tsc --noEmit && eslint .",
+    "lint": "tsc --noEmit && oxlint --deny-warnings",
     "fmt": "prettier --write .",
     "test:coverage": "vitest run --coverage",
     "fmt:check": "prettier --check ."
@@ -30,7 +30,6 @@
   },
   "devDependencies": {
     "@axe-core/playwright": "4.13.0",
-    "@eslint/js": "^10.0.1",
     "@playwright/test": "1.63.0",
     "@tailwindcss/vite": "^4.0.0",
     "@types/node": "26.6.4",
@@ -38,13 +37,11 @@
     "@types/react-dom": "^19.2.7",
     "@vitejs/plugin-react": "^6.1.1",
     "@vitest/coverage-v8": "^5.0.0",
-    "eslint": "^10.10.0",
-    "eslint-plugin-react-hooks": "^7.1.1",
-    "globals": "^17.12.0",
+    "oxlint": "1.86.0",
+    "oxlint-tsgolint": "7.0.2003",
     "prettier": "^3.0.0",
     "tailwindcss": "^4.0.0",
-    "typescript": "^6.0.3",
-    "typescript-eslint": "^8.70.0",
+    "typescript": "7.0.2",
     "vite": "^8.0.0",
     "vitest": "^5.0.0"
   }
