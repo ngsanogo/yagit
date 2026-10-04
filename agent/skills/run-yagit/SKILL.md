@@ -12,13 +12,13 @@ reads one command per line from stdin and prints the answer, so it works from a
 pipe and from tmux alike.
 
 All paths below are relative to the project root. Every project action goes
-through `./do`; nothing here calls `go`, `npm`, `node` or `playwright` by hand.
+through `./do`; nothing here calls `go`, `pnpm`, `node` or `playwright` by hand.
 
 ## Prerequisites
 
-[mise](https://mise.jdx.dev) and nothing else — `./do` installs Go, Node, air
-and the rest at the versions pinned in `mise.toml`, and `npm ci` for the
-frontend, on first run. `./do drive` and `./do shot` install Chromium into
+[mise](https://mise.jdx.dev) and nothing else — `./do` installs Go, Node, pnpm,
+air and the rest at the versions pinned in `mise.toml`, and the frontend's
+dependencies from its lockfile, on first run. `./do drive` and `./do shot` install Chromium into
 `.yagit/browsers` the first time they need it — everything the checkout
 downloads stays inside it. No `apt-get` was needed on this container.
 

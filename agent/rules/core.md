@@ -10,7 +10,7 @@ On Windows use `do.cmd` with the same subcommands.
 ## Toolchain
 
 - Tool versions: `mise.toml` + `mise.lock` (checksum per platform)
-- Frontend dependencies: `web/package-lock.json`
+- Frontend dependencies: `web/package.json` + `web/pnpm-lock.yaml`, installed by pnpm
 - Go packages: `./cmd/...` and `./internal/...` only (not `./...`)
 
 ## Error handling

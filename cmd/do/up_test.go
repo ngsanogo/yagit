@@ -241,7 +241,7 @@ func TestStopBackgroundStackIsQuietWhenNothingRuns(t *testing.T) {
 
 // TestWaitForStackReadyStopsWhenTheSupervisorDies is why the wait watches the
 // process and not only the clock. A stack that failed to start — an
-// unreadable YAGIT_ROOT, a missing npm — has nothing left to wait for, and
+// unreadable YAGIT_ROOT, a missing pnpm — has nothing left to wait for, and
 // two minutes of silence is the worst possible way to say so.
 func TestWaitForStackReadyStopsWhenTheSupervisorDies(t *testing.T) {
 	useNoDaemon(t)

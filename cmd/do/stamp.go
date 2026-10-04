@@ -28,7 +28,7 @@ var (
 	// frontendStamp: web/node_modules was installed from this lockfile.
 	frontendStamp = stamp{
 		file:    stateDirectory + "/frontend.stamp",
-		sources: []string{"web/package-lock.json"},
+		sources: []string{"web/pnpm-lock.yaml"},
 	}
 
 	// stackStamp: the background stack is running the dependencies it was
@@ -41,7 +41,7 @@ var (
 	// contents change nothing about a stack that is already up.
 	stackStamp = stamp{
 		file:    stateDirectory + "/stack.stamp",
-		sources: []string{"web/package-lock.json", "go.sum"},
+		sources: []string{"web/pnpm-lock.yaml", "go.sum"},
 	}
 )
 
@@ -79,7 +79,7 @@ func (p *project) fingerprint(s stamp) (string, error) {
 // sources as they are now.
 //
 // A stamp it cannot compute or read is reported as stale, which sends the
-// caller to do the work again — the safe direction, and the one where npm or
+// caller to do the work again — the safe direction, and the one where pnpm or
 // git explains what is wrong with the checkout far better than a guess here
 // would.
 func (p *project) stampIsCurrent(s stamp) bool {
@@ -102,7 +102,7 @@ func (p *project) stampIsCurrent(s stamp) bool {
 
 // recordStamp writes the fingerprint of the sources as they are now. It is
 // called after the work succeeded, never before: a stamp written first would
-// claim an install that a failed `npm ci` left half-finished.
+// claim an install that a failed `pnpm install` left half-finished.
 func (p *project) recordStamp(s stamp) error {
 	fingerprint, err := p.fingerprint(s)
 	if err != nil {

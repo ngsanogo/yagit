@@ -1046,7 +1046,7 @@ func TestEmptyEmbeddedAssetsSparesTheGitkeep(t *testing.T) {
 func TestFrontendDependenciesAreCurrent(t *testing.T) {
 	p := newProject(t)
 	vite := p.nodeBinary("vite")
-	lockfile := p.path("web", "package-lock.json")
+	lockfile := p.path("web", "pnpm-lock.yaml")
 
 	if p.frontendDependenciesAreCurrent() {
 		t.Error("nothing installed must not count as current")
@@ -1066,8 +1066,8 @@ func TestFrontendDependenciesAreCurrent(t *testing.T) {
 	}
 
 	// A branch switch rewrites the lockfile's mtime and not one byte of it.
-	// Reinstalling there deletes node_modules and spends minutes reproducing
-	// it exactly — on every `git checkout`, for everyone.
+	// Reinstalling there pays for an install that reproduces what is already
+	// on disk — on every `git checkout`, for everyone.
 	future := time.Now().Add(time.Hour)
 	if err := os.Chtimes(lockfile, future, future); err != nil {
 		t.Fatalf("moving the lockfile's mtime: %v", err)
@@ -1084,7 +1084,7 @@ func TestFrontendDependenciesAreCurrent(t *testing.T) {
 	}
 
 	// The stamp says installed, and node_modules is gone: an interrupted
-	// `npm ci`, or somebody clearing the tree by hand.
+	// install, or somebody clearing the tree by hand.
 	if err := p.recordStamp(frontendStamp); err != nil {
 		t.Fatalf("recording the install: %v", err)
 	}
@@ -1096,11 +1096,11 @@ func TestFrontendDependenciesAreCurrent(t *testing.T) {
 	}
 }
 
-func TestNodeBinaryNamesWhatNpmActuallyWrote(t *testing.T) {
+func TestNodeBinaryNamesWhatPnpmActuallyWrote(t *testing.T) {
 	p := newProject(t)
 	name := p.nodeBinary("playwright")
 
-	// npm writes a .cmd wrapper on Windows and a symlink everywhere else.
+	// pnpm writes a .cmd wrapper on Windows and a shell script everywhere else.
 	// Naming the extensionless one there looks exactly like a missing install.
 	if runtime.GOOS == "windows" {
 		if !strings.HasSuffix(name, "playwright.cmd") {

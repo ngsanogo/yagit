@@ -38,7 +38,7 @@ them, `./do agent check` fails until sync refreshes the copies.
 
 [`.ignore`](../.ignore) lists them, in the same syntax as `.gitignore`. It
 covers this machine's `.env` and `.yagit/`, the build output `./do build`
-reproduces, and `web/package-lock.json`, which is tracked and generated.
+reproduces, and `web/pnpm-lock.yaml`, which is tracked and generated.
 Respect the list even when a search tool does not.
 
 ## Personal files
