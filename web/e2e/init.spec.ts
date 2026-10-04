@@ -84,7 +84,9 @@ test('fills the first branch from the daemon when the field is left empty', asyn
   // The daemon read init.defaultBranch and answered with a name; whatever it
   // is, the command pins it and the field now shows it.
   await expect(page.getByText(/git init --initial-branch=\S+ --/)).toBeVisible();
-  await page.getByRole('button', { name: 'Back' }).click();
+  // Exact: a role name matches as a substring, and any repository on the page
+  // whose name holds "back" (a backup, say) would be a second Back button.
+  await page.getByRole('button', { name: 'Back', exact: true }).click();
   await expect(branch).not.toHaveValue('');
 });
 
