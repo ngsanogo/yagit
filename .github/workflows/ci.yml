@@ -70,7 +70,7 @@ jobs:
       # and the Build job's clean-tree check then reports the lockfile as
       # modified. Raising the version therefore comes with `mise lock` run on
       # the new mise, in the same change.
-      - uses: jdx/mise-action@94c60b39bc2d90ab2f9bab27f38d3cc4812c1834 # v5.1.0
+      - uses: jdx/mise-action@2d8d4cafcbd33be2ea37d2b6f5ad595363d1f1ca # v5.1.1
         with:
           version: 2026.10.2
           install: false
@@ -121,7 +121,7 @@ jobs:
       # shim, into .yagit/mise, because that is what every contributor's
       # machine does — and installing them here as well would download the
       # whole toolchain twice into a directory nothing afterwards reads.
-      - uses: jdx/mise-action@94c60b39bc2d90ab2f9bab27f38d3cc4812c1834 # v5.1.0
+      - uses: jdx/mise-action@2d8d4cafcbd33be2ea37d2b6f5ad595363d1f1ca # v5.1.1
         with:
           version: 2026.10.2
           install: false
@@ -221,7 +221,7 @@ jobs:
       # shim, into .yagit/mise, because that is what every contributor's
       # machine does — and installing them here as well would download the
       # whole toolchain twice into a directory nothing afterwards reads.
-      - uses: jdx/mise-action@94c60b39bc2d90ab2f9bab27f38d3cc4812c1834 # v5.1.0
+      - uses: jdx/mise-action@2d8d4cafcbd33be2ea37d2b6f5ad595363d1f1ca # v5.1.1
         with:
           version: 2026.10.2
           install: false
@@ -300,7 +300,7 @@ jobs:
       # shim, into .yagit/mise, because that is what every contributor's
       # machine does — and installing them here as well would download the
       # whole toolchain twice into a directory nothing afterwards reads.
-      - uses: jdx/mise-action@94c60b39bc2d90ab2f9bab27f38d3cc4812c1834 # v5.1.0
+      - uses: jdx/mise-action@2d8d4cafcbd33be2ea37d2b6f5ad595363d1f1ca # v5.1.1
         with:
           version: 2026.10.2
           install: false
