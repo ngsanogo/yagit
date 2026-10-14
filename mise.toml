@@ -50,7 +50,7 @@ lockfile = true
 go = "1.27.1"
 
 # The frontend.
-node = "26.10.0"
+node = "26.11.1"
 
 # The frontend's package manager. Pinned here like every other tool, because
 # Node stopped shipping corepack with 25 and nothing else would fetch it.
