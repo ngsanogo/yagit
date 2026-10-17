@@ -17,20 +17,20 @@ port, because the daemon's port was the page's.
 
 ## The problem
 
-A development VM that serves each of its applications under a host name of its
-own, through a reverse proxy: `https://yagit.<machine>`. The chain, measured:
-the browser speaks TLS to a proxy on the VM's host, which speaks plain HTTP to
-a proxy on the VM, which connects to `127.0.0.1:7420` with the host name
-preserved. The daemon receives `Host: yagit.<machine>`,
-`X-Forwarded-Proto: https`, and the browser's `Origin: https://yagit.<machine>`.
-WebSocket upgrades pass through.
+A machine — a development VM, for instance — that serves each of its
+applications under a host name of its own, through a reverse proxy:
+`https://yagit.<machine>`. The browser speaks TLS to a proxy, which may hand
+the request to another (one on the VM's host, one on the VM), and the last
+connects to `127.0.0.1:7420` over plain HTTP with the host name preserved. The
+daemon receives `Host: yagit.<machine>`, `X-Forwarded-Proto: https`, and the
+browser's `Origin: https://yagit.<machine>`. WebSocket upgrades pass through.
 
 A name per application is not decoration. Browsers scope cookies by host and
 not by port, and HSTS the same way, so applications sharing one name on
 different ports overwrite each other's sessions, and one that sends HSTS forces
-HTTPS on all the others. The same machine also ran another project's Vite,
-which wanted 5173 as yagit's did, and with `strictPort` whichever started
-second failed.
+HTTPS on all the others. Projects on one machine also collide on Vite's
+port: every Vite project defaults to 5173, as yagit's did, and with
+`strictPort` whichever starts second fails.
 
 Behind that proxy yagit broke in four places, and none of them said why.
 
