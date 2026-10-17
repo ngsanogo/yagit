@@ -245,8 +245,6 @@ func worktreeReason(value string, nul bool) string {
 	return unquoted
 }
 
-// AddWorktreeArgs is the command AddWorktree runs.
-//
 // Three shapes, and which one runs is the caller's to say and the user's to
 // see:
 //
@@ -308,8 +306,6 @@ func (r *Runner) AddWorktree(ctx context.Context, dir, path, ref, newBranch stri
 	return err
 }
 
-// RemoveWorktreeArgs is the command RemoveWorktree runs.
-//
 // `--force` is what gets past a checkout holding uncommitted work, and it is
 // therefore never the default: git's refusal names what is in the way, and the
 // confirmation shows which of the two lines is about to run.
@@ -336,7 +332,6 @@ func (r *Runner) RemoveWorktree(ctx context.Context, dir, path string, force boo
 	return err
 }
 
-// PruneWorktreesArgs is the command PruneWorktrees runs.
 func PruneWorktreesArgs() []string {
 	return []string{"worktree", "prune"}
 }

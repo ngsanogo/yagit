@@ -79,8 +79,6 @@ func ParseResetMode(raw string) (ResetMode, error) {
 	}
 }
 
-// ResetArgs is the command Reset runs.
-//
 // Exported for the reason RevertArgs is: the line the user is shown and the
 // line git receives have one definition between them. The mode flag is always
 // present — never a bare `git reset`, whose meaning is mixed only by default.

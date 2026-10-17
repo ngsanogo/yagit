@@ -206,3 +206,40 @@ func (s *Server) finishProgressWithRefs(
 	}
 	_ = emit(progressDoneEvent{Type: "done", refsPayload: payload})
 }
+
+// runWithProgress streams one network command as NDJSON, then the refs it
+// moved or the failure.
+//
+// Call it only after the request has been accepted. A refusal before git
+// starts is still an ordinary JSON error — there is nothing to stream yet.
+// Clone does not use this: its done event carries the repository that was
+// created, not the refs of one that was already open.
+//
+// The pump keeps the writing off the goroutine os/exec copies stderr on, so a
+// browser that stops reading cannot stall git. It is stopped before anything
+// else is emitted: until stop returns, a second goroutine is writing to this
+// same response.
+func (s *Server) runWithProgress(
+	writer http.ResponseWriter,
+	request *http.Request,
+	opened *repo.Repo,
+	run func(onLine func(string)) error,
+) {
+	emit, err := beginProgressStream(writer)
+	if err != nil {
+		writeError(writer, s.logger, http.StatusInternalServerError, err)
+		return
+	}
+
+	pump := startProgressPump(emitProgressLine(emit))
+	defer pump.stop()
+
+	err = run(pump.line)
+	pump.stop()
+	if err != nil {
+		emitProgressError(emit, err)
+		return
+	}
+
+	s.finishProgressWithRefs(emit, request, opened)
+}

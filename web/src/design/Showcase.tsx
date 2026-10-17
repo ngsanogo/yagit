@@ -16,7 +16,7 @@ import { EmptyState } from '../components/EmptyState';
 import { Field } from '../components/Field';
 import { FileStatusMark } from '../components/FileStatusMark';
 import { GitCommand } from '../components/GitCommand';
-import { ICONS, SearchIcon } from '../components/Icons';
+import { ICONS, Icon, SearchIcon, type IconProps } from '../components/Icons';
 import { Kbd } from '../components/Kbd';
 import { Menu, menuItem, type MenuItem } from '../components/Menu';
 import { Panel } from '../components/Panel';
@@ -63,6 +63,60 @@ import { MoonGlyph, SunGlyph, SystemGlyph } from '../components/ThemeGlyphs';
  * not a loss, and the third is what "yagit will run, in this order" looks like
  * when an operation really is two commands.
  */
+/**
+ * Glyphs the workbench never draws, kept here so the reference page still
+ * shows the pen. They are not part of the product set.
+ */
+function ChevronDownIcon(props: IconProps) {
+  return (
+    <Icon {...props}>
+      <path d="m4 6.25 4 4 4-4" />
+    </Icon>
+  );
+}
+
+function ChevronRightIcon(props: IconProps) {
+  return (
+    <Icon {...props}>
+      <path d="m6.25 4 4 4-4 4" />
+    </Icon>
+  );
+}
+
+function ArrowUpIcon(props: IconProps) {
+  return (
+    <Icon {...props}>
+      <path d="M8 13V3M4 7l4-4 4 4" />
+    </Icon>
+  );
+}
+
+function ArrowDownIcon(props: IconProps) {
+  return (
+    <Icon {...props}>
+      <path d="M8 3v10M4 9l4 4 4-4" />
+    </Icon>
+  );
+}
+
+function InfoIcon(props: IconProps) {
+  return (
+    <Icon {...props}>
+      <circle cx="8" cy="8" r="5.75" />
+      <path d="M8 7.25v3.75M8 5.1v.05" />
+    </Icon>
+  );
+}
+
+const SHOWCASE_ICONS = {
+  ...ICONS,
+  ChevronDownIcon,
+  ChevronRightIcon,
+  ArrowUpIcon,
+  ArrowDownIcon,
+  InfoIcon,
+};
+
 type ConfirmKind = 'destructive' | 'bounded' | 'ordered';
 
 export function Showcase() {
@@ -422,7 +476,7 @@ export function Showcase() {
           note="Sixteen units, a stroke and a half, round ends, currentColor. One pen for every glyph, so a reader learns a shape once and meets it everywhere the thing is named: the branch in the sidebar, in the badge on a row and in the chip above the history are the same drawing. Every icon is aria-hidden; the control that puts one on its own owes it a name, and IconButton refuses to be built without one."
         >
           <div className="grid grid-cols-3 gap-3 sm:grid-cols-5 lg:grid-cols-7">
-            {Object.entries(ICONS).map(([name, Glyph]) => (
+            {Object.entries(SHOWCASE_ICONS).map(([name, Glyph]) => (
               <div
                 key={name}
                 className="flex flex-col items-center gap-2 rounded-md border border-line bg-surface px-2 py-3"

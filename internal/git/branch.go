@@ -57,8 +57,6 @@ func SwitchArgs(name string) []string {
 	return []string{"switch", "--no-guess", "--", name}
 }
 
-// DetachArgs is the command Detach runs.
-//
 // A function of its own rather than a flag on the one above, because they
 // answer different requests. `git switch --detach main` leaves HEAD on the
 // commit main points at and no longer on main, which is not what "check out
@@ -118,8 +116,6 @@ func (r *Runner) Detach(ctx context.Context, dir, revision string) error {
 // not happen.
 var ErrNoBranchName = errors.New("no branch name given")
 
-// CreateBranchArgs is the command CreateBranch runs.
-//
 // Exported for the reason DiscardTrackedArgs is: the line the user is shown
 // and the line git receives have one definition between them.
 //
@@ -134,8 +130,6 @@ func CreateBranchArgs(name, start string) []string {
 	return args
 }
 
-// RenameBranchArgs is the command RenameBranch runs.
-//
 // `-m`, not `-M`: the capital overwrites a branch that already has the new
 // name, silently, and the branch it overwrites may be the only thing pointing
 // at a line of work. git refuses the collision by name instead, and that
@@ -144,8 +138,6 @@ func RenameBranchArgs(from, to string) []string {
 	return []string{"branch", "-m", "--", from, to}
 }
 
-// DeleteBranchArgs is the command DeleteBranch runs.
-//
 // `-d` refuses a branch holding commits no other branch can reach; `-D` does
 // it anyway. Which one runs is the caller's to say and the user's to see: the
 // interface asks first, and what it shows is this line.
@@ -157,8 +149,6 @@ func DeleteBranchArgs(name string, force bool) []string {
 	return []string{"branch", flag, "--", name}
 }
 
-// CreateAndSwitchArgs is the command CreateAndSwitch runs.
-//
 // Note where the `--` is not: `git switch --create -- feature` reads `feature`
 // as the START POINT and leaves --create with no name, because the name is the
 // option's own argument. That is also what makes it safe — a value consumed by

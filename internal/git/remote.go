@@ -172,8 +172,6 @@ func parseRemoteLine(line string) (name, url, direction string, err error) {
 // fetched — a success that looks like the dialog was skipped.
 var ErrNoRemoteURL = errors.New("no remote URL given")
 
-// AddRemoteArgs is the command AddRemote runs.
-//
 // Exported for the reason DeleteBranchArgs is: a confirmation that showed a
 // different line from the one git received would be a lie. The name and URL
 // both go after `--`, because a remote may be called `-f` and git accepts
@@ -182,8 +180,6 @@ func AddRemoteArgs(name, url string) []string {
 	return []string{"remote", "add", "--", name, url}
 }
 
-// RenameRemoteArgs is the command RenameRemote runs.
-//
 // git moves the remote-tracking branches under refs/remotes/ with the name,
 // and rewrites branch.*.remote that pointed at the old one. That is the whole
 // of the operation, and it is why a rename is worth offering rather than
@@ -192,8 +188,6 @@ func RenameRemoteArgs(from, to string) []string {
 	return []string{"remote", "rename", "--", from, to}
 }
 
-// RemoveRemoteArgs is the command RemoveRemote runs.
-//
 // `remove` rather than `rm`: both work, and the longer form is the one a
 // confirmation can show without looking like an abbreviation the user did not
 // ask for. The remote-tracking branches under refs/remotes/<name>/ go with it.
@@ -201,8 +195,6 @@ func RemoveRemoteArgs(name string) []string {
 	return []string{"remote", "remove", "--", name}
 }
 
-// SetRemoteURLArgs is the command SetRemoteURL runs.
-//
 // One URL, the fetch one. A separately configured pushurl is left alone —
 // `git remote set-url` without `--push` is what changes where the remote is
 // read from, and a form that silently rewrote both would erase an https/ssh
@@ -410,8 +402,6 @@ func ParsePullStrategy(raw string) (PullStrategy, error) {
 
 var errUnknownStrategy = errors.New("no pull strategy given")
 
-// PullArgs is the command Pull runs.
-//
 // The remote and the branch are named rather than left out. `git pull` with no
 // arguments reads the branch's configuration and usually does the same thing —
 // usually, and the exceptions are the ones that matter: a branch whose
@@ -635,8 +625,6 @@ func DestinationFor(branch string, upstream Upstream, remote string) (PushDestin
 	}, nil
 }
 
-// SetUpstreamArgs is the command SetUpstream runs.
-//
 // The upstream is named as remote/branch — git's own form for
 // `--set-upstream-to`. The local branch goes after `--` so a name that looks
 // like a flag cannot become one.
@@ -649,7 +637,6 @@ func SetUpstreamArgs(branch, remote, upstreamBranch string) []string {
 	}
 }
 
-// UnsetUpstreamArgs is the command UnsetUpstream runs.
 func UnsetUpstreamArgs(branch string) []string {
 	return []string{"branch", "--unset-upstream", "--", branch}
 }

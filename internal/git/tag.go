@@ -28,8 +28,6 @@ var ErrNoTagName = errors.New("no tag name given")
 // skipped. Lightweight tags carry no message and never reach this check.
 var ErrNoTagMessage = errors.New("no tag message given")
 
-// CreateTagArgs is the command CreateTag runs.
-//
 // Exported so the line the confirmation could show and the line git receives
 // stay one definition. Target empty means HEAD, left to git. Annotated takes
 // -a and -m; lightweight is the bare form with neither.
@@ -46,16 +44,12 @@ func CreateTagArgs(name, message, target string, annotated bool) []string {
 	return args
 }
 
-// DeleteTagArgs is the command DeleteTag runs.
-//
 // `-d` only — local. Removing a tag from a remote is a push of a deletion and
 // is not offered here.
 func DeleteTagArgs(name string) []string {
 	return []string{"tag", "-d", "--", name}
 }
 
-// PushTagArgs is the command PushTag runs.
-//
 // The refspec is written out both sides — `refs/tags/v1:refs/tags/v1` —
 // rather than `git push origin v1`, which git may read as a branch. Same
 // reason DestinationFor writes the full name for a branch push. No force:
@@ -88,7 +82,6 @@ func (r *Runner) CreateTag(ctx context.Context, dir, name, message, target strin
 	return err
 }
 
-// DeleteTag removes a local tag.
 func (r *Runner) DeleteTag(ctx context.Context, dir, name string) error {
 	name = strings.TrimSpace(name)
 	if name == "" {

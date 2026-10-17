@@ -1,14 +1,13 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState, type FormEvent } from 'react';
 
-import { ApiError, api } from '../api/client';
+import { api } from '../api/client';
 import type { ClonePlan } from '../api/types';
 import { Button } from '../components/Button';
 import { Field } from '../components/Field';
 import { GitCommand } from '../components/GitCommand';
-import { GitFailureDetail } from '../components/GitFailureDetail';
 import { Spinner } from '../components/Spinner';
-import { errorSummary } from '../lib/errorDisplay';
+import { GitErrorAlert } from '../lib/errorDisplay';
 import { discoverQuery } from './OpenRepository';
 
 /**
@@ -156,7 +155,7 @@ export function CloneRepository({ onOpened }: { onOpened?: (id: string) => void 
           </pre>
         )}
 
-        {runFailure !== null && <CloneFailure error={runFailure} />}
+        {runFailure !== null && <GitErrorAlert error={runFailure} />}
 
         <div className="flex items-center justify-end gap-2">
           <Button
@@ -233,39 +232,8 @@ export function CloneRepository({ onOpened }: { onOpened?: (id: string) => void 
           </div>
         </form>
 
-        {planFailure !== null && <CloneFailure error={planFailure} />}
+        {planFailure !== null && <GitErrorAlert error={planFailure} />}
       </section>
-    </div>
-  );
-}
-
-/**
- * What went wrong, said once.
- *
- * The daemon sends two accounts of a failed git command: a message, and the
- * command, exit code and stderr beside it. The message usually ENDS with
- * those same three facts rendered as a sentence, so drawing both put the
- * whole of git's stderr on the screen twice — once as prose, once in the
- * block underneath it. `errorSummary` keeps only the half the block cannot
- * say, which is why the paragraph is conditional: when the message was the
- * restatement and nothing else there is nothing left to draw, and an empty
- * line above the block is not an improvement on a duplicated one.
- *
- * The `role="alert"` stays on the wrapper rather than moving to whichever of
- * the two is drawn. Either half can be the only one — a refusal from the
- * daemon has no git failure under it, and a git failure whose message adds
- * nothing has no paragraph over it — and the thing that has to be announced
- * is the failure, not the half that happened to survive.
- */
-function CloneFailure({ error }: { error: Error }) {
-  const summary = errorSummary(error);
-
-  return (
-    <div role="alert" className="flex flex-col gap-1 text-xs text-danger">
-      {summary !== undefined && <span>{summary}</span>}
-      {error instanceof ApiError && error.git !== undefined ? (
-        <GitFailureDetail failure={error.git} />
-      ) : null}
     </div>
   );
 }

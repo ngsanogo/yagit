@@ -173,8 +173,6 @@ func ParseStashApplyMode(raw string) (StashApplyMode, error) {
 	}
 }
 
-// StashPushArgs is the command PushStash runs.
-//
 // Exported for the reason ResetArgs is: the line the user is shown and the
 // line git receives have one definition between them.
 //
@@ -213,8 +211,6 @@ func StashApplyArgs(mode StashApplyMode, index int) []string {
 	return []string{"stash", string(mode), stashRef(index)}
 }
 
-// StashDropArgs is the command DropStash runs.
-//
 // The position, not the object name. `git stash drop` refuses a raw SHA — it
 // takes a stash reference, because dropping is an edit of the reflog rather
 // than of the object database — which is the whole reason StashTarget has to

@@ -313,8 +313,6 @@ func (r *Runner) initialisedSubmodules(ctx context.Context, dir string) (map[str
 	return names, nil
 }
 
-// AddSubmoduleArgs is the command AddSubmodule runs.
-//
 // The URL and the path land after `--`, so a path named `-f` arrives as a
 // path. No `--force`: it exists to overwrite a directory that is already
 // there, and "add a submodule" is not a request to replace something.
@@ -339,8 +337,6 @@ func (r *Runner) AddSubmodule(ctx context.Context, dir, url, path string) error 
 	return err
 }
 
-// UpdateSubmodulesArgs is the command UpdateSubmodules runs.
-//
 // `--init` writes the URLs into the superproject's config where they are
 // missing, which is the state a fresh clone leaves; without it, update on a
 // never-initialised submodule succeeds while doing nothing. `--recursive`
@@ -366,7 +362,6 @@ func (r *Runner) UpdateSubmodules(ctx context.Context, dir, path string) error {
 	return err
 }
 
-// SyncSubmodulesArgs is the command SyncSubmodules runs.
 func SyncSubmodulesArgs(path string) []string {
 	args := []string{"submodule", "sync", "--recursive"}
 	if path != "" {
@@ -415,7 +410,6 @@ func RemoveSubmoduleArgs(path string, force bool) [][]string {
 	return [][]string{deinit, remove}
 }
 
-// RemoveSubmodule unpins a repository from this one.
 func (r *Runner) RemoveSubmodule(ctx context.Context, dir, path string, force bool) error {
 	path = strings.TrimSpace(path)
 	if path == "" {

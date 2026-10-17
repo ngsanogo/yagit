@@ -25,7 +25,7 @@ export type IconProps = Omit<SVGProps<SVGSVGElement>, 'children'> & {
   size?: number;
 };
 
-function Icon({ size = 14, className, ...rest }: IconProps & { children: React.ReactNode }) {
+export function Icon({ size = 14, className, ...rest }: IconProps & { children: React.ReactNode }) {
   const { children, ...attributes } = rest;
   return (
     <svg
@@ -301,47 +301,6 @@ export function TerminalIcon(props: IconProps) {
   );
 }
 
-export function ChevronDownIcon(props: IconProps) {
-  return (
-    <Icon {...props}>
-      <path d="m4 6.25 4 4 4-4" />
-    </Icon>
-  );
-}
-
-export function ChevronRightIcon(props: IconProps) {
-  return (
-    <Icon {...props}>
-      <path d="m6.25 4 4 4-4 4" />
-    </Icon>
-  );
-}
-
-export function ArrowUpIcon(props: IconProps) {
-  return (
-    <Icon {...props}>
-      <path d="M8 13V3M4 7l4-4 4 4" />
-    </Icon>
-  );
-}
-
-export function ArrowDownIcon(props: IconProps) {
-  return (
-    <Icon {...props}>
-      <path d="M8 3v10M4 9l4 4 4-4" />
-    </Icon>
-  );
-}
-
-export function InfoIcon(props: IconProps) {
-  return (
-    <Icon {...props}>
-      <circle cx="8" cy="8" r="5.75" />
-      <path d="M8 7.25v3.75M8 5.1v.05" />
-    </Icon>
-  );
-}
-
 export function WarningIcon(props: IconProps) {
   return (
     <Icon {...props}>
@@ -396,11 +355,6 @@ export const ICONS = {
   FilterIcon,
   PencilIcon,
   TerminalIcon,
-  ChevronDownIcon,
-  ChevronRightIcon,
-  ArrowUpIcon,
-  ArrowDownIcon,
-  InfoIcon,
   WarningIcon,
   EllipsisIcon,
 } as const;

@@ -232,8 +232,6 @@ func splitAttributeLine(line string) []string {
 	return fields
 }
 
-// TrackLFSArgs is the command TrackLFS runs.
-//
 // The pattern lands after `--` so one beginning with a dash arrives as a
 // pattern. `git lfs track` writes .gitattributes and stages nothing: the
 // change it makes is a file the user still has to commit.
@@ -241,7 +239,6 @@ func TrackLFSArgs(pattern string) []string {
 	return []string{"lfs", "track", "--", pattern}
 }
 
-// UntrackLFSArgs is the command UntrackLFS runs.
 func UntrackLFSArgs(pattern string) []string {
 	return []string{"lfs", "untrack", "--", pattern}
 }

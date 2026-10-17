@@ -100,7 +100,6 @@ func (s *Server) handlePlanDeleteTag(writer http.ResponseWriter, request *http.R
 	})
 }
 
-// handleDeleteTag removes a local tag.
 func (s *Server) handleDeleteTag(writer http.ResponseWriter, request *http.Request) {
 	opened, err := s.lookupRepo(request)
 	if err != nil {

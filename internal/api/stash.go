@@ -41,7 +41,6 @@ type stashesPayload struct {
 	Stashes []git.Stash `json:"stashes"`
 }
 
-// handleStashes lists the stack.
 func (s *Server) handleStashes(writer http.ResponseWriter, request *http.Request) {
 	opened, err := s.workTree(request)
 	if err != nil {
@@ -428,7 +427,6 @@ func (s *Server) handlePlanStashDrop(writer http.ResponseWriter, request *http.R
 	})
 }
 
-// handleStashDrop throws one stash away.
 func (s *Server) handleStashDrop(writer http.ResponseWriter, request *http.Request) {
 	opened, err := s.stashable(request)
 	if err != nil {
