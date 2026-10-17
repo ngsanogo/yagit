@@ -1,7 +1,7 @@
 # Development
 
 How to run yagit from a checkout. End users who want a published binary should
-use the one-line installer in the [README](../README.md) once a release exists.
+use the one-line installer in the [README](../README.md).
 
 ## Requirements
 
@@ -205,8 +205,7 @@ what it costs is in [docs/adr/](adr/README.md).
 `scripts/install.sh` and `scripts/install.ps1` download a GitHub Release
 binary for the machine, verify `SHA256SUMS`, and install a launcher named
 `yagit` that defaults `-root` to the home directory. They are what the README
-points end users at once a release exists. Pin a tag with
-`YAGIT_VERSION=<tag>`.
+points end users at. Pin a tag with `YAGIT_VERSION=<tag>`.
 
 `scripts/uninstall.sh` and `scripts/uninstall.ps1` reverse that install: the
 launcher and the binary go, an empty `YAGIT_HOME` goes with them, and the
