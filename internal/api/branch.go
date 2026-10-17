@@ -200,7 +200,6 @@ func (s *Server) handlePlanDeleteBranch(writer http.ResponseWriter, request *htt
 	})
 }
 
-// handleDeleteBranch removes a local branch.
 func (s *Server) handleDeleteBranch(writer http.ResponseWriter, request *http.Request) {
 	opened, err := s.lookupRepo(request)
 	if err != nil {

@@ -463,7 +463,6 @@ func (s *Server) refuseUnresolved(context worktreeContext) error {
 	return nil
 }
 
-// handleStage puts changes into the index.
 func (s *Server) handleStage(writer http.ResponseWriter, request *http.Request) {
 	s.applyToWorkTree(writer, request, func(context worktreeContext) error {
 		if err := s.refuseUnresolved(context); err != nil {
@@ -488,7 +487,6 @@ func (s *Server) handleStage(writer http.ResponseWriter, request *http.Request) 
 	})
 }
 
-// handleUnstage takes changes back out of the index.
 func (s *Server) handleUnstage(writer http.ResponseWriter, request *http.Request) {
 	s.applyToWorkTree(writer, request, func(context worktreeContext) error {
 		if context.selection.Lines == nil {

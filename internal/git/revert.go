@@ -102,8 +102,6 @@ func ParseRevertOutcome(raw string) (RevertOutcome, error) {
 	}
 }
 
-// RevertArgs is the command Revert runs.
-//
 // Exported for the reason CherryPickArgs is: the line the user is shown and
 // the line git receives have one definition between them.
 //

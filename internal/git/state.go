@@ -109,7 +109,6 @@ func (s State) Refuse(action Action) error {
 	return nil
 }
 
-// InProgress says something is unfinished.
 func (s State) InProgress() bool { return s.Operation != OperationNone }
 
 // ReadState reads what the work tree is in the middle of.

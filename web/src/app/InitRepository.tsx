@@ -1,14 +1,13 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState, type FormEvent } from 'react';
 
-import { ApiError, api } from '../api/client';
+import { api } from '../api/client';
 import type { InitPlan } from '../api/types';
 import { Button } from '../components/Button';
 import { Field } from '../components/Field';
 import { GitCommand } from '../components/GitCommand';
-import { GitFailureDetail } from '../components/GitFailureDetail';
 import { Spinner } from '../components/Spinner';
-import { errorSummary } from '../lib/errorDisplay';
+import { GitErrorAlert } from '../lib/errorDisplay';
 import { leafOf } from '../lib/path';
 import { discoverQuery } from './OpenRepository';
 
@@ -82,7 +81,7 @@ export function InitRepository({ onOpened }: { onOpened?: (id: string) => void }
           <GitCommand command={plan.command} />
         </div>
 
-        {runFailure !== null && <InitFailure error={runFailure} />}
+        {runFailure !== null && <GitErrorAlert error={runFailure} />}
 
         <div className="flex items-center justify-end gap-2">
           <Button
@@ -155,28 +154,8 @@ export function InitRepository({ onOpened }: { onOpened?: (id: string) => void }
           </div>
         </form>
 
-        {planFailure !== null && <InitFailure error={planFailure} />}
+        {planFailure !== null && <GitErrorAlert error={planFailure} />}
       </section>
-    </div>
-  );
-}
-
-/**
- * What went wrong, said once.
- *
- * The twin of CloneRepository's — same doubling, same subtraction. See the
- * note there for why the paragraph disappears rather than emptying, and
- * `errorSummary` in lib/errorDisplay for what it takes away.
- */
-function InitFailure({ error }: { error: Error }) {
-  const summary = errorSummary(error);
-
-  return (
-    <div role="alert" className="flex flex-col gap-1 text-xs text-danger">
-      {summary !== undefined && <span>{summary}</span>}
-      {error instanceof ApiError && error.git !== undefined ? (
-        <GitFailureDetail failure={error.git} />
-      ) : null}
     </div>
   );
 }

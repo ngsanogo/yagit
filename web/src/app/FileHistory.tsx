@@ -1,4 +1,4 @@
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, type UseQueryResult } from '@tanstack/react-query';
 
 import { api } from '../api/client';
 import type { Commit } from '../api/types';
@@ -41,36 +41,76 @@ export function FileHistoryPanel({
 }) {
   const history = useQuery(fileHistoryQuery(repositoryId, path, revision));
 
+  // A path's history is walked with `git log --follow`, which is exactly the
+  // command a rebase in another terminal interrupts.
+  return (
+    <HistoryListPanel
+      title={`History — ${path}`}
+      closeLabel="Close the file history"
+      pendingLabel={`Reading history of ${path}`}
+      errorTitle={`Could not read history of ${path}`}
+      emptyTitle="No commits touch this path"
+      emptyDescription="Nothing in this walk changed the file — it may be untracked, or the revision does not reach it."
+      limitNote={(limit) => `Showing the newest ${limit} commits that touched this path.`}
+      history={history}
+      onClose={onClose}
+      onSelectCommit={onSelectCommit}
+    />
+  );
+}
+
+/**
+ * The loading, failure and list frame shared by a path's history and a line's.
+ *
+ * The two lists differ in the question they asked and in the sentence each
+ * state speaks. What a row looks like, and how a failure is retried, do not.
+ */
+export function HistoryListPanel({
+  title,
+  closeLabel,
+  pendingLabel,
+  errorTitle,
+  emptyTitle,
+  emptyDescription,
+  limitNote,
+  history,
+  onClose,
+  onSelectCommit,
+}: {
+  title: string;
+  closeLabel: string;
+  pendingLabel: string;
+  errorTitle: string;
+  emptyTitle: string;
+  emptyDescription: string;
+  limitNote: (limit: number) => string;
+  history: UseQueryResult<{ commits: Commit[]; limit: number }>;
+  onClose: () => void;
+  onSelectCommit: (sha: string) => void;
+}) {
   return (
     <Panel
-      title={`History — ${path}`}
+      title={title}
       className="h-full min-h-0"
       flush
-      actions={<CloseButton label="Close the file history" onClose={onClose} />}
+      actions={<CloseButton label={closeLabel} onClose={onClose} />}
     >
       {history.isPending && (
         <div className="flex h-full items-center justify-center">
-          <Spinner label={`Reading history of ${path}`} />
+          <Spinner label={pendingLabel} />
         </div>
       )}
 
-      {/* The shared failure state, so this read looks like every other read
-          that failed — and so it gets the Retry the hand-rolled version had no
-          room for. A path's history is walked with `git log --follow`, which is
-          exactly the command a rebase in another terminal interrupts. */}
       {history.error !== null && (
         <QueryErrorState
-          title={refusalHeading(history.error) ?? `Could not read history of ${path}`}
+          title={refusalHeading(history.error) ?? errorTitle}
           error={history.error}
           retry={history}
         />
       )}
 
       {history.data !== undefined && history.data.commits.length === 0 && (
-        <EmptyState
-          title="No commits touch this path"
-          description="Nothing in this walk changed the file — it may be untracked, or the revision does not reach it."
-        />
+        <EmptyState title={emptyTitle} description={emptyDescription} />
       )}
 
       {history.data !== undefined && history.data.commits.length > 0 && (
@@ -83,9 +123,7 @@ export function FileHistoryPanel({
             />
           ))}
           {history.data.commits.length >= history.data.limit && (
-            <li className="px-3 py-2 text-2xs text-ink-subtle">
-              Showing the newest {history.data.limit} commits that touched this path.
-            </li>
+            <li className="px-3 py-2 text-2xs text-ink-subtle">{limitNote(history.data.limit)}</li>
           )}
         </ul>
       )}

@@ -449,9 +449,8 @@ func (s *Server) branchForUpstream(ctx context.Context, opened *repo.Repo, named
 // to do first — and a bare repository is a perfectly ordinary thing to keep
 // up to date.
 //
-// Progress rides this response as NDJSON (ADR 0030), the same shape clone
-// uses. Validation that fails before git starts is still an ordinary JSON
-// error — there is nothing to stream yet.
+// Progress rides the response as NDJSON once the body is accepted — see
+// runWithProgress.
 func (s *Server) handleFetch(writer http.ResponseWriter, request *http.Request) {
 	opened, err := s.lookupRepo(request)
 	if err != nil {
@@ -464,27 +463,9 @@ func (s *Server) handleFetch(writer http.ResponseWriter, request *http.Request) 
 		return
 	}
 
-	emit, err := beginProgressStream(writer)
-	if err != nil {
-		writeError(writer, s.logger, http.StatusInternalServerError, err)
-		return
-	}
-
-	// The pump keeps the writing off the goroutine os/exec copies stderr on,
-	// so a browser that stops reading cannot stall git. Stopped before
-	// anything else is emitted: until it returns, a second goroutine is
-	// writing to this same response.
-	pump := startProgressPump(emitProgressLine(emit))
-	defer pump.stop()
-
-	err = s.runner.Fetch(uninterrupted(request), opened.Path, body.Remote, pump.line)
-	pump.stop()
-	if err != nil {
-		emitProgressError(emit, err)
-		return
-	}
-
-	s.finishProgressWithRefs(emit, request, opened)
+	s.runWithProgress(writer, request, opened, func(onLine func(string)) error {
+		return s.runner.Fetch(uninterrupted(request), opened.Path, body.Remote, onLine)
+	})
 }
 
 // handlePull fetches the upstream and integrates it into the current branch.
@@ -493,8 +474,6 @@ func (s *Server) handleFetch(writer http.ResponseWriter, request *http.Request) 
 // the work tree and exits non-zero, and that reaches the interface as the
 // failure it is — with git's own account, and with the repository in a state
 // the banner names and the conflict screen resolves.
-//
-// Progress rides this response as NDJSON, for the same reason fetch's does.
 func (s *Server) handlePull(writer http.ResponseWriter, request *http.Request) {
 	opened, err := s.workTree(request)
 	if err != nil {
@@ -527,30 +506,12 @@ func (s *Server) handlePull(writer http.ResponseWriter, request *http.Request) {
 		return
 	}
 
-	emit, err := beginProgressStream(writer)
-	if err != nil {
-		writeError(writer, s.logger, http.StatusInternalServerError, err)
-		return
-	}
-
-	// Off the copy goroutine, for the reason fetch's does it: see
-	// progressPump. Stopped before anything else is emitted on this response.
-	pump := startProgressPump(emitProgressLine(emit))
-	defer pump.stop()
-
-	err = s.runner.Pull(uninterrupted(request), opened.Path, upstream, strategy, pump.line)
-	pump.stop()
-	if err != nil {
-		emitProgressError(emit, err)
-		return
-	}
-
-	s.finishProgressWithRefs(emit, request, opened)
+	s.runWithProgress(writer, request, opened, func(onLine func(string)) error {
+		return s.runner.Pull(uninterrupted(request), opened.Path, upstream, strategy, onLine)
+	})
 }
 
 // handlePush sends the current branch to where it follows, or publishes it.
-//
-// Progress rides this response as NDJSON, for the same reason fetch's does.
 func (s *Server) handlePush(writer http.ResponseWriter, request *http.Request) {
 	opened, err := s.lookupRepo(request)
 	if err != nil {
@@ -586,25 +547,9 @@ func (s *Server) handlePush(writer http.ResponseWriter, request *http.Request) {
 		return
 	}
 
-	emit, err := beginProgressStream(writer)
-	if err != nil {
-		writeError(writer, s.logger, http.StatusInternalServerError, err)
-		return
-	}
-
-	// Off the copy goroutine, for the reason fetch's does it: see
-	// progressPump. Stopped before anything else is emitted on this response.
-	pump := startProgressPump(emitProgressLine(emit))
-	defer pump.stop()
-
-	err = s.runner.Push(uninterrupted(request), opened.Path, destination, body.Force, pump.line)
-	pump.stop()
-	if err != nil {
-		emitProgressError(emit, err)
-		return
-	}
-
-	s.finishProgressWithRefs(emit, request, opened)
+	s.runWithProgress(writer, request, opened, func(onLine func(string)) error {
+		return s.runner.Push(uninterrupted(request), opened.Path, destination, body.Force, onLine)
+	})
 }
 
 // handlePlanPush says what pushing would run, without running it.

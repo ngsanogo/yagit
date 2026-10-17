@@ -1,10 +1,16 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { useState } from 'react';
+import { lazy, Suspense, useState } from 'react';
 
 import { Workbench } from './app/Workbench';
 import { ErrorBoundary } from './components/ErrorBoundary';
+import { Spinner } from './components/Spinner';
 import { ToastHost } from './components/ToastHost';
-import { Showcase } from './design/Showcase';
+
+// The showcase is a reference page, not a workbench screen. Loading it with
+// the product would put its whole catalogue in the bundle a repository opens.
+const Showcase = lazy(() =>
+  import('./design/Showcase').then((module) => ({ default: module.Showcase })),
+);
 
 /**
  * Application root.
@@ -45,7 +51,21 @@ export function App() {
   return (
     <ErrorBoundary>
       <QueryClientProvider client={client}>
-        <ToastHost>{showingDesignSystem ? <Showcase /> : <Workbench />}</ToastHost>
+        <ToastHost>
+          {showingDesignSystem ? (
+            <Suspense
+              fallback={
+                <div className="flex min-h-dvh items-center justify-center">
+                  <Spinner label="Loading the design system" />
+                </div>
+              }
+            >
+              <Showcase />
+            </Suspense>
+          ) : (
+            <Workbench />
+          )}
+        </ToastHost>
       </QueryClientProvider>
     </ErrorBoundary>
   );

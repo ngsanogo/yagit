@@ -162,8 +162,6 @@ func (r *Runner) Unstage(ctx context.Context, dir string, paths []string, unborn
 	return err
 }
 
-// DiscardTrackedArgs is the command DiscardTracked runs.
-//
 // The three Args functions here are exported for one caller: the route that
 // answers what a discard WOULD run, so the confirmation can show it. Nothing
 // else in the project needs to know an argument list before it runs, and the

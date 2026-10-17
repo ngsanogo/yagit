@@ -36,7 +36,6 @@ type removeSubmoduleRequest struct {
 	Force bool   `json:"force"`
 }
 
-// handleSubmodules lists what this repository pins.
 func (s *Server) handleSubmodules(writer http.ResponseWriter, request *http.Request) {
 	opened, err := s.lookupRepo(request)
 	if err != nil {
@@ -159,7 +158,6 @@ func (s *Server) handlePlanRemoveSubmodule(writer http.ResponseWriter, request *
 	writeJSON(writer, s.logger, http.StatusOK, map[string]any{"commands": commands})
 }
 
-// handleRemoveSubmodule unpins a repository from this one.
 func (s *Server) handleRemoveSubmodule(writer http.ResponseWriter, request *http.Request) {
 	opened, err := s.lookupRepo(request)
 	if err != nil {

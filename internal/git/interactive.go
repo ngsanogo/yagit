@@ -405,8 +405,6 @@ func TodoList(steps []RebaseStep, inRange []Commit) string {
 	return todo.String()
 }
 
-// InteractiveRebaseArgs is the command RebaseInteractive runs.
-//
 // Exported for the reason RebaseArgs is: the line the user is shown and the
 // line git receives have one definition between them.
 //

@@ -137,24 +137,7 @@ git's, and so are the credentials
 
 ## Phases
 
-Work proceeded in phases; each ended with something runnable and testable.
-
-| | Phase | Status |
-| --- | --- | --- |
-| 0 | Skeleton: `mise.toml`, `./do`, a Go hello-world reachable from a browser. | ✅ |
-| 1 | Go daemon, token authentication, `git log` parsing, JSON endpoints. | ✅ |
-| 2 | Design system — tokens, palette, typography, base components — before any product screen. | ✅ |
-| 3 | Virtualised commit list. | ✅ |
-| 4 | Lane assignment and SVG rendering, checked against three hundred generated histories, eleven million fuzzed, and git's own repository. | ✅ |
-| 5 | `git status`, file watching, the working-directory panel, staging by file, hunk and line, and the event stream. | ✅ |
-| 6 | Commit and amend, checkout, branch create/rename/delete, merge, rebase. | ✅ |
-| 7 | A commit's message and its patch; file history, blame, line history. | ✅ |
-| 8 | Remotes, fetch, pull, push, clone, remote management. | ✅ |
-| 9 | Interactive rebase, stash, cherry-pick, revert, reset. | ✅ |
-| 10 | Undo, on the reflog. | ✅ |
-| 11 | Conflicts, worktrees, submodules, LFS, signature verdicts. | ✅ |
-| 12 | What the phases deferred: remote URL editing, upstream set and unset, NDJSON progress on fetch/pull/push, the theme toggle and the light theme, tabs and scope remembered across reloads, and the merge-commit preference where a fast-forward is possible. | ✅ |
-
-Further work is not numbered. Unit tests stay mandatory on parsing and on lane
-assignment — the two places where bugs are silent — and both carry a fuzz
-target as well.
+The planned phases, 0 through 12, are complete; each ended with something
+runnable and testable. Further work is not numbered. Unit tests stay
+mandatory on parsing and on lane assignment — the two places where bugs are
+silent — and both carry a fuzz target as well.

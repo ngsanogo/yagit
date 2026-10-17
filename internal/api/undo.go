@@ -133,7 +133,6 @@ func (s *Server) handlePlanUndo(writer http.ResponseWriter, request *http.Reques
 	writeJSON(writer, s.logger, http.StatusOK, preview)
 }
 
-// handleUndo carries out the plan.
 func (s *Server) handleUndo(writer http.ResponseWriter, request *http.Request) {
 	opened, err := s.workTree(request)
 	if err != nil {

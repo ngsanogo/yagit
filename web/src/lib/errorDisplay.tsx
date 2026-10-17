@@ -20,10 +20,7 @@ import { GitFailureDetail } from '../components/GitFailureDetail';
  * that half is what survives. When the message is the restatement and nothing
  * else, there is nothing left to show.
  *
- * Exported because the two screens that hand-roll the same pair — clone and
- * init, which draw a message and a GitFailureDetail themselves — have the
- * same doubling, and one definition of "what git has already said" is what
- * keeps their answer the same as this one.
+ * Shared with `GitErrorAlert`, so a form and a toast subtract the same restatement.
  */
 export function errorSummary(error: Error): string | undefined {
   const git = error instanceof ApiError ? error.git : undefined;
@@ -50,6 +47,27 @@ export function errorSummary(error: Error): string | undefined {
     .replace(/:\s*$/, '')
     .trim();
   return context === '' ? undefined : context;
+}
+
+/**
+ * A failed clone or init, beside the form that asked for it.
+ *
+ * `role="alert"` stays on the wrapper. Either half of `errorSummary` can be
+ * the only one drawn — a daemon refusal has no git block, and a git failure
+ * whose message adds nothing has no paragraph — and what has to be announced
+ * is the failure, not the half that happened to survive.
+ */
+export function GitErrorAlert({ error }: { error: Error }) {
+  const summary = errorSummary(error);
+
+  return (
+    <div role="alert" className="flex flex-col gap-1 text-xs text-danger">
+      {summary !== undefined && <span>{summary}</span>}
+      {error instanceof ApiError && error.git !== undefined ? (
+        <GitFailureDetail failure={error.git} />
+      ) : null}
+    </div>
+  );
 }
 
 /**
