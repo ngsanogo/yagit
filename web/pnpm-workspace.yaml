@@ -19,3 +19,10 @@ verifyDepsBeforeRun: error
 # to "which one?", and the lockfile is supposed to be the only place that
 # question has to be looked up.
 savePrefix: ''
+
+# source-map-js 1.2.1 is GHSA-68fv-2mgg-jv7q (event-loop denial of service).
+# @tailwindcss/node 4.3.3 and magicast 0.5.5 still require 1.2.1; postcss
+# already resolved 1.2.2. Neither parent has published a release that asks
+# for the patch, so the pin is forced here until they do.
+overrides:
+  source-map-js: 1.2.2
