@@ -28,7 +28,6 @@ Both must pass. `./do audit` is optional — not a merge gate.
 
 - [ ] `./do lint` passes
 - [ ] `./do test` passes
-- [ ] If `agent/` changed: `./do agent sync` and `./do agent check`
 - [ ] One logical change
 - [ ] English throughout
 - [ ] No secrets (.env, tokens) in the diff

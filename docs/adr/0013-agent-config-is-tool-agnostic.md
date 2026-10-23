@@ -1,8 +1,9 @@
 # 0013 — Agent configuration is tool-agnostic
 
-**Status:** refined by [0037](0037-the-repository-ships-the-open-agent-format-only.md).
-Instructions still live under `agent/`. The generated per-tool directories do
-not.
+**Status:** refined by [0037](0037-the-repository-ships-the-open-agent-format-only.md),
+which dropped the generated per-tool directories. [0040](0040-agent-files-live-where-tools-look.md)
+then removes the links: the instructions are `AGENTS.md` and the files under
+`.agents/`.
 
 ## The problem
 
@@ -44,5 +45,5 @@ where it looks. `AGENTS.md` is one of those links.
 
 ## References
 
-- [agent/README.md](../../agent/README.md)
+- [AGENTS.md](../../AGENTS.md)
 - [AGENTS.md open format](https://agents.md/)

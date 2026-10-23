@@ -67,13 +67,6 @@ TOKEN=$(./do token)
 curl -H "X-Yagit-Token: $TOKEN" http://127.0.0.1:7420/api/health
 ```
 
-## After changing agent configuration
-
-```sh
-./do agent sync
-./do agent check
-```
-
 ## Windows
 
 Use `do.cmd` with the same subcommands instead of `./do`.

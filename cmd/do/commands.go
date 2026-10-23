@@ -572,12 +572,7 @@ func runLint(p *project, _ []string) error {
 	}
 
 	info("checking that the workflows install the mise mise.toml names")
-	if err := p.checkMiseVersion(); err != nil {
-		return err
-	}
-
-	info("checking agent configuration")
-	return agentCheck(p, false)
+	return p.checkMiseVersion()
 }
 
 // checkOtherPlatforms type-checks the project for the platforms this machine

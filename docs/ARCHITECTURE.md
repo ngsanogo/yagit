@@ -435,10 +435,11 @@ and `YAGIT_PUBLIC_URL` is how the daemon learns what that address is
 
 ## Agent configuration
 
-AI coding agent instructions live in [`agent/`](../agent/). The repository
-publishes `AGENTS.md` and `.agents/skills` as links to that tree, refreshed by
-`./do agent sync`. See [`agent/README.md`](../agent/README.md) and
-[0037](adr/0037-the-repository-ships-the-open-agent-format-only.md).
+Instructions for an AI coding agent are ordinary files at the names those
+tools already open. [`AGENTS.md`](../AGENTS.md) at the repository root is the
+entry point. Rules live in `.agents/rules/`, skills in `.agents/skills/`.
+Nothing links them and nothing generates a second copy
+([0040](adr/0040-agent-files-live-where-tools-look.md)).
 
 ## Toolchain
 

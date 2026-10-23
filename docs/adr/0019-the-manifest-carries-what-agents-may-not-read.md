@@ -69,4 +69,4 @@ wider rule than the manifest asks for, and not one its reader would predict.
 ## References
 
 - [0013 — Agent configuration is tool-agnostic](0013-agent-config-is-tool-agnostic.md)
-- [agent/README.md](../../agent/README.md)
+- [AGENTS.md](../../AGENTS.md)
