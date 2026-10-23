@@ -40,6 +40,6 @@ a new ADR that says so.
 
 ## Agent configuration
 
-Edit `agent/` only. `AGENTS.md` and `.agents/skills` at the repository root are
-links to that tree. Run `./do agent sync` if a link is missing. CI runs
-`./do agent check`.
+`AGENTS.md` at the repository root is the entry point. Rules are this
+directory. Skills are `.agents/skills/`. Edit those files. Nothing links them
+and nothing generates them.

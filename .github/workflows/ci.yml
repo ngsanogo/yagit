@@ -262,29 +262,6 @@ jobs:
         shell: pwsh
         run: .\do.cmd test go
 
-      # `./do agent sync` is the one command in this repository whose behaviour
-      # forks on the platform: where the process has no right to create a
-      # symlink it writes copies instead, and `./do agent check` has to accept
-      # them. Every other machine in this workflow creates the symlink and
-      # takes the other branch, so Windows is the only place that half runs at
-      # all. Untested, it would answer "points to X, want Y: run ./do agent
-      # sync" about a sync that produces the same copy and the same complaint
-      # again.
-      #
-      # Sync first, in a step of its own so its exit code is its own. Git does
-      # not necessarily materialise the committed symlinks on a Windows
-      # checkout, and checking whatever it left behind would be a test of
-      # git's configuration rather than of yagit's.
-      - name: Sync the agent links
-        if: runner.os == 'Windows'
-        shell: pwsh
-        run: .\do.cmd agent sync
-
-      - name: Agent links must match agent/
-        if: runner.os == 'Windows'
-        shell: pwsh
-        run: .\do.cmd agent check
-
   build:
     name: Build
     runs-on: ubuntu-latest

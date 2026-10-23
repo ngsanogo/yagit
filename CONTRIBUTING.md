@@ -228,9 +228,6 @@ user-facing strings — so nobody has to guess which half they are reading.
 
 ## Agent configuration
 
-Instructions for AI coding agents live in [`agent/`](agent/). That directory is
-the only place to edit them. `AGENTS.md` and `.agents/skills` at the repository
-root are links to it — run `./do agent sync` if a link is missing, and
-`./do agent check` (part of `./do lint`) verifies they match.
-
-See [`agent/README.md`](agent/README.md) for the layout.
+Instructions for AI coding agents are [`AGENTS.md`](AGENTS.md) at the
+repository root, with rules in `.agents/rules/` and skills in
+`.agents/skills/`. Edit those files directly.

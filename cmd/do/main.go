@@ -165,16 +165,11 @@ var commands = map[string]command{
 		summary: "Print the session token, to query the API with curl. ./do up --new-token replaces it.",
 		run:     runToken,
 	},
-	"agent": {
-		usage:   "agent sync|check",
-		summary: "Refresh or verify the links from agent/.",
-		run:     runAgent,
-	},
 }
 
 // commandOrder fixes the order the help prints them in, which a map cannot.
 // It runs from what you do every day to what you do once a month.
-var commandOrder = []string{"up", "down", "status", "logs", "dev", "bootstrap", "shell-hook", "build", "test", "lint", "audit", "fmt", "shot", "drive", "token", "version", "agent"}
+var commandOrder = []string{"up", "down", "status", "logs", "dev", "bootstrap", "shell-hook", "build", "test", "lint", "audit", "fmt", "shot", "drive", "token", "version"}
 
 // exitInterrupted is the status a shell expects from a program the terminal
 // interrupted: 128 plus SIGINT. Returning 0 there would make `./do dev && …`
@@ -276,13 +271,6 @@ func printHelp() {
 // its directory, so nothing depends on where the command was typed.
 type project struct {
 	directory string
-
-	// copyShims makes `agent sync` duplicate the files it would otherwise
-	// link, which is what a Windows checkout gets when the process has no
-	// right to create a symlink. Only a test sets it: os.Symlink succeeds on
-	// every machine this repository's tests run on, so that half of sync is
-	// unreachable by construction and would be executed nowhere.
-	copyShims bool
 }
 
 // locateProject finds the checkout by walking up from the working directory

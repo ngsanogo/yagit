@@ -2,7 +2,9 @@
 
 **Status:** reverses the generated-directory half of
 [0013](0013-agent-config-is-tool-agnostic.md) and reverses
-[0019](0019-the-manifest-carries-what-agents-may-not-read.md).
+[0019](0019-the-manifest-carries-what-agents-may-not-read.md). The links it
+left, and `./do agent`, are removed by
+[0040](0040-agent-files-live-where-tools-look.md).
 
 ## The problem
 
@@ -73,6 +75,6 @@ to feed the generated directories, so it left with them.
 
 - [0013 — Agent configuration is tool-agnostic](0013-agent-config-is-tool-agnostic.md)
 - [0019 — The manifest carries what agents may not read](0019-the-manifest-carries-what-agents-may-not-read.md)
-- [agent/README.md](../../agent/README.md)
+- [AGENTS.md](../../AGENTS.md)
 - [AGENTS.md open format](https://agents.md/)
 - [Agent Skills](https://agentskills.io/specification)

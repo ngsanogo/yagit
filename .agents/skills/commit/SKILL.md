@@ -20,7 +20,7 @@ Examples:
 ```
 feat(graph): filter refs drawn in wide histories
 fix(api): preserve Hijacker on the ResponseWriter wrapper
-docs: agent configuration under agent/
+docs: record why agent files are not links
 test(e2e): full path through a real browser
 ```
 

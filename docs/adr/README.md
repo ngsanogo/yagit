@@ -43,9 +43,10 @@ a record that says so and why — not asking permission from the old one.
 | [0034](0034-the-diff-is-drawn-not-edited.md) | The diff is drawn, not edited | **reverses [0004](0004-diffs-are-codemirror.md)** |
 | [0035](0035-secrets-get-an-owner-only-acl-on-windows.md) | Secrets get an owner-only ACL on Windows | new |
 | [0036](0036-a-reverse-proxy-is-a-public-url-not-a-wider-listen.md) | A reverse proxy is a public URL, not a wider listen address | new |
-| [0037](0037-the-repository-ships-the-open-agent-format-only.md) | The repository ships the open agent format only | reverses the shim half of 0013, and 0019 |
+| [0037](0037-the-repository-ships-the-open-agent-format-only.md) | The repository ships the open agent format only | link half reversed by [0040](0040-agent-files-live-where-tools-look.md) |
 | [0038](0038-the-frontend-is-installed-by-pnpm.md) | The frontend is installed by pnpm | **reversed** — it was npm |
 | [0039](0039-the-frontend-is-linted-by-oxlint.md) | The frontend is linted by oxlint, on TypeScript 7 | **reversed** — it was ESLint, holding TypeScript on 6 |
+| [0040](0040-agent-files-live-where-tools-look.md) | Agent files live where tools look | reverses the link half of 0037 |
 
 ## Alternatives considered without a full record
 

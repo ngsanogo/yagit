@@ -328,7 +328,7 @@ func TestEveryCommandIsListedExactlyOnce(t *testing.T) {
 // is the honest signal — the wrong reading of a red run here is to delete the
 // assertion rather than the entry.
 func TestDocumentationSpellsEveryCommandAsTheProgramDoes(t *testing.T) {
-	for _, document := range []string{filepath.Join("docs", "DEVELOPMENT.md"), filepath.Join("agent", "AGENTS.md"), "do"} {
+	for _, document := range []string{filepath.Join("docs", "DEVELOPMENT.md"), "AGENTS.md", "do"} {
 		contents := readFileString(t, filepath.Join("..", "..", document))
 		// A Markdown table cell has to escape the pipe in `test [go|web|…]`.
 		text := strings.ReplaceAll(contents, `\|`, "|")
