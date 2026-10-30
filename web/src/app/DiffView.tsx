@@ -589,7 +589,8 @@ function accessibleName(line: DiffLine, spans: readonly LineSpan[] | undefined):
     line.truncated !== undefined && line.truncated > 0
       ? `, and ${line.truncated.toLocaleString()} more characters not shown`
       : '';
-  return `${kind} line: ${line.text}${rest}${whitespaceNote(spans) ?? ''}`;
+  const newline = line.no_newline ? ', no newline at end of file' : '';
+  return `${kind} line: ${line.text}${rest}${whitespaceNote(spans) ?? ''}${newline}`;
 }
 
 /** The one sentence the glyphs are drawing, for a reader who cannot see them. */
@@ -664,9 +665,17 @@ function LineView({
       {/* Both line numbers, always, in a fixed-width column. An added line has
           no old number and a removed one has no new number; leaving the space
           empty rather than collapsing it is what keeps the two columns from
-          jittering down the file. */}
-      <span className={number}>{line.old_line === 0 ? '' : line.old_line}</span>
-      <span className={lastNumber}>{line.new_line === 0 ? '' : line.new_line}</span>
+          jittering down the file.
+          On a choosable line the button's name is the sentence in aria-label.
+          The numbers stay on screen and out of that name, so they are hidden
+          from the accessibility tree: a visible string the name does not
+          contain is itself a failure. */}
+      <span className={number} aria-hidden={changeable || undefined}>
+        {line.old_line === 0 ? '' : line.old_line}
+      </span>
+      <span className={lastNumber} aria-hidden={changeable || undefined}>
+        {line.new_line === 0 ? '' : line.new_line}
+      </span>
 
       <span className={cx('flex min-w-0 flex-1 items-start', KIND_TINTS[line.kind].whole)}>
         <span
@@ -704,13 +713,17 @@ function LineView({
           {body}
           {line.truncated !== undefined && line.truncated > 0 && (
             /* Said, not silently done. A line that stops with no sign of it
-               reads as the file having ended there. */
-            <span className="ml-2 text-2xs text-ink-subtle">
+               reads as the file having ended there. On a choosable line the
+               button's name already says how much was cut, in its own words,
+               so this parenthetical stays visual. */
+            <span aria-hidden={changeable || undefined} className="ml-2 text-2xs text-ink-subtle">
               (+{line.truncated.toLocaleString()} more characters, not shown)
             </span>
           )}
           {line.no_newline && (
-            <span className="ml-2 text-2xs text-ink-subtle">(no newline at end of file)</span>
+            <span aria-hidden={changeable || undefined} className="ml-2 text-2xs text-ink-subtle">
+              (no newline at end of file)
+            </span>
           )}
           {!changeable && note !== undefined && <span className="sr-only select-none">{note}</span>}
         </span>
