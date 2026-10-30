@@ -3,10 +3,12 @@
 package main
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 	"os"
 	"os/exec"
+	"strconv"
 	"syscall"
 )
 
@@ -35,10 +37,34 @@ func detachProcess(command *exec.Cmd) {
 	command.SysProcAttr = &syscall.SysProcAttr{Setsid: true}
 }
 
-// processAlive reports whether a pid still exists. Signal 0 does no work
-// beyond the permission and existence checks.
+// processAlive reports whether a pid is still running.
+//
+// Signal 0 does no work beyond the permission and existence checks, and a
+// zombie passes it: the pid stays in the table until its parent waits, and a
+// container's first process often never does. An exited child then looks
+// alive for the life of the container, which would leave ./do convinced a
+// stack it already killed is still holding the port. Linux records the
+// difference in /proc. Other Unixes reap the zombie themselves and have no
+// /proc to ask.
 func processAlive(pid int) bool {
-	return syscall.Kill(pid, 0) == nil
+	if syscall.Kill(pid, 0) != nil {
+		return false
+	}
+	return !exitedZombie(pid)
+}
+
+// exitedZombie reports whether Linux still lists this pid after it has exited.
+func exitedZombie(pid int) bool {
+	stat, err := os.ReadFile("/proc/" + strconv.Itoa(pid) + "/stat")
+	if err != nil {
+		return false
+	}
+	// comm sits between parentheses and may itself contain them, or a space.
+	end := bytes.LastIndexByte(stat, ')')
+	if end < 0 || end+2 >= len(stat) {
+		return false
+	}
+	return stat[end+2] == 'Z'
 }
 
 // signalProcess asks a process to stop. The supervisor traps this and stops

@@ -7,7 +7,6 @@ import (
 	"os/exec"
 	"strconv"
 	"strings"
-	"syscall"
 	"testing"
 	"time"
 )
@@ -57,7 +56,7 @@ func TestTerminateProcessTreeTakesTheChildrenToo(t *testing.T) {
 		t.Fatalf("parsing the child's pid from %q: %v", line, err)
 	}
 
-	if !processExists(child) {
+	if !processAlive(child) {
 		t.Fatalf("the child %d was not running to begin with", child)
 	}
 
@@ -68,10 +67,10 @@ func TestTerminateProcessTreeTakesTheChildrenToo(t *testing.T) {
 	// outcome, not a failure of the test.
 	_ = command.Wait()
 
-	// Reaping is the kernel's business and takes a moment: the child is
-	// reparented before it disappears from the table.
+	// Exiting takes a moment, and a container's PID 1 may never reap the
+	// zombie. processAlive treats that zombie as gone: it holds no port.
 	deadline := time.Now().Add(10 * time.Second)
-	for processExists(child) {
+	for processAlive(child) {
 		if time.Now().After(deadline) {
 			t.Fatalf("the child %d outlived its parent — this is Vite holding its port", child)
 		}
@@ -108,10 +107,4 @@ func TestTerminateProcessTreeToleratesAProcessThatNeverStarted(t *testing.T) {
 	if err := terminateProcessTree(exec.Command("/bin/sh", "-c", "true")); err != nil {
 		t.Errorf("terminating an unstarted command reported: %v", err)
 	}
-}
-
-// processExists reports whether the kernel still knows this pid. Signal 0 does
-// no work beyond the permission and existence checks.
-func processExists(pid int) bool {
-	return syscall.Kill(pid, 0) == nil
 }
