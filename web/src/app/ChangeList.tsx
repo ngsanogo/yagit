@@ -415,12 +415,7 @@ function FileRow({
           'focus-visible:focus-ring',
         )}
       >
-        {/* The letter is the row's picture of the kind. The button's name
-            already says that kind in words, and the letter is not part of
-            those words, so it stays visual. */}
-        <span aria-hidden="true">
-          <FileStatusMark file={file} side={row === 'staged' ? 'index' : 'work_tree'} />
-        </span>
+        <FileStatusMark file={file} side={row === 'staged' ? 'index' : 'work_tree'} />
 
         {/* The name at full strength, the directory quiet behind it — which is
             what this said before it was true. Both spans shrank in proportion
@@ -446,11 +441,7 @@ function FileRow({
         </span>
 
         {file.old_path !== undefined && file.old_path !== '' && (
-          <span
-            aria-hidden="true"
-            className="shrink-0 font-mono text-2xs text-ink-subtle"
-            title={file.old_path}
-          >
+          <span className="shrink-0 font-mono text-2xs text-ink-subtle" title={file.old_path}>
             ← {renamedFrom(file.old_path, file.path)}
           </span>
         )}

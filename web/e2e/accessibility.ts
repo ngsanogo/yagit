@@ -22,14 +22,16 @@ export const wcagAA = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'];
  * Name, level A — and it fires when a control's accessible name does not
  * contain its visible label, which is what stops somebody driving the
  * interface by voice from reaching a button by saying the words on it. axe
- * ships it disabled as experimental, and switching it on here was tried and
- * abandoned, for a reason worth keeping: this interface puts visible text
- * inside controls that their aria-label deliberately leaves out. A diff line
- * is a button showing two gutter numbers before the code; a change row shows
- * the one-letter status mark before the path; the name of each is the sentence
- * a screen reader should hear, not the glyphs beside it. The rule cannot tell
- * that apart from a real mismatch, so turning it on paints the changes view
- * red line by line.
+ * used to ship it disabled as experimental. `@axe-core/playwright` 4.14 runs
+ * it with the WCAG 2.1 A tags, so this scan turns it off by name: leaving it
+ * to the tag list would paint the changes view red line by line.
+ *
+ * Switching it on was tried and abandoned, for a reason worth keeping: this
+ * interface puts visible text inside controls that their aria-label
+ * deliberately leaves out. A diff line is a button showing two gutter numbers
+ * before the code; a change row shows the one-letter status mark before the
+ * path; the name of each is the sentence a screen reader should hear, not the
+ * glyphs beside it. The rule cannot tell that apart from a real mismatch.
  *
  * It would also, correctly, have caught three buttons whose names shared no
  * words with their labels: `Update all` and `Sync URLs` in the submodule
@@ -66,7 +68,10 @@ export const wcagAA = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'];
  * means, and the elements at fault.
  */
 export async function violations(page: Page) {
-  const results = await new AxeBuilder({ page }).withTags(wcagAA).analyze();
+  const results = await new AxeBuilder({ page })
+    .withTags(wcagAA)
+    .disableRules(['label-content-name-mismatch'])
+    .analyze();
 
   return results.violations.map((violation) => ({
     rule: violation.id,
