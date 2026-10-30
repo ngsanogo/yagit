@@ -39,11 +39,15 @@ concurrency:
 permissions:
   contents: read # check out the code; no job here needs anything else.
 
+# Every job names timeout-minutes. Without it GitHub bills a hung step for
+# six hours, and cancelling the run is the only way out.
+
 jobs:
   # One job per gate, so a red badge names what broke instead of "CI failed".
   lint:
     name: Lint
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -109,6 +113,8 @@ jobs:
   test:
     name: Test
     runs-on: ubuntu-latest
+    # Go, the frontend suite, and the browser end-to-end tests.
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -198,6 +204,7 @@ jobs:
     # when an unrelated line is edited is not a gate.
     name: Go on ${{ matrix.platform }}
     runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
     strategy:
       # One platform failing is a result about that platform. Cancelling the
       # other would throw away the answer to "is this everywhere, or just
@@ -265,6 +272,7 @@ jobs:
   build:
     name: Build
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:

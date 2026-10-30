@@ -36,6 +36,7 @@ jobs:
   decide:
     name: Decide
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     outputs:
       # Empty when nothing warrants a release, which is how `publish` below
       # knows to stay out of it.
@@ -80,6 +81,7 @@ jobs:
     needs: decide
     if: needs.decide.outputs.version != ''
     runs-on: ubuntu-latest
+    timeout-minutes: 45
     permissions:
       # Needed to create the release and attach the binaries. Scoped to this job
       # so the rest of the workflow stays read-only.
