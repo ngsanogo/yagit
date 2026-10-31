@@ -173,49 +173,27 @@ merge; it applies the same rule, so it cannot produce a different version.
 
 ## Repository settings
 
-These live in the GitHub ruleset named `main`, not in the checkout, but they
-are part of how this project runs. A solo maintainer still benefits from them:
-they are guardrails against merging by accident, not bureaucracy. The posture
-and the Scorecard alerts it intentionally leaves open are spelled out in
-`SECURITY.md`.
+Not in the checkout, but part of how the project runs: the GitHub ruleset named
+`main` requires a pull request (no direct pushes, no bypass) and the status
+checks `Lint`, `Test`, `Build`, `Dependency review`, `Go on macOS` and
+`Go on Windows` against an up-to-date branch. Those job names in
+`.github/workflows/ci.yml` and `supply-chain.yml` are stable on purpose. There
+is no minimum approval count while there is one maintainer. Dependabot security
+updates, private vulnerability reporting and secret scanning are enabled.
 
-On `main` the ruleset requires:
+Two labels nothing creates for you: `.github/release.yml` gives `breaking-change`
+its own section at the top of the release notes, and
+`.github/ISSUE_TEMPLATE/accessibility.yml` applies `accessibility` to every
+report it opens. A maintainer creates both once:
 
-- **A pull request** before merging (no direct pushes, no administrator
-  bypass).
-- **Status checks** against an up-to-date branch: `Lint`, `Test`, `Build`,
-  `Dependency review`, `Go on macOS`, and `Go on Windows` — the job names in
-  `.github/workflows/ci.yml` and `supply-chain.yml` are stable on purpose so
-  this list does not drift.
-- **CODEOWNERS review** on other people's changes, resolved review threads,
-  and dismissal of stale reviews on new pushes.
-- **No minimum approval count** while there is one maintainer — raise it to 1
-  when a second person reviews regularly.
-
-Also worth having enabled on the repository:
-
-- Dependabot security updates (`.github/dependabot.yml` is already present).
-- Private vulnerability reporting (see `SECURITY.md`).
-- Secret scanning and push protection.
-- Two labels nothing creates for you. `.github/release.yml` gives
-  `breaking-change` its own section at the top of the release notes, and
-  `.github/ISSUE_TEMPLATE/accessibility.yml` applies `accessibility` to every
-  report it opens — but an unapplied label and a label that does not exist
-  produce the same silence. A maintainer creates both once:
-
-  ```sh
-  gh label create breaking-change \
-    --description "Stops accepting a configuration that already worked" \
-    --color b60205
-
-  gh label create accessibility \
-    --description "A barrier for a disabled or assistive-technology user" \
-    --color 0e8a16
-  ```
-
-- Signed commits are optional; release integrity is handled by Sigstore
-  attestations on the binaries instead.
-
+```sh
+gh label create breaking-change \
+  --description "Stops accepting a configuration that already worked" \
+  --color b60205
+gh label create accessibility \
+  --description "A barrier for a disabled or assistive-technology user" \
+  --color 0e8a16
+```
 
 ## Language
 
