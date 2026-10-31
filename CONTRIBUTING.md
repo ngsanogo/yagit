@@ -14,11 +14,8 @@ cd yagit
 ./do up
 ```
 
-`./do` installs the pinned toolchain and the frontend dependencies on its own —
-there is no separate setup step to remember. All of it goes into `.yagit/`
-inside the checkout: mise's tools, Go's build and module caches, pnpm's store,
-Playwright's browsers. Nothing lands in your home directory, and `rm -rf` on
-the clone takes the lot with it.
+`./do` installs the pinned toolchain (with mise) and the frontend dependencies on
+its own — there is no separate setup step to remember.
 
 Documentation, accessibility reports and well-written issues are contributions.
 You do not need to touch the Go or the frontend to land one.
@@ -78,7 +75,7 @@ Parsing and the graph lane assignment are the two places bugs are silent, so
 they carry unit tests from the moment they exist. Parsing also carries fuzz
 targets: a hand-written test only covers what its author thought of, and a
 record terminator that can appear inside a commit subject is exactly that
-kind of miss. `./do test fuzz` runs the search; `./do test go` runs every
+kind of miss. `go test -fuzz` runs the search; `./do test go` runs every
 target's seed corpus as ordinary tests, so a crash found once is a regression
 test forever after. The git layer is also tested against the real `git`
 binary: a perfect parser fed a wrong format string is still wrong, and only a
@@ -95,9 +92,8 @@ is kept back: a fixture the daemon reports as open, which a long-lived `./do
 dev` still can be, is left where it is and said to be, and goes on the first
 run after that daemon stops.
 
-`./do test soak` runs that end-to-end suite several times with every CPU busy,
-to shake out timing races that only pass on an idle machine. It is not a gate —
-a failure needs its report read, not a revert — and the default is three runs.
+To shake out timing races, repeat the suite: `pnpm --dir web exec playwright
+test --repeat-each=3` with the stack up.
 
 `./do test release` runs after `./do build`. It starts the binary for this
 machine from `dist/`, probes `/api/health` and the embedded frontend, then runs
@@ -167,7 +163,7 @@ ways out. That is the only announcement that arrives while the person is looking
 for it. The commit then carries `!` or a `BREAKING CHANGE:` footer so the
 version moves, and the pull request gets the `breaking-change` label so
 `.github/release.yml` prints it above everything else. See
-[ADR 0014](docs/adr/0014-a-breaking-configuration-change-announces-itself.md).
+.
 
 The release workflow then runs the gates again, builds the six binaries,
 attaches a Sigstore provenance attestation to each and an SPDX bill of materials

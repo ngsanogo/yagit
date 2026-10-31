@@ -17,34 +17,25 @@ session. Full architecture:
 
 ## Commands
 
-Every project action goes through `./do`. Do not run `go test`, `pnpm run`, or
-other toolchain commands directly — CI only verifies `./do` paths.
+Every project action is a mise task: `./do <task>` (or `mise run <task>`;
+`do.cmd` on Windows). `./do` alone lists them; the full table is in
+[docs/DEVELOPMENT.md](docs/DEVELOPMENT.md#tasks).
 
 | Command | Effect |
 | --- | --- |
-| `./do up [--restart] [--foreground] [--new-token]` | Start stack in background; print URL and token. `--new-token` replaces the token and restarts on it |
-| `./do down` | Stop the background stack |
-| `./do status` | Report whether the stack is running |
-| `./do logs [--no-follow]` | Show output from the background stack |
-| `./do dev [--new-token]` | Run stack in foreground with logs in the terminal; stops a background stack first |
-| `./do bootstrap [--browsers]` | Install dependencies into `.yagit/` and `web/node_modules/` |
-| `./do shell-hook [--write]` | Generate shell aliases for up, down and logs |
-| `./do build` | Build frontend and binaries into `dist/` |
-| `./do test [go\|web\|e2e\|release\|bench\|fuzz\|soak\|coverage]` | Run tests; no argument runs go, web, and e2e |
-| `./do lint` | Static analysis — Go on every platform, frontend, shell (`./do` and `scripts/*.sh`), CI workflows |
+| `./do up` / `down` / `status` / `logs` | The stack (daemon + Vite) in the background; `up` prints the URL and token |
+| `./do dev` | The stack in the foreground |
+| `./do build` | Frontend, then binaries for every platform into `dist/` |
+| `./do test [go\|web\|e2e\|release\|coverage\|bench]` | Tests; no argument runs go, web and e2e |
+| `./do lint` | Go on every platform, frontend, shell, CI workflows |
 | `./do audit` | Dependency vulnerability scan (not a merge gate) |
 | `./do fmt` | Reformat code |
-| `./do shot [url] [out]` | Screenshot a page via Playwright |
-| `./do drive [url]` | Drive the running interface from stdin, in a headless browser |
-| `./do token` | Print session token for API calls, once the stack answers it |
-| `./do version` | Print release version from Conventional Commits since last tag |
+| `./do shot [url] [out]` / `./do drive [url]` | Screenshot / drive the running interface, headless |
+| `./do token [--new]` | Print (or replace) the session token |
+| `./do version` | Next release version from the Conventional Commits |
 
-Every command takes `--help` and prints its usage without doing anything else.
-
-Prerequisite: [mise](https://mise.jdx.dev) — installs pinned toolchain from
-`mise.toml` / `mise.lock`. The `./do` shim points mise, Go, pnpm and Playwright
-at directories under `.yagit/`, so everything the checkout downloads lives
-inside it and `rm -rf` on the clone removes all of it.
+Prerequisite: [mise](https://mise.jdx.dev), which installs the toolchain pinned
+in `mise.toml` / `mise.lock`.
 
 ## Gates
 
@@ -72,7 +63,6 @@ web → api → history → graph, repo → git
 
 | Package | Role |
 | --- | --- |
-| `cmd/do` | Project entry point — every command |
 | `cmd/yagit` | Daemon wiring: config, token, lifecycle |
 | `internal/git` | Run `git`, parse machine-readable output |
 | `internal/repo` | Open repos, security boundary (`YAGIT_ROOT`) |
@@ -81,13 +71,13 @@ web → api → history → graph, repo → git
 | `internal/history` | Assigned history held per open repo |
 | `internal/edit` | Work-tree files, read and written — no git |
 | `internal/api` | HTTP routes, auth, JSON errors |
-| `internal/session` | The session token: minted and checked in one place, for the daemon and for `./do` |
-| `internal/publicurl` | A reverse proxy's address (`YAGIT_PUBLIC_URL`), checked and read as the origin a browser presents — for the daemon and for `./do` |
+| `internal/session` | The session token: minted and checked in one place |
+| `internal/publicurl` | A reverse proxy's address (`YAGIT_PUBLIC_URL`), checked and read as the origin a browser presents |
 | `internal/protect` | Owner-only lockdown for secrets — chmod on Unix, an ACL on Windows |
 | `web/src/design` | Design tokens — single source of visual values |
 | `web/src/app` | Workbench UI |
 
-Ports are defined once in `cmd/do/main.go` (`7420` daemon, `7421` Vite).
+Ports: `7420` for the daemon, `7421` for Vite (`mise.toml`'s `dev:*` tasks and `web/playwright.config.ts`).
 
 ## Principles
 
@@ -101,9 +91,8 @@ These are review rules, not decoration:
   and name what will be lost.
 - **Design tokens only.** No magic CSS values in components — use
   `web/src/design/tokens.css`.
-- **ADRs are historical context**, not blocking constraints. See
-  [docs/adr/](docs/adr/README.md). Reversing a decision means a new ADR, not
-  permission from the old one.
+- **Explain why in place.** A choice that is not obvious from the code gets a
+  comment beside it, not a separate record.
 
 Always read [.agents/rules/core.md](.agents/rules/core.md). Read the others when the
 change touches that part of the tree:
@@ -139,13 +128,13 @@ Human-oriented workflow: [CONTRIBUTING.md](CONTRIBUTING.md).
   it stays there: `YAGIT_PUBLIC_URL` in `.env` names the proxy's address, and
   is refused beside the settings that widen the listen address.
 - Session token required on every API route. Under `./do` it lives in
-  `.yagit/session-token`, outlives the stack, and `./do up --new-token`
+  `.yagit/session-token`, outlives the stack, and `./do token --new`
   replaces it. Whether a stack is up is asked of the port, never of a file.
 - Repositories opened by path once; afterwards addressed by opaque id.
 - `git` invoked with argument arrays — never through a shell. The one string a
   shell reads is `GIT_SEQUENCE_EDITOR`, which git defines as a shell command
   and runs itself; yagit quotes its parts and puts nothing client-supplied in
-  it ([ADR 0029](docs/adr/0029-a-rebase-plan-is-written-not-edited.md)).
+  it.
 - See [SECURITY.md](SECURITY.md).
 
 ## Language
@@ -162,8 +151,6 @@ it.
 
 ## Do not
 
-- Run `go test`, `pnpm run`, or `golangci-lint` directly — use `./do`
 - Hard-code ports or tool versions outside their single source files
 - Add `_ = err` or empty error handlers without a comment explaining why
-- Treat ADRs as immutable law
 - Add comments that restate the code below them

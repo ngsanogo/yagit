@@ -5,10 +5,7 @@ frontend embedded, driving the `git` binary in subprocesses, serving a React
 application on the loopback.
 
 This document is the reference for how it is built and why. It describes the
-architecture as built. Where a choice had a serious alternative, the reasoning
-is in [docs/adr/](adr/README.md) rather than here: what was decided, what
-against, and what it costs. Those records are history, not law — five of them
-reverse an earlier decision. Phase 12 recorded what the planned phases deferred;
+architecture as built, and where a choice had a serious alternative, why. Phase 12 recorded what the planned phases deferred;
 further work is not numbered in [ROADMAP.md](ROADMAP.md).
 
 ## Principles
@@ -54,9 +51,8 @@ and offers named actions. It never chooses on the user's behalf.
 
 **There should be one obvious way to do it.** One action, one path in the UI. No
 button duplicating a context-menu entry "for discoverability". The same rule
-applies to the tooling: every project command goes through `./do`, and every
-value has exactly one definition — tool versions in `mise.toml`, ports in
-`cmd/do/main.go`, the repository root in `.env`.
+applies to the tooling: every project command is a mise task (`./do <task>`),
+and tool versions are defined once, in `mise.toml`.
 
 **If the implementation is hard to explain, it's a bad idea.** If a module
 cannot be explained in three sentences in its header doc, it gets rewritten.
@@ -88,7 +84,6 @@ else.
 | Package | Responsibility |
 | --- | --- |
 | `cmd/yagit` | Wiring only: configuration, token, lifecycle. |
-| `cmd/do` | The project's entry point. Every command `./do` offers ([0009](adr/0009-the-entry-point-is-go.md)). |
 | `internal/git` | Runs `git`, parses its machine-readable output. The project's only subprocess boundary. |
 | `internal/repo` | Open repositories, and the check that a path is allowed. |
 | `internal/graph` | Lane assignment: a pure function from commits to columns and lines. |
@@ -97,9 +92,9 @@ else.
 | `internal/edit` | Work-tree files, read and written. The only place the daemon opens the user's own files, and it runs no git. |
 | `internal/api` | HTTP surface, authentication, error shape. |
 | `internal/assets` | The built frontend, embedded through `//go:embed`. |
-| `internal/session` | The session token: minted and checked in one place, for the daemon and for `./do` ([0027](adr/0027-the-stack-is-asked-not-a-file.md)). |
-| `internal/publicurl` | The address a reverse proxy serves yagit at, checked and turned into the origin a browser presents — one rule for `./do` and the daemon ([0036](adr/0036-a-reverse-proxy-is-a-public-url-not-a-wider-listen.md)). |
-| `internal/protect` | Owner-only lockdown for secrets — chmod on Unix, an explicit ACL on Windows ([0035](adr/0035-secrets-get-an-owner-only-acl-on-windows.md)). |
+| `internal/session` | The session token: minted and checked in one place, for the daemon and for `./do`. |
+| `internal/publicurl` | The address a reverse proxy serves yagit at, checked and turned into the origin a browser presents — one rule for `./do` and the daemon. |
+| `internal/protect` | Owner-only lockdown for secrets — chmod on Unix, an explicit ACL on Windows. |
 | `web/src/design` | Tokens and the design system showcase. |
 | `web/src/components` | Base components. |
 | `web/src/app` | The workbench: tabs, the history, the graph, the references. |
@@ -113,33 +108,32 @@ Each line links the record that argues it.
 - **Backend**: Go. One binary, frontend embedded through `embed.FS`.
 - **Frontend**: React, TypeScript, Vite, Tailwind — the utilities generated
   from `tokens.css`, which stays the single source of every visual value
-  ([0011](adr/0011-tailwind-generates-the-utilities.md)).
+.
 - **Graph**: assigned in Go, drawn in SVG for the visible window only, one
   `<path>` per column. Not canvas: the list is virtualised, so the graph never
   holds more nodes than the rows beside it, and SVG takes
-  `var(--color-lane-N)` directly ([0003](adr/0003-the-commit-graph-is-svg.md),
-  [0012](adr/0012-lanes-are-assigned-in-the-daemon.md)).
+  `var(--color-lane-N)` directly.
 - **Diffs**: no editor component. The daemon parses the patch into hunks and
   lines, and the browser draws that list and lets lines be chosen out of it.
   Not Monaco, which parses theme colours as hex and silently renders anything
   else red — including this project's OKLCH tokens
-  ([0004](adr/0004-diffs-are-codemirror.md)); and not CodeMirror either, whose
+; and not CodeMirror either, whose
   merge view accepts changes into a *document* while every action here carries
   the patch's own fingerprint back
-  ([0034](adr/0034-the-diff-is-drawn-not-edited.md)).
+.
 - **Server state**: TanStack Query, one key per page of commits, invalidated by
   the event stream. TanStack Virtual for the rows
-  ([0005](adr/0005-server-state-and-virtualisation.md)).
+.
 - **Routing**: none. Two paths, read once from `window.location.pathname`: the
   workbench and the design system showcase. What survives a reload is
-  `localStorage`, not a URL ([0006](adr/0006-no-router.md)).
+  `localStorage`, not a URL.
 - **Updates**: one server-sent event stream for the whole session, never one per
-  repository ([0007](adr/0007-one-event-stream.md)).
+  repository.
 - **git**: the `git` binary in a subprocess. No go-git, no libgit2. yagit shows
   the commands it runs, and those commands have to be ones a user can paste into
-  their own terminal ([0002](adr/0002-drive-the-git-binary.md)).
+  their own terminal.
 - **File watching**: fsnotify, over a bounded set of paths per repository
-  ([0008](adr/0008-file-watching-through-fsnotify.md)).
+.
 
 ## The git layer
 
@@ -150,7 +144,7 @@ Machine-readable formats throughout:
   `git log HEAD --topo-order --decorate=short --pretty=format:'%H%x00%P%x00%an%x00%aI%x00%s%x00%D%x00%x0a' --`
   `HEAD` is the revision the interface asks for first — what is checked out —
   and `--all` takes its place when every ref is chosen instead
-  ([0016](adr/0016-the-graph-draws-what-is-checked-out.md)).
+.
   The NUL separators and the NUL-then-newline terminator are not optional:
   without them, multi-line commit messages break the parser. NUL is the byte
   git refuses in every field — 0x01, which this format used at first, it does
@@ -202,7 +196,7 @@ Machine-readable formats throughout:
   by running `GIT_SEQUENCE_EDITOR` over a file it has written, so yagit writes
   the list itself and points that variable at its own executable with a private
   flag — the one program certain to exist wherever the daemon runs
-  ([0029](adr/0029-a-rebase-plan-is-written-not-edited.md)). `GIT_EDITOR` is
+. `GIT_EDITOR` is
   pointed at the same executable under a flag whose whole behaviour is to
   refuse and exit non-zero, so a step that asked for a commit message fails at
   once instead of committing one nobody read. Leaving it unset was the first
@@ -224,8 +218,8 @@ Machine-readable formats throughout:
   reads `merge.ff`; never a short name, which git resolves through `refs/tags`
   before `refs/heads`; never git's own message, which is composed from the name
   as it was given and from `merge.log`. All three are one rule —
-  [0021](adr/0021-a-shown-command-is-not-a-setting.md) and
-  [0022](adr/0022-a-merge-is-checked-before-it-runs.md) — and the last one is
+   and
+   — and the last one is
   why `shellQuote` has a second quoting style: a message with `'x'` inside it
   has to stay a sentence on the confirmation that shows it.
 
@@ -251,7 +245,7 @@ with what actually ran.
 An isolated, pure, tested module — `internal/graph`. In the daemon rather than
 in the browser, and that is forced: a commit's column follows from every commit
 above it, and the browser only ever holds a window
-([0012](adr/0012-lanes-are-assigned-in-the-daemon.md)).
+.
 
 Commits are walked in topological order against an array of active columns,
 each holding the SHA it is waiting for:
@@ -281,14 +275,14 @@ searches plus that list. On git's own history the last page costs 2.4 µs
 against the 57 µs of reading every edge.
 
 Links are drawn as Bézier curves, in SVG, for the visible window only
-([0003](adr/0003-the-commit-graph-is-svg.md)). The per-column palette is stable
+. The per-column palette is stable
 over time: a branch does not change colour as you scroll.
 
 Some histories cannot be drawn at all. git's own needs 280 columns with every
 ref drawn — git's own `--graph` needs 67 over the identical order — and no
 picture that wide is readable. Which refs are drawn is therefore a choice on
 screen, defaulting to what is checked out
-([0016](adr/0016-the-graph-draws-what-is-checked-out.md)); past a bound the
+; past a bound the
 interface still says so, with the number, rather than drawing one that leaves
 branches out.
 
@@ -408,7 +402,7 @@ The threat model, the guarantees and the known limitations are in
 - git never invoked through a shell. The one string git itself runs through one
   — the sequence editor of an interactive rebase — is quoted by yagit and
   holds nothing a client supplied
-  ([0029](adr/0029-a-rebase-plan-is-written-not-edited.md)).
+.
 - The one route that writes a user's file works through an `os.Root` on the
   work tree, and refuses `.git` at any depth.
 
@@ -431,7 +425,7 @@ came straight to the daemon or through a reverse proxy serving yagit under a
 name of its own. A reverse proxy is one more hop in front of that origin, not a
 second origin: the browser still talks to one address, which is the proxy's,
 and `YAGIT_PUBLIC_URL` is how the daemon learns what that address is
-([0036](adr/0036-a-reverse-proxy-is-a-public-url-not-a-wider-listen.md)).
+.
 
 ## Agent configuration
 
@@ -439,37 +433,35 @@ Instructions for an AI coding agent are ordinary files at the names those
 tools already open. [`AGENTS.md`](../AGENTS.md) at the repository root is the
 entry point. Rules live in `.agents/rules/`, skills in `.agents/skills/`.
 Nothing links them and nothing generates a second copy
-([0040](adr/0040-agent-files-live-where-tools-look.md)).
+.
 
 ## Toolchain
 
 Everything runs natively. `mise.toml` pins Go, Node, pnpm, air, golangci-lint,
-shellcheck, actionlint and zizmor; `mise` is the only prerequisite — on every
-platform, which it was not while `./do` needed a bash newer than the one macOS
-ships — and `./do` is the only entry point. It is a short `sh` shim that points
-the tools at `.yagit/` and hands over to `cmd/do`, with `do.cmd` beside it for
-Windows ([0009](adr/0009-the-entry-point-is-go.md)).
+shellcheck, actionlint, zizmor and govulncheck, and defines the project's
+tasks; `mise` is the only prerequisite. `./do` (and `do.cmd` on Windows) is a
+short shortcut for `mise run`.
 
 Every platform yagit ships a binary for runs a gate in CI
-([0010](adr/0010-every-shipped-platform-is-a-gate.md)).
+.
 
 Three points deserve care, because each replaced an earlier constraint that no
 longer holds:
 
 1. **The listen address.** The built binary binds `127.0.0.1`: the safe default.
-   `./do` widens the listen address only when both a non-loopback
-   `YAGIT_PUBLIC_HOST` and `YAGIT_LISTEN_ALL=1` are set — a headless
+   The development stack widens the listen address only when `YAGIT_LISTEN_ALL=1`
+   is set (with a non-loopback `YAGIT_PUBLIC_HOST`) — a headless
    development machine browsed from somewhere else, and a person who agreed to
    it. `YAGIT_PUBLIC_URL` is the other way to be browsed from somewhere else,
    through a reverse proxy on the same machine, and it keeps the daemon on the
-   loopback; beside either widening setting it is refused. The rule lives in
-   one place, `listenAddress` in `cmd/do/project.go`, and is commented there.
+   loopback; beside either widening setting the daemon refuses to start
+   (`parseConfiguration` in `cmd/yagit/main.go`).
    What protects the daemon afterwards is the token, never the address. This is
    exactly the kind of thing someone later "fixes" by mistake.
 
 2. **File watching.** Through fsnotify, the one third-party Go dependency: inotify is Linux's mechanism, macOS uses kqueue and Windows
    `ReadDirectoryChangesW`, and writing all three is a project rather than a
-   phase ([0008](adr/0008-file-watching-through-fsnotify.md)). Do not build a
+   phase. Do not build a
    polling fallback speculatively: that is a second mechanism to maintain for a
    problem that no longer exists. Watch a bounded set of paths per repository —
    `.git/HEAD`, `.git/index`, `.git/refs`, `.git/packed-refs` — rather than the
@@ -490,7 +482,7 @@ longer holds:
    file moves the diff and leaves the status identical. The diff's poll stops
    past the two thousand lines the pane draws, where a re-read costs up to the
    daemon's whole diff cap and changes nothing on screen. That half is
-   [0015](adr/0015-the-work-tree-is-polled.md).
+   .
 
 3. **Credentials.** The daemon runs as the user, with their `~/.gitconfig`,
    their SSH agent and their GPG agent already present. There is nothing to
@@ -519,6 +511,6 @@ longer holds:
    works. yagit still authenticates nothing and never asks for a password:
    `GIT_TERMINAL_PROMPT=0` is what turns a missing credential into an error in
    the same second rather than a request that hangs. See
-   [0020](adr/0020-the-network-is-gits-and-so-are-the-credentials.md), which
+   , which
    also has the reasoning behind the ten-minute deadline those three commands
    carry in place of the Runner's thirty seconds.

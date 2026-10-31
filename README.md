@@ -42,15 +42,15 @@ cd yagit
 ./do up
 ```
 
-On Windows use `do.cmd` with the same subcommands. `./do` installs the pinned
-toolchain under `.yagit/` on first run, starts the stack, and prints the URL
-and token. Open that URL and paste the session token on first visit. Treat the
+`./do` installs the pinned toolchain with mise, starts the stack in the
+background, and prints the URL and token (on Windows, `do.cmd dev` runs it in
+the foreground). Open that URL and paste the session token on first visit. Treat the
 token like a shell on this machine — see [SECURITY.md](SECURITY.md).
 
 By default the daemon may open repositories under your home directory. Set
 `YAGIT_ROOT` to narrow that boundary.
 
-Full command table and gates: [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md). How
+Every task and the gates: [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md). How
 to contribute: [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## Install from a release
@@ -111,7 +111,6 @@ left where it is; the script prints the path so you can delete it yourself.
 | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | How the pieces fit |
 | [docs/API.md](docs/API.md) | HTTP routes |
 | [docs/ROADMAP.md](docs/ROADMAP.md) | What each phase landed |
-| [docs/adr/](docs/adr/README.md) | Why things are built this way |
 | [SECURITY.md](SECURITY.md) | Threat model and the session token |
 | [ACCESSIBILITY.md](ACCESSIBILITY.md) | Accessibility |
 

@@ -3,7 +3,6 @@
 ## Package layout
 
 ```
-cmd/do/       project commands
 cmd/yagit/   daemon entry
 internal/git/       exec git, parse output — only subprocess boundary
 internal/repo/      open repos, YAGIT_ROOT security check
@@ -30,7 +29,7 @@ full inheritance. Add env vars one at a time with a comment explaining why.
 ## Tests
 
 - Unit tests for parsing and graph lane assignment (bugs are silent here)
-- Fuzz targets for parsers — `./do test fuzz`
+- Fuzz targets for parsers — their seeds run with `./do test go`; search with `go test -fuzz`
 - Integration tests against real `git` binary
 - Package list for tests: `./cmd/... ./internal/...`
 

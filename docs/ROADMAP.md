@@ -13,12 +13,11 @@ step.
 
 - **The commit graph is the main object.** Lanes are assigned in the daemon,
   because a commit's column follows from every commit above it and the browser
-  only ever holds a window ([0012](adr/0012-lanes-are-assigned-in-the-daemon.md)).
-  Drawn in SVG, for the visible rows only ([0003](adr/0003-the-commit-graph-is-svg.md)).
+  only ever holds a window.
+  Drawn in SVG, for the visible rows only.
 - **Which refs the picture draws is a choice**: what is checked out (the
   default), every ref, or a set you tick
-  ([0016](adr/0016-the-graph-draws-what-is-checked-out.md),
-  [0033](adr/0033-a-chosen-set-of-refs-is-a-history.md)). Past 24 columns yagit
+. Past 24 columns yagit
   says the history is too wide, with the number, rather than drawing a picture
   that leaves branches out.
 - **Search** over message, author, path and content. Every field matches
@@ -34,7 +33,7 @@ step.
 - Repositories open in **tabs**. Open, clone and init; clone and init check
   their destination against `YAGIT_ROOT`, and init pins `--initial-branch`
   rather than letting `init.defaultBranch` decide a name the log panel would
-  then misreport ([0021](adr/0021-a-shown-command-is-not-a-setting.md)).
+  then misreport.
 - **Staging by file, by hunk and by line**, and discard at the same three
   granularities. Anything finer than a path is a patch handed to `git apply`,
   built once for both directions and fuzzed, because a patch with a miscounted
@@ -50,7 +49,7 @@ step.
   reversible until the save; taking a side of the whole file goes through
   `git checkout --ours`. Editing by hand is the third way, and the pane refuses
   to stage a file with a marker still in it
-  ([0017](adr/0017-yagit-edits-files.md)).
+.
 
 ## Moving history
 
@@ -65,13 +64,12 @@ what will be lost.
 - **Merge and rebase** read the two branches first and say which of three
   things will happen, because `merge.ff` is a setting and a button that reads a
   setting cannot say what it does
-  ([0022](adr/0022-a-merge-is-checked-before-it-runs.md),
-  [0023](adr/0023-a-rebase-is-read-in-both-directions.md)).
+.
 - **Interactive rebase**: reorder, `fixup`, `fixup -C`, `edit`, `drop`. yagit
   writes the todo list itself and points git's sequence editor at its own
   binary, because `git rebase -i` takes that list from an editor and a daemon
   has no terminal to open one in
-  ([0029](adr/0029-a-rebase-plan-is-written-not-edited.md)).
+.
 - **Cherry-pick, revert, reset.** Reset's mode is a choice on the confirmation
   and is always pinned on the command; hard names the commits and the
   uncommitted work it discards. A commit that is not on the branch is refused
@@ -80,19 +78,19 @@ what will be lost.
   untracked files apart, because `git stash push` leaves the second kind where
   they are while exiting 0. Every write names a stash by both its position and
   the object at it
-  ([0028](adr/0028-a-stash-is-a-position-and-a-name.md)).
+.
 - **Undo**, on the HEAD reflog, leased by object names
-  ([0031](adr/0031-undo-reads-the-head-reflog.md)): the tip commit or amend, a
+: the tip commit or amend, a
   checkout, a reset. Undoing a branch deletion is the one kind the reflog
   cannot answer, so the tip is read before the delete and remembered while the
   repository is open
-  ([0032](adr/0032-a-deleted-branch-is-remembered-not-recalled.md)).
+.
 
 ## Talking to a remote
 
 yagit authenticates nothing and never asks for a password: the network is
 git's, and so are the credentials
-([0020](adr/0020-the-network-is-gits-and-so-are-the-credentials.md)).
+.
 
 - **Fetch, pull and push.** Fetching always prunes. Pulling is three named
   operations rather than one — fast-forward, merge, rebase. Pushing writes the
@@ -104,7 +102,7 @@ git's, and so are the credentials
   upstream sits beside the branch list.
 - **Tags**: annotated or lightweight, local delete, push to a chosen remote.
 - **Progress** on clone, fetch, pull and push rides the request that started
-  it, as NDJSON ([0030](adr/0030-progress-rides-the-request.md)).
+  it, as NDJSON.
 
 ## Beside the repository
 

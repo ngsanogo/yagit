@@ -19,7 +19,7 @@ through `./do`; nothing here calls `go`, `pnpm`, `node` or `playwright` by hand.
 [mise](https://mise.jdx.dev) and nothing else — `./do` installs Go, Node, pnpm,
 air and the rest at the versions pinned in `mise.toml`, and the frontend's
 dependencies from its lockfile, on first run. `./do drive` and `./do shot` install Chromium into
-`.yagit/browsers` the first time they need it — everything the checkout
+Playwright's browser cache the first time they need it — everything the checkout
 downloads stays inside it. No `apt-get` was needed on this container.
 
 `.env` holds `YAGIT_ROOT`, the directory under which the daemon may open
@@ -42,8 +42,8 @@ no pid to keep. It does not answer until both halves do — the daemon *and*
 Vite behind it — so the next command in a `&&` chain can assume a working
 interface.
 
-A stack that fails to start says so instead of timing out: `./do up` watches
-the supervisor, and prints the tail of `.yagit/dev.log` with the reason.
+A stack that fails to start says so instead of timing out: `./do up` prints the
+tail of `.yagit/stack.log` with the reason.
 
 ## Drive it (agent path)
 

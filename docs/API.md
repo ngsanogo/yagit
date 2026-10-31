@@ -13,7 +13,7 @@ Read it beside this page.
 
 Every route below `/api` requires the session token. The daemon never prints
 the token. Under `./do` it lives in `.yagit/session-token`, is kept across
-restarts, and `./do up --new-token` replaces it. `./do token` prints it once
+restarts, and `./do token --new` replaces it. `./do token` prints it once
 the stack has answered it — a stack that is down, still starting, or running
 on a different token is reported in those words instead of handing you a
 secret that opens nothing.
@@ -68,7 +68,7 @@ after resolving symlinks. Afterwards a client only ever handles the opaque
 
 Clone progress rides the request as NDJSON rather than the session event
 stream — the destination is not an open repository yet
-([ADR 0030](adr/0030-progress-rides-the-request.md)).
+.
 
 ### History
 
@@ -102,7 +102,7 @@ stream — the destination is not an open repository yet
 | `POST /api/repos/{id}/reset/plan` | What resetting the current branch to a commit would do, and the line it would run. Body: `{"commit": "…", "mode": "soft\|mixed\|hard"}`. Changes nothing. |
 | `POST /api/repos/{id}/reset` | Resets the branch HEAD is on to a commit. Body: `{"commit": "…", "into": "…", "mode": "soft\|mixed\|hard"}`. |
 | `GET /api/repos/{id}/undo` | Whether the most recent action can be undone. `{available, offer?}` — offer names kind (`commit`\|`amend`\|`checkout`\|`reset`\|`branch-delete`), subject, head, branch. |
-| `POST /api/repos/{id}/undo/plan` | What undoing would run: soft reset, switch/detach back ([ADR 0031](adr/0031-undo-reads-the-head-reflog.md)), or `git branch` putting back one this daemon deleted ([ADR 0032](adr/0032-a-deleted-branch-is-remembered-not-recalled.md)). |
+| `POST /api/repos/{id}/undo/plan` | What undoing would run: soft reset, switch/detach back, or `git branch` putting back one this daemon deleted. |
 | `POST /api/repos/{id}/undo` | Carries out the plan. Body echoes `kind`, `into`, `head`, `to`, `to_ref`, `branch`, `detach`. |
 | `POST /api/repos/{id}/rebase/interactive/plan` | The commits a plan may cover: everything after one commit, oldest first. Body: `{"commit": "…"}`. Changes nothing. |
 | `POST /api/repos/{id}/rebase/interactive` | Rewrites them, following a plan. Body: `{"base": "…", "from": "…", "steps": [{"commit": "…", "instruction": "pick\|fixup\|fixup -C\|edit\|drop"}]}`. |
@@ -113,7 +113,7 @@ search — take the same pair of parameters for which commits a walk covers:
 - `scope=head` — reachable from what is checked out. The default.
 - `scope=all` — reachable from every ref.
 - `scope=refs` — reachable from the refs named by repeated `ref=`, and from
-  nothing else ([ADR 0033](adr/0033-a-chosen-set-of-refs-is-a-history.md)).
+  nothing else.
 
 `ref=` is repeated rather than one comma-separated value, because a ref name
 may hold a comma and a separator a name can contain is one that eventually
@@ -192,7 +192,7 @@ It runs nothing. The discard plan of the working directory is the same idea.
 
 The two `merge` routes join one local branch into the branch HEAD is on, and
 the plan is not decoration. **A merge is never left to configuration**
-([ADR 0021](adr/0021-a-shown-command-is-not-a-setting.md)). A bare
+. A bare
 `git merge` reads `merge.ff`, so the same button is a pointer moving on one
 machine, a merge commit on the next and a refusal on the third — while the
 dialog shows one line and promises it means one thing. So `merge/plan` reads
@@ -200,13 +200,13 @@ the two branches (`git rev-list --left-right --count`) and answers what the
 merge *is*: `fast-forward`, `merge-commit`, or `up-to-date`, with the commits
 on each side and the exact command for that outcome. `merge_commit: true` on
 the plan asks for a merge commit even where a fast-forward is possible — the
-preference ADR 0021 left open — and the run accepts that approval over a
+preference the shown-command rule left open — and the run accepts that approval over a
 fast-forward reading. `merge` then runs
 `--ff-only` or `--no-ff --no-edit`, never a bare merge, and answers with the
 reference list the branch routes answer with — a merge moves HEAD's branch.
 
 **The branch is named `refs/heads/…`, and the message of a merge commit is
-written out** ([ADR 0022](adr/0022-a-merge-is-checked-before-it-runs.md)). A
+written out**. A
 short name is resolved by git's own search order, which reaches `refs/tags`
 before `refs/heads`: in a repository holding both a branch and a tag called
 `dup`, `git merge dup` merges the tag while the dialog names the branch. And
@@ -248,7 +248,7 @@ plan answers what the two *branches* make of each other, and everything it
 answers is a promise the run route keeps.
 
 The two `cherry-pick` routes apply one commit onto the branch HEAD is on, and
-the plan is not decoration either ([ADR 0021](adr/0021-a-shown-command-is-not-a-setting.md)).
+the plan is not decoration either.
 `--ff` turns "HEAD is this commit's parent" into a pointer moving onto that
 commit; without it the same arrangement writes a new object with the same tree.
 So `cherry-pick/plan` reads the commit and HEAD and answers what the pick
@@ -269,7 +269,7 @@ own refusal at 422 with the banner and conflict screen that already know how to
 finish a cherry-pick.
 
 The two `revert` routes take one commit's changes back out of the branch HEAD
-is on, and the plan is not decoration either ([ADR 0021](adr/0021-a-shown-command-is-not-a-setting.md)).
+is on, and the plan is not decoration either.
 A revert always records a new commit under the user's hooks, so `revert/plan`
 answers with the full object name, the subject, and the command it would run:
 `git revert --no-edit --no-reference -- <sha>` — never a bare revert, which
@@ -286,7 +286,7 @@ git's own refusal at 422 with the banner and conflict screen that already know
 how to finish a revert.
 
 The two `reset` routes move the branch HEAD is on to a selected commit, and
-the plan is not decoration either ([ADR 0021](adr/0021-a-shown-command-is-not-a-setting.md)).
+the plan is not decoration either.
 Soft, mixed and hard are a **choice** the client makes — the same shape pull's
 strategy has — because nothing in the repository decides which of the three
 trees move. So `reset/plan` takes `mode`, answers with the full object name,
@@ -304,7 +304,7 @@ operation: it either succeeds or git refuses with its own account at 422.
 
 The two `rebase/interactive` routes are the one pair here whose plan is not an
 outcome the daemon reads but a **list the client writes**
-([ADR 0029](adr/0029-a-rebase-plan-is-written-not-edited.md)). So the plan
+. So the plan
 route answers with material rather than a prediction: the base it resolved, its
 subject, the branch HEAD is on, the commits after it **oldest first** — the
 order a todo list is executed in — and the one command that will run whatever
@@ -359,11 +359,11 @@ repository left in the state the banner names and the conflict screen resolves.
 
 Add, rename, set-url and remove answer with the remotes list. Set and unset
 upstream answer with the reference list. Fetch, pull and push stream progress
-as NDJSON (ADR 0030) — progress lines, then either the references they moved
+as NDJSON — progress lines, then either the references they moved
 or the failure. Validation refusals before git starts are still ordinary JSON
 errors. URLs on the list are redacted
 at the parse: a token in a remote URL is a password, and this list is drawn on
-a screen ([ADR 0020](adr/0020-the-network-is-gits-and-so-are-the-credentials.md)).
+a screen.
 Names reach git after `--`, for the same reason branch names do.
 
 ### Worktrees
@@ -484,7 +484,7 @@ the branch routes answer with the reference list: the operation changed the
 list, so the list is what comes back.
 
 **A stash is named twice, and both names are read again**
-([ADR 0028](adr/0028-a-stash-is-a-position-and-a-name.md)). Everywhere else in
+. Everywhere else in
 this API a plan resolves a revision to an object name and the run sends that
 name straight to git, so the name *is* the agreement. A stash has no such name
 to send: it is addressed as `stash@{0}`, `stash@{1}` — a **position** in a
@@ -634,7 +634,7 @@ left in would be committed verbatim.
 
 `signing` is `commit.gpgsign` read, never written: whose key a commit carries
 stays the person's own decision, made in git's configuration
-([ADR 0021](adr/0021-a-shown-command-is-not-a-setting.md)). It rides on this
+. It rides on this
 route because it answers the same question the message does — what the next
 commit is going to be — and because signing is the step that fails once
 everything else has succeeded, which a box that never mentioned it turns into
@@ -691,7 +691,7 @@ from and which the parser refuses by name rather than failing on the syntax.
 
 The stream sends one event kind, `repository`, when a repository's git
 directories change. A client refetches what it is showing rather than being
-told what changed ([ADR 0007](adr/0007-one-event-stream.md)).
+told what changed.
 
 `/api/log` is what backs the log panel: every execution with its command, exit
 code, duration and stderr. A user should be able to learn git by watching
