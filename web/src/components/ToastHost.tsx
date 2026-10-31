@@ -144,7 +144,7 @@ export function nextStack(
  * the toast raised by an operation started FROM a dialog — a plan that git
  * refused, with the explanation in its stderr — was painted under the scrim
  * and its dismiss button could not be clicked at any depth. This is the
- * mechanism Menu already uses and ADR 0018 already argued for, applied to the
+ * mechanism Menu already uses and the platform-overlays decision already argued for, applied to the
  * one overlay that was left behind on a number.
  */
 export function ToastHost({ children }: { children: ReactNode }) {
@@ -254,7 +254,7 @@ export function ToastHost({ children }: { children: ReactNode }) {
    * card, for as long as it is on screen, and a sentence in a region that has
    * been in the document since the page loaded.
    *
-   * `:popover-open` and `:modal` are both inside the floor ADR 0018 already
+   * `:popover-open` and `:modal` are both inside the floor the platform-overlays decision already
    * put under this project. An engine that cannot parse the first cannot run
    * showPopover() either — they shipped together in all three — and `:modal`
    * is older than both. So there is no browser that reaches this line and

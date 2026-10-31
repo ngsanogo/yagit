@@ -47,7 +47,7 @@ func walk(t *testing.T, runner *git.Runner, dir string, scope git.Scope, chosen 
 	return commits
 }
 
-// The middle of ADR 0033: one ref is narrower than what is checked out only
+// The middle of the ref-scope rule: one ref is narrower than what is checked out only
 // when it is a different one, and two refs together are the divergence neither
 // of the other scopes can draw on its own.
 func TestLogScopeRefsWalksExactlyTheRefsItWasGiven(t *testing.T) {

@@ -8,7 +8,7 @@
 // hold the computed answer between two requests. This is that something.
 //
 // A history is held per repository and per set of refs — which the walk covers
-// (docs/adr/0016, docs/adr/0033) — for the same reason: two sets see different
+// — for the same reason: two sets see different
 // commits, so they are different assignments and not two views of one. Held,
 // but not forever: the sets a person picks are unbounded and the memory they
 // cost is not, so the picked ones have a ceiling. See chosenHistories.

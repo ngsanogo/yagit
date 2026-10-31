@@ -25,7 +25,7 @@ import { parseUpstreamRef } from './upstream';
  * answered.
  *
  * Every one of these reads a plan first and opens the confirmation on what came
- * back, which is [ADR 0021] and [ADR 0022]: the command a dialog shows is the
+ * back, which is the shown-command rule and the merge-check rule: the command a dialog shows is the
  * command that will run, read from the repository at the moment of the click.
  * `slot.propose` is that shape, so what is left here is only what differs —
  * which mutation to ask, what to ask it, and how to say what could not be read.
@@ -37,8 +37,6 @@ import { parseUpstreamRef } from './upstream';
  * second copy of either would be a second chance for the two to disagree about
  * what the line on screen means.
  *
- * [ADR 0021]: ../../../docs/adr/0021-a-shown-command-is-not-a-setting.md
- * [ADR 0022]: ../../../docs/adr/0022-a-merge-is-checked-before-it-runs.md
  */
 export function useHistoryProposals(
   slot: DialogSlot,

@@ -4,7 +4,7 @@
 
 React 19, TypeScript, Vite, Tailwind utilities generated from design tokens,
 TanStack Query for server state, TanStack Virtual for list rows, and no router
-library: the path selects the screen (ADR 0006). There are no product URLs
+library: the path selects the screen. There are no product URLs
 worth bookmarking yet, and a router would be machinery in front of a pathname
 check.
 
@@ -35,10 +35,10 @@ One TanStack Query key per page of commits — `['commits', repositoryId, page]`
 — so two components asking for the same page fetch it once. Pages are keyed
 queries and not an infinite query on purpose: a scrollbar you can drag to the
 middle of a million rows must not have to fetch the 899 pages above it
-(ADR 0005).
+.
 
 Freshness comes from two mechanisms, and they answer different questions
-(ADR 0015):
+:
 
 - **The event stream** — one `EventSource` for the whole session, opened in
   `useEvents` — says when a repository's git directory moved. Anything git
@@ -47,7 +47,7 @@ Freshness comes from two mechanisms, and they answer different questions
 - **A two-second poll of `git status`**, while the window has focus, says when
   the work tree moved. Saving a file in an editor touches nothing under
   `.git`, so the watch never sees it, and yagit does not watch work trees
-  (ADR 0008). The diff of the file open in the changes panel is polled on that
+. The diff of the file open in the changes panel is polled on that
   same interval: the status names which files differ and never what changed
   inside one, so it cannot stand in for the diff. That poll stops once a diff
   passes the lines the pane draws, where a re-read costs up to the daemon's

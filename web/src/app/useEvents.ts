@@ -8,7 +8,7 @@ import type { GitExecution } from '../api/types';
  *
  * One EventSource, never one per repository: a browser opens at most six
  * connections to an origin, and a stream per repository would park all of them
- * and leave every ordinary request queued behind (ADR 0007). Each event names
+ * and leave every ordinary request queued behind. Each event names
  * the repository it concerns, so one stream is enough.
  *
  * EventSource cannot set a request header, so this authenticates by cookie —

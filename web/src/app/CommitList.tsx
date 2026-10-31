@@ -101,7 +101,7 @@ export function CommitList({
 
   // The React Compiler's lint rule objects that useVirtualizer returns
   // functions it cannot memoize safely. That is true, it is inherent to the
-  // library ADR 0005 chose on its merits, and the compiler is not enabled in
+  // library the virtualisation choice chose on its merits, and the compiler is not enabled in
   // this project — vite.config.ts runs plugin-react without it. Silenced here
   // rather than left to warn on every run, because a warning that always
   // appears is one people stop reading. If the compiler is ever turned on,
@@ -262,7 +262,7 @@ export function CommitList({
               // says is four hundred long, with both numbers moving under the
               // reader as it scrolls. They are the only channel that carries
               // the history's size — the graph beside the rows is aria-hidden
-              // (docs/adr/0003) on the grounds that the rows say everything
+              // on the grounds that the rows say everything
               // it draws, and this is part of paying that bill.
               aria-setsize={total}
               aria-posinset={row.index + 1}
@@ -404,7 +404,7 @@ export function tabbableRow(
  * Where a key takes the focus from the row it was pressed on, or undefined for
  * a key the list has no answer for.
  *
- * ADR 0001 already names the arrow keys among the bindings left to yagit after
+ * the local-daemon design already names the arrow keys among the bindings left to yagit after
  * the browser has taken its own, so this is that decision applied rather than
  * a new one.
  *

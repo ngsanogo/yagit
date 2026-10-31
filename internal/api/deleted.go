@@ -9,7 +9,7 @@ import "sync"
 // branch, so once the command has run, the object the branch pointed at exists
 // nowhere git will name it. The tip is therefore read BEFORE the delete and
 // kept here — see
-// docs/adr/0032-a-deleted-branch-is-remembered-not-recalled.md.
+// the deleted-branch record.
 //
 // In memory, and deliberately: the record is worth exactly as long as the
 // repository stays open, which is the same span "the last thing you did" means

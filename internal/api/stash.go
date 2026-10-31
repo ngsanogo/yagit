@@ -24,7 +24,7 @@ import (
 // version of agreesOnCommit, and it needs its own function because the two
 // halves cannot be collapsed: `git stash drop` refuses an object name, so the
 // position is what has to run, and the position is the part that moves. See
-// docs/adr/0028.
+// the stash-position rule.
 //
 // The refusals that come before any of it — a bare repository, a repository
 // already in the middle of something — are workTree's and repositoryIdle's.

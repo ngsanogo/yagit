@@ -227,7 +227,7 @@ test('lists the repository, its history and its references', async ({ page }) =>
  * The whole reason for the virtualizer: a repository with a long history must
  * not put a long history in the DOM.
  *
- * Without this, "virtualised" is a word in an ADR. With it, a change that
+ * Without this, "virtualised" is only a claim. With it, a change that
  * renders every row fails here rather than in a tab that will not open on
  * someone's monitorepo two years from now.
  */
@@ -384,7 +384,7 @@ test('draws the graph beside the rows', async ({ page }) => {
 
   // A picture of relationships between rows that are already in the
   // accessibility tree with their author, date and subject. Announcing a
-  // column number would add noise, not information (docs/adr/0003).
+  // column number would add noise, not information.
   await expect(graph).toHaveAttribute('aria-hidden', 'true');
 
   // A branch and a merge means at least two columns, and a column is one

@@ -59,7 +59,7 @@ export function suggestedCloneName(url: string): string {
  * this panel already lives inside the "Add a repository" dialog and a second
  * `<dialog>` on top of one is not a thing the platform handles cleanly.
  *
- * Progress lines from git's stderr ride the request (ADR 0030) and are drawn
+ * Progress lines from git's stderr ride the request and are drawn
  * while the confirm stays busy.
  */
 export function CloneRepository({ onOpened }: { onOpened?: (id: string) => void }) {

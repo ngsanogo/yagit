@@ -16,7 +16,7 @@ const Showcase = lazy(() =>
  * Application root.
  *
  * Two screens, selected by the path: `/` is the workbench, `/design` is the
- * showcase. ADR 0006 chose no router library; until there are more URLs worth
+ * showcase. the no-router choice chose no router library; until there are more URLs worth
  * bookmarking, reading the pathname is the honest amount of machinery.
  *
  * The showcase is not linked from the workbench. It stays reachable at
@@ -31,9 +31,9 @@ export function App() {
           queries: {
             // yagit reads a repository the user is also working in from their
             // terminal, so what is on screen goes stale for reasons this
-            // application never sees. The event stream of ADR 0007 announces
+            // application never sees. The event stream of the one-event-stream design announces
             // what touches the git directory; the work tree has no watch and
-            // is polled instead, only while the window has focus (ADR 0015).
+            // is polled instead, only while the window has focus.
             // Refetching on focus is what covers the gap that leaves — a file
             // saved while this tab was in the background.
             refetchOnWindowFocus: true,

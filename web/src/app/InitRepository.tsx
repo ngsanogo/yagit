@@ -18,7 +18,7 @@ import { discoverQuery } from './OpenRepository';
  * reason: the confirmation's content is the exact command. What differs is one
  * field. `git init` reads the first branch's name from `init.defaultBranch`,
  * which is a setting on the daemon's machine — so the plan comes back with the
- * name filled in and the command pins it (ADR 0021), rather than a button
+ * name filled in and the command pins it, rather than a button
  * making `main` on one machine and `master` on the next.
  */
 export function InitRepository({ onOpened }: { onOpened?: (id: string) => void }) {

@@ -82,7 +82,7 @@ describe('what the rebase confirmation says will happen', () => {
     expect(sentence).not.toContain('0 commit');
   });
 
-  // The arrangement ADR 0023 exists for, said in words: the branch is AHEAD of
+  // The arrangement the two-way rebase reading exists for, said in words: the branch is AHEAD of
   // the upstream, so nothing is arriving, and git rewrites it anyway because a
   // merge commit in the range leaves it no shortcut. The general sentence
   // would report "main has 0 commits of its own" and give no reason at all.

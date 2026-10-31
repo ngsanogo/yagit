@@ -41,7 +41,7 @@ import { ReadOnlyPatch } from './DiffView';
  * The scope is in the key because it is in the answer: `row` is a position in
  * one walk, so the same commit read under another scope is a different answer
  * to a different question — and under `refs` the chosen set is the scope, so
- * it is in the key too (docs/adr/0033).
+ * it is in the key too.
  */
 export function commitQuery(
   repositoryId: string,

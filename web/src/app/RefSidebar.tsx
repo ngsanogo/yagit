@@ -350,7 +350,7 @@ function isCurrent(reference: Ref, head: Head | undefined): boolean {
  * something to explain is the one whose explanation cannot be seen. The
  * browser draws a `title` outside the page, where nothing clips it. The
  * bubble stays because it is what carries aria-describedby, and the day
- * Tooltip reaches the top layer (a new ADR against ADR 0018's third bullet)
+ * Tooltip reaches the top layer (against the platform-overlays decision's third bullet)
  * the `title` is what comes back off.
  */
 function NewTagAction({

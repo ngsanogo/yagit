@@ -23,7 +23,7 @@ import (
 //
 // What is NOT in it is the working directory, which a pull changes as much as
 // a checkout does. Sending it would cost a second `git status` on every one of
-// these, and the interface polls that twice a second anyway (ADR 0015); the
+// these, and the interface polls that twice a second anyway; the
 // client drops what it holds instead, which is one request rather than two.
 //
 // Where the operation is decided is worth naming. The client says which of the

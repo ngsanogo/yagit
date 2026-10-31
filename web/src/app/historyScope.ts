@@ -8,7 +8,7 @@ import type { HistoryScope, Ref } from '../api/types';
  * The scope and the chosen refs travel together everywhere — the history
  * pages, one commit's position in them, a search — because under `scope=refs`
  * the chosen set IS the scope: main alone and main with a topic branch are two
- * different histories, not two views of one (docs/adr/0033).
+ * different histories, not two views of one.
  */
 
 /**
@@ -66,7 +66,7 @@ export function initialSelectedRefs(refs: readonly Ref[], headName: string | und
  * wide, and a label naming only branches would leave the reason for the width
  * off the screen. The other option names the ordinary case; a detached HEAD
  * draws what is checked out under the same option, which is what the daemon
- * walks either way (docs/adr/0016).
+ * walks either way.
  */
 export const HISTORY_SCOPES: readonly Segment<HistoryScope>[] = [
   { value: 'head', label: 'Current branch' },

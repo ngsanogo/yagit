@@ -87,8 +87,8 @@ const (
 	// the comparison, so telling the reader to look for a stray space would
 	// send them after a cause this daemon has already ruled out. What is left
 	// is a paste that did not carry the whole value, and a token that was
-	// right for a daemon holding a different one — which is what `./do up
-	// --new-token` and a binary started with no token file both produce.
+	// right for a daemon holding a different one — which is what `./do token
+	// --new` and a binary started with no token file both produce.
 	//
 	// It ends on an instruction because both causes have the same one, and a
 	// refusal that named two causes and stopped would leave the reader where

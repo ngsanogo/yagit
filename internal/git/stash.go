@@ -25,7 +25,7 @@ import (
 // command it showed would have been perfectly correct at the moment it was
 // drawn. StashTarget is the answer: the plan resolves the position to the
 // object name at it, the run sends that name back, and the position is read
-// again and refused if it no longer holds it. See docs/adr/0028.
+// again and refused if it no longer holds it.
 //
 // Two of git's own behaviours here succeed while doing nothing, and each is
 // refused or worked around rather than passed on:

@@ -307,7 +307,7 @@ func TestAChangeOnDiskReachesTheStream(t *testing.T) {
 	}
 }
 
-// TestAReconnectingStreamIsGivenWhatItMissed pins the other half of ADR 0007's
+// TestAReconnectingStreamIsGivenWhatItMissed pins the other half of the one-event-stream design's
 // promise. A stream that falls behind is hung up on purpose so the browser
 // reconnects with Last-Event-ID, and the replay is what makes that a recovery
 // rather than a silent gap.

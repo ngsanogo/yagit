@@ -10,7 +10,7 @@ import (
 // Like fetch, pull and push, this waits on another machine and carries
 // networkTimeout. Unlike them, it has no open repository to run inside: the
 // destination is a path under YAGIT_ROOT, checked by the registry before this
-// is called. Progress rides the request — see docs/adr/0030.
+// is called. Progress rides the request —.
 
 // ErrEmptyCloneURL: nothing was given to clone from.
 var ErrEmptyCloneURL = errors.New("no URL given to clone")

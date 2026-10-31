@@ -88,7 +88,7 @@ export function Workbench() {
 
   // The commands that ran before this page was loaded. What happens next
   // arrives on the stream, which is opened once for the whole session — one
-  // EventSource however many repositories are open (ADR 0007).
+  // EventSource however many repositories are open.
   const backlog = useQuery({ queryKey: ['command-log'], queryFn: api.log });
   const events = useEvents(backlog.data ?? []);
 
@@ -119,7 +119,7 @@ export function Workbench() {
    */
   const active = open.find((repository) => repository.id === activeId) ?? open[0];
 
-  // Not gated on sessionReady: `./do up --restart` empties the daemon's
+  // Not gated on sessionReady: restarting the stack empties the daemon's
   // registry while the tab stays open, and refetch-on-focus is what tells the
   // interface. A one-shot restore would leave the user looking at "No
   // repository open" with three tabs they have to find and type again.
@@ -512,7 +512,7 @@ function Header({
             the commit history is the screen this button is sitting on top of —
             so the one name that already means something in git was pointing at
             the wrong panel. Everything else in the project already says
-            command log: the component, the architecture notes, ADR 0030.
+            command log: the component, the architecture notes, the progress-on-the-request design.
 
             Drawn as pressed as well as announced as pressed. The state went to
             assistive technology and to nobody else, so a reader who opened the

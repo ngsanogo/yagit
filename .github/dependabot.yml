@@ -18,6 +18,10 @@ version: 2
 # And one shape: minor and patch releases grouped into a single pull request
 # per ecosystem, majors one by one. A major is the release that asks to be
 # read; the rest is routine, and routine in fifteen pull requests is noise.
+#
+# Subjects are `chore(deps):`, or `chore(deps-dev):` for a development
+# dependency. `mise run version` treats a chore as no release, which is what a
+# dependency bump is. The label is `dependencies`.
 updates:
   - package-ecosystem: npm
     directory: /web
@@ -37,6 +41,12 @@ updates:
     # repository to install a poisoned package costs everything.
     cooldown:
       default-days: 7
+    labels:
+      - dependencies
+    commit-message:
+      prefix: chore
+      prefix-development: chore
+      include: scope
 
     groups:
       # The linter and the compiler move as one, major versions included.
@@ -86,10 +96,17 @@ updates:
       interval: weekly
       day: monday
       time: "05:00"
+    open-pull-requests-limit: 5
 
     # See the npm block above.
     cooldown:
       default-days: 7
+    labels:
+      - dependencies
+    commit-message:
+      prefix: chore
+      prefix-development: chore
+      include: scope
 
     groups:
       go:
@@ -102,10 +119,17 @@ updates:
       interval: weekly
       day: monday
       time: "05:00"
+    open-pull-requests-limit: 5
 
     # See the npm block above.
     cooldown:
       default-days: 7
+    labels:
+      - dependencies
+    commit-message:
+      prefix: chore
+      prefix-development: chore
+      include: scope
 
     groups:
       actions:

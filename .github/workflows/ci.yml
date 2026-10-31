@@ -1,173 +1,46 @@
+# CI — the same mise tasks a contributor runs (`mise tasks` lists them).
+# Every action is pinned to a commit digest; Dependabot moves digest and comment together.
 name: CI
-
-# Every action is pinned to a commit digest, with its version in the comment
-# beside it.
-#
-# A tag is a mutable pointer: whoever owns the action can move v7 to any commit
-# at any time, and the release job below runs with `contents: write` on this
-# repository. Trusting a tag means trusting every future push by a third party
-# with the right to publish that binary. A digest cannot be moved.
-#
-# Dependabot updates these — it rewrites both the digest and the comment — so
-# pinning costs nothing in maintenance. It only costs when you edit a workflow
-# by hand: resolve the tag first.
-#
-#   gh api repos/OWNER/NAME/git/ref/tags/vX.Y.Z --jq .object.sha
 
 on:
   push:
     branches: [main]
   pull_request:
-  # Lets a maintainer re-run the suite without pushing an empty commit.
   workflow_dispatch:
 
-# A new push to the same branch makes the previous run pointless.
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
-
-  # Cancel a superseded run on a branch, never on main.
-  #
-  # On a branch the previous run is answering a question about code that no
-  # longer exists, so cancelling it saves minutes and loses nothing. On main
-  # every run is the only answer that commit will ever get: cancel it and the
-  # commit keeps whatever status it had, or none. A manual re-run would
-  # otherwise cancel the push run for the same commit, and main would go red
-  # on a race with itself.
   cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
-# Read-only by default. Any job needing more says so itself.
 permissions:
-  contents: read # check out the code; no job here needs anything else.
+  contents: read
 
 jobs:
-  # One job per gate, so a red badge names what broke instead of "CI failed".
   lint:
     name: Lint
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          # checkout otherwise leaves the job's token in .git/config, where
-          # every later step can read it. Nothing in this repository's CI
-          # pushes, so nothing needs the credential kept around.
           persist-credentials: false
-
-      # mise.toml is the single source of tool versions: CI installs exactly
-      # what a contributor's machine installs. One number is written twice:
-      # the action installs mise before anything can read mise.toml, so
-      # `version:` repeats its min_version on every step that uses the action,
-      # and `./do lint` fails on a step where the two disagree.
-      #
-      # The action installs only the mise binary. The tools it manages are
-      # installed by the ./do shim, into .yagit/mise, because that is what
-      # every contributor's machine does — and installing them here as well
-      # would download the whole toolchain twice, the second copy into a
-      # directory nothing afterwards reads.
-      #
-      # Which mise that is matters, so it is pinned rather than left to the
-      # action's default, the newest release at least a day old. A newer mise
-      # can fill in an entry of mise.lock that an older one left incomplete,
-      # and the Build job's clean-tree check then reports the lockfile as
-      # modified. Raising the version therefore comes with `mise lock` run on
-      # the new mise, in the same change.
-      - uses: jdx/mise-action@08ae2a091c038e1e05ec6f5115dc5c69d5a2a6b8 # v5.1.2
+      - uses: jdx/mise-action@fc42bcc7ddbf51124c30f95a877a0c5168a3bfde # v5.2.1
         with:
           version: 2026.10.2
-          install: false
-          cache: false
-
-      # The caches below name paths inside .yagit/, which is where the shim
-      # points mise, Go, pnpm and Playwright. Caching pnpm's or mise's default
-      # directory would restore data that nothing in the job goes on to read.
-      - name: Cache the toolchain
-        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
-        with:
-          path: .yagit/mise
-          key: mise-${{ runner.os }}-${{ hashFiles('mise.lock', 'mise.toml') }}
-
-      # The Go build cache holds the compiled standard library — one copy per
-      # platform, and `./do lint` type-checks all three — which is most of
-      # what a cold run spends its time on.
-      - name: Cache Go builds and modules
-        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
-        with:
-          path: |
-            .yagit/go-cache
-            .yagit/go-mod-cache
-          key: go-${{ runner.os }}-${{ hashFiles('go.sum', 'mise.lock') }}
-          restore-keys: go-${{ runner.os }}-
-
-      - name: Cache the pnpm store
-        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
-        with:
-          path: .yagit/pnpm-store
-          key: pnpm-${{ runner.os }}-${{ hashFiles('web/pnpm-lock.yaml') }}
-          restore-keys: pnpm-${{ runner.os }}-
-
-      - run: ./do lint
+      - run: mise run lint
 
   test:
     name: Test
     runs-on: ubuntu-latest
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          # checkout otherwise leaves the job's token in .git/config, where
-          # every later step can read it. Nothing in this repository's CI
-          # pushes, so nothing needs the credential kept around.
           persist-credentials: false
-
-      # Only the mise binary. The tools it manages are installed by the ./do
-      # shim, into .yagit/mise, because that is what every contributor's
-      # machine does — and installing them here as well would download the
-      # whole toolchain twice into a directory nothing afterwards reads.
-      - uses: jdx/mise-action@08ae2a091c038e1e05ec6f5115dc5c69d5a2a6b8 # v5.1.2
+      - uses: jdx/mise-action@fc42bcc7ddbf51124c30f95a877a0c5168a3bfde # v5.2.1
         with:
           version: 2026.10.2
-          install: false
-          cache: false
-
-      # The caches below name paths inside .yagit/, which is where the shim
-      # points mise, Go, pnpm and Playwright. Caching pnpm's or mise's default
-      # directory would restore data that nothing in the job goes on to read.
-      - name: Cache the toolchain
-        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
-        with:
-          path: .yagit/mise
-          key: mise-${{ runner.os }}-${{ hashFiles('mise.lock', 'mise.toml') }}
-
-      # The Go build cache holds the compiled standard library — one copy per
-      # platform, and `./do lint` type-checks all three — which is most of
-      # what a cold run spends its time on.
-      - name: Cache Go builds and modules
-        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
-        with:
-          path: |
-            .yagit/go-cache
-            .yagit/go-mod-cache
-          key: go-${{ runner.os }}-${{ hashFiles('go.sum', 'mise.lock') }}
-          restore-keys: go-${{ runner.os }}-
-
-      - name: Cache the pnpm store
-        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
-        with:
-          path: .yagit/pnpm-store
-          key: pnpm-${{ runner.os }}-${{ hashFiles('web/pnpm-lock.yaml') }}
-          restore-keys: pnpm-${{ runner.os }}-
-
-      # Chromium is ~150 MB. Keyed on the lockfile so the cache is dropped
-      # exactly when the pinned Playwright — and thus the browser — changes.
-      - name: Cache Playwright browsers
-        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
-        with:
-          path: .yagit/browsers
-          key: playwright-${{ runner.os }}-${{ hashFiles('web/pnpm-lock.yaml') }}
-
-      # `./do test` starts the daemon and Vite by itself for the end-to-end
-      # tests, so there is nothing to launch here.
-      - run: ./do test
-
-      # The end-to-end report is only worth keeping when something failed.
+      - run: mise run test
       - if: failure()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
@@ -175,33 +48,14 @@ jobs:
           path: web/playwright-report/
           retention-days: 7
 
-  # yagit ships a binary for six platforms and its interface is a git client,
-  # which is to say a desktop application: Windows and macOS are not exotic
-  # targets here, they are most of the audience. Cross-compiling proves that
-  # the code builds and nothing else — the environment handed to git, the
-  # paths, the process handling and the entry point itself are only exercised
-  # by running them (docs/adr/0010-every-shipped-platform-is-a-gate.md).
-  #
-  # One job for both, and both through `./do`, which is the entry point on
-  # every platform.
-  #
-  # The gates whose answer depends on which machine asks: the Go tests on both
-  # platforms, and the agent shim gate on Windows, the one place `./do agent
-  # sync` writes copies instead of symlinks. The frontend is
-  # platform-independent, and the end-to-end tests would triple the runtime to
-  # re-check a browser, not an operating system.
+  # Every shipped platform runs the Go suite on itself.
+  # The check is required by name. `Go on ${{ matrix.os }}` would stop matching
+  # the ruleset the day the runner label changes.
   platform:
-    # The name says the platform, not the runner label, and that is a
-    # load-bearing difference: branch protection requires a check BY NAME, so
-    # `Go on ${{ matrix.os }}` would silently stop being required the day
-    # someone pins macos-15 instead of macos-latest. A gate that disappears
-    # when an unrelated line is edited is not a gate.
     name: Go on ${{ matrix.platform }}
     runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
     strategy:
-      # One platform failing is a result about that platform. Cancelling the
-      # other would throw away the answer to "is this everywhere, or just
-      # there".
       fail-fast: false
       matrix:
         include:
@@ -212,120 +66,25 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          # checkout otherwise leaves the job's token in .git/config, where
-          # every later step can read it. Nothing in this repository's CI
-          # pushes, so nothing needs the credential kept around.
           persist-credentials: false
-
-      # Only the mise binary. The tools it manages are installed by the ./do
-      # shim, into .yagit/mise, because that is what every contributor's
-      # machine does — and installing them here as well would download the
-      # whole toolchain twice into a directory nothing afterwards reads.
-      - uses: jdx/mise-action@08ae2a091c038e1e05ec6f5115dc5c69d5a2a6b8 # v5.1.2
+      - uses: jdx/mise-action@fc42bcc7ddbf51124c30f95a877a0c5168a3bfde # v5.2.1
         with:
           version: 2026.10.2
-          install: false
-          cache: false
-
-      # The caches below name paths inside .yagit/, which is where the shim
-      # points mise, Go, pnpm and Playwright. Caching pnpm's or mise's default
-      # directory would restore data that nothing in the job goes on to read.
-      - name: Cache the toolchain
-        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
-        with:
-          path: .yagit/mise
-          key: mise-${{ runner.os }}-${{ hashFiles('mise.lock', 'mise.toml') }}
-
-      # The Go build cache holds the compiled standard library — one copy per
-      # platform, and `./do lint` type-checks all three — which is most of
-      # what a cold run spends its time on.
-      - name: Cache Go builds and modules
-        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
-        with:
-          path: |
-            .yagit/go-cache
-            .yagit/go-mod-cache
-          key: go-${{ runner.os }}-${{ hashFiles('go.sum', 'mise.lock') }}
-          restore-keys: go-${{ runner.os }}-
-
-      # Two steps rather than one, because the entry point differs: Windows has
-      # no /bin/sh, so it gets do.cmd. Running each through the shell its users
-      # actually run it in is the point — a do.cmd that only ever ran under Git
-      # Bash would not be tested at all, and Git Bash is not what a Windows
-      # contributor has open.
-      - name: Go tests
-        if: runner.os != 'Windows'
-        run: ./do test go
-
-      - name: Go tests
-        if: runner.os == 'Windows'
-        shell: pwsh
-        run: .\do.cmd test go
+      - run: mise run test:go
 
   build:
     name: Build
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          # `./do build` stamps the binary with `git describe`, which needs tags
-          # and history. A shallow clone would silently produce "dev".
-          fetch-depth: 0
+          fetch-depth: 0 # `git describe` stamps the binary
           persist-credentials: false
-
-      # Only the mise binary. The tools it manages are installed by the ./do
-      # shim, into .yagit/mise, because that is what every contributor's
-      # machine does — and installing them here as well would download the
-      # whole toolchain twice into a directory nothing afterwards reads.
-      - uses: jdx/mise-action@08ae2a091c038e1e05ec6f5115dc5c69d5a2a6b8 # v5.1.2
+      - uses: jdx/mise-action@fc42bcc7ddbf51124c30f95a877a0c5168a3bfde # v5.2.1
         with:
           version: 2026.10.2
-          install: false
-          cache: false
-
-      # The caches below name paths inside .yagit/, which is where the shim
-      # points mise, Go, pnpm and Playwright. Caching pnpm's or mise's default
-      # directory would restore data that nothing in the job goes on to read.
-      - name: Cache the toolchain
-        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
-        with:
-          path: .yagit/mise
-          key: mise-${{ runner.os }}-${{ hashFiles('mise.lock', 'mise.toml') }}
-
-      # The Go build cache holds the compiled standard library — one copy per
-      # platform, and `./do lint` type-checks all three — which is most of
-      # what a cold run spends its time on.
-      - name: Cache Go builds and modules
-        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
-        with:
-          path: |
-            .yagit/go-cache
-            .yagit/go-mod-cache
-          key: go-${{ runner.os }}-${{ hashFiles('go.sum', 'mise.lock') }}
-          restore-keys: go-${{ runner.os }}-
-
-      - name: Cache the pnpm store
-        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
-        with:
-          path: .yagit/pnpm-store
-          key: pnpm-${{ runner.os }}-${{ hashFiles('web/pnpm-lock.yaml') }}
-          restore-keys: pnpm-${{ runner.os }}-
-
-      # `./do test release` drives the built binary in a browser, so this job
-      # needs Chromium as much as the test job does.
-      - name: Cache Playwright browsers
-        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
-        with:
-          path: .yagit/browsers
-          key: playwright-${{ runner.os }}-${{ hashFiles('web/pnpm-lock.yaml') }}
-
-      - run: ./do build
-
-      # The end-to-end suite runs the development stack. This is the only gate
-      # that starts what ./do build actually ships.
-      - run: ./do test release
-
-      # A build that leaves the working tree dirty means a generated file is
-      # committed and out of date. Better caught here than in a review.
+      - run: mise run build
+      - run: mise run test:release
       - name: Working tree must stay clean
         run: git diff --exit-code

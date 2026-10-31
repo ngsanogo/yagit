@@ -16,7 +16,7 @@ import { refsKey } from './historyScope';
  * Pages are keyed queries rather than an infinite query, and the reason is the
  * scrollbar: an infinite query reaches page 900 by fetching the 899 before it,
  * which is right for a feed and wrong for a control you can drag to the middle
- * of a million rows (docs/adr/0005).
+ * of a million rows.
  *
  * The scope is part of every key, and under `refs` the chosen set with it. Two
  * scopes are two histories — different commits, and different columns for the

@@ -26,7 +26,7 @@ import { overCap } from './drawnLines';
  * The event stream covers everything that touches the git directory: a commit
  * in the user's terminal, a checkout, a rebase. It does NOT cover a file being
  * saved in an editor, because yagit watches a bounded set of paths and never
- * the work tree (ADR 0008) — and watching a work tree recursively is how a
+ * the work tree — and watching a work tree recursively is how a
  * client ends up holding a descriptor per node_modules entry.
  *
  * So the work tree is polled and the repository is watched. Two seconds is

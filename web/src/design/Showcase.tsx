@@ -1446,7 +1446,7 @@ const SAMPLE_TABS = SAMPLE_CHECKOUTS.map((entry, index) => ({
 const SAMPLE_ROWS: { path: string; selected?: boolean }[] = [
   { path: 'internal/graph/graph.go' },
   { path: 'web/src/design/Showcase.tsx', selected: true },
-  { path: 'docs/adr/0033-a-ref-may-hold-a-comma.md' },
+  { path: 'the ref-scope rule' },
 ];
 
 const SAMPLE_DISCOVERED: { name: string; path: string; bare: boolean }[] = [

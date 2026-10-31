@@ -3,7 +3,7 @@
 ## Entry point
 
 `./do` is the only supported way to develop, build, test, lint, and run yagit.
-CI runs `./do lint` and `./do test`. Anything done outside `./do` is unverified.
+CI runs `./do lint` and `./do test`. 
 
 On Windows use `do.cmd` with the same subcommands.
 
@@ -27,16 +27,10 @@ breaks without the line. A comment that restates the code is noise.
 
 ## One value, one place
 
-- Ports: `cmd/do/main.go`
+- Ports: `mise.toml` (the `dev:*` tasks) and `web/playwright.config.ts`
 - Tool versions: `mise.toml`
 - Repository root allowlist: `.env` (`YAGIT_ROOT`)
 - Visual values: `web/src/design/tokens.css`
-
-## ADRs
-
-Architecture Decision Records in `docs/adr/` explain past choices. They are
-**historical context**, not permission slips. Changing a decision means writing
-a new ADR that says so.
 
 ## Agent configuration
 

@@ -22,13 +22,13 @@ import (
 // silent stash; `rebase.rebaseMerges` decides whether merge commits are
 // recreated or flattened away; and `rebase.updateRefs` force-updates every
 // OTHER branch pointing into the replayed range. Each is pinned by a flag in
-// RebaseArgs. docs/adr/0021 is the rule; docs/adr/0023 is what following it
+// RebaseArgs. the shown-command rule is the rule; the two-way rebase reading is what following it
 // cost here.
 //
 // What would be replayed is read before the command runs (PreviewRebase), and
 // the outcome travels back with the confirmation so a rebase that has become a
 // different operation while the dialog was open is refused rather than run
-// under the old description — the lease of docs/adr/0022.
+// under the old description — the lease of the merge-check rule.
 
 // RebaseOutcome is what rebasing onto another branch would do.
 //

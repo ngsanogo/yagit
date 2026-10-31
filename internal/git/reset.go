@@ -15,7 +15,7 @@ import (
 // the index. Hard moves all three. The mode is a choice the client makes, not a
 // fact the daemon reads — the same shape pull's strategy has — so every command
 // pins `--soft`, `--mixed` or `--hard` rather than leaving git's default of
-// mixed to be what the line on screen "meant". See docs/adr/0021.
+// mixed to be what the line on screen "meant".
 //
 // The revision reaches git as the commit argument of `git reset --<mode>`,
 // not after `--`. That separator would turn it into a pathspec — "Cannot do

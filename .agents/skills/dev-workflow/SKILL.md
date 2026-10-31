@@ -22,12 +22,10 @@ terminal. `./do down` stops it; `./do logs` follows output; `./do dev` runs
 in the foreground when you want every line in the terminal.
 
 The token is the checkout's, not the run's: stopping and starting the stack
-leaves an open browser tab logged in. `./do up --new-token` replaces it, and
+leaves an open browser tab logged in. `./do token --new` replaces it, and
 logs every browser out.
 
-The toolchain (mise, Go caches, pnpm store, Playwright browsers) lives under
-`.yagit/` in the checkout — removing the clone removes all of it. `./do up`
-bootstraps on first run; `./do bootstrap --browsers` adds Chromium for e2e.
+mise installs the pinned toolchain. `./do up` bootstraps on first run; `./do bootstrap:browsers` adds Chromium for e2e.
 
 Daemon hot-reloads Go; Vite serves the frontend proxied through the daemon.
 
@@ -43,7 +41,6 @@ Runs go, web, and e2e. Target a subset:
 ./do test go
 ./do test web
 ./do test e2e
-./do test fuzz
 ./do test coverage
 ```
 

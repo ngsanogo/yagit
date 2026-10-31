@@ -216,7 +216,7 @@ func (r *Runner) RenameBranch(ctx context.Context, dir, from, to string) error {
 // Its one caller reads it immediately before deleting that branch, which is
 // the only moment it can be read at all: the delete takes the branch's reflog
 // with it and leaves nothing in HEAD's, so a tip not read here is a tip no
-// undo can find (docs/adr/0032). Named after the fact rather than after
+// undo can find. Named after the fact rather than after
 // rev-parse, because a general resolver on this Runner would be an invitation
 // to route revisions past the checks the operations do.
 func (r *Runner) BranchTip(ctx context.Context, dir, name string) (string, error) {

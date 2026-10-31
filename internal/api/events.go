@@ -17,7 +17,7 @@ import (
 // One stream for the whole session, never one per repository: a browser opens
 // at most six connections to an origin over HTTP/1.1, and a stream per
 // repository would park all six and leave every ordinary request queued
-// behind them. See docs/adr/0007.
+// behind them.
 
 const (
 	// eventRepositoryChanged says a repository's git directory moved. It
@@ -270,7 +270,7 @@ func (s *EventStream) unsubscribe(listener *subscriber) {
 // It authenticates by cookie like every other route, and it has to: EventSource
 // cannot set a request header, so X-Yagit-Token is not available to it. That
 // is what makes the cookie load-bearing rather than a convenience — see
-// docs/adr/0007.
+// the one-event-stream design.
 func (s *Server) handleEvents(writer http.ResponseWriter, request *http.Request) {
 	flusher, streamable := writer.(http.Flusher)
 	if !streamable {

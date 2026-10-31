@@ -13,7 +13,7 @@ import (
 
 // Cloning a repository onto disk, then opening it.
 //
-// Progress rides this response as NDJSON — see docs/adr/0030. The session
+// Progress rides this response as NDJSON —. The session
 // event stream is not involved: a clone in flight has no repository id yet.
 
 type cloneRequest struct {

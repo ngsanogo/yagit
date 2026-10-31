@@ -1,7 +1,7 @@
 // A REPL that drives a running yagit in a headless Chromium.
 //
-// Called by `./do drive`, which installs the browser, reads the session token
-// and hands both of them down. `./do shot` takes one picture and leaves; this
+// Run by `mise run drive [url]`, which hands down the session token.
+// `mise run shot` takes one picture and leaves; this
 // holds the page open and reads commands from stdin, so an agent on a machine
 // with no screen can click a button, read what came back, and photograph the
 // result.
@@ -22,15 +22,9 @@ import { dirname, isAbsolute, resolve } from 'node:path';
 import { captureViewport, pageLoadTimeout } from './capture.mjs';
 import { take } from './driver-line.mjs';
 
-const [baseURL, shotDirectory] = process.argv.slice(2);
+const [baseURL = 'http://127.0.0.1:7420', shotDirectory = '.yagit/shots'] = process.argv.slice(2);
 const token = process.env.YAGIT_TOKEN;
-
-if (!baseURL || !shotDirectory || !token) {
-  console.error('usage: ./do drive [url]');
-  console.error('This script is the implementation; ./do drive is the way in — it installs');
-  console.error('Chromium, checks the stack answers the session token, and passes both down.');
-  process.exit(2);
-}
+mkdirSync(shotDirectory, { recursive: true });
 
 const browser = await chromium.launch();
 const context = await browser.newContext({ baseURL, ...captureViewport });
@@ -47,7 +41,7 @@ page.on('pageerror', (error) => consoleErrors.push(String(error)));
 // Every route needs the token. The interface exchanges it for an HttpOnly
 // cookie through this route; doing the same here means the driver's page is
 // authenticated exactly the way a person's browser is, rather than through the
-// deprecated ?token= query `./do shot` is reduced to.
+// deprecated ?token= query `mise run shot` is reduced to.
 async function establishSession() {
   const response = await context.request.post('/api/session', { form: { token } });
   if (!response.ok()) {
@@ -94,7 +88,7 @@ async function visit(path) {
   try {
     await page.goto(path, { timeout: pageLoadTimeout });
   } catch (cause) {
-    throw new Error(`cannot load ${baseURL}${path}. Is the stack running? ./do dev`, { cause });
+    throw new Error(`cannot load ${baseURL}${path}. Is the stack running? mise run up`, { cause });
   }
 }
 

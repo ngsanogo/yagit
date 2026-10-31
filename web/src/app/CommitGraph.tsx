@@ -14,7 +14,7 @@ import {
 /**
  * The commit graph, drawn for the rows on screen and no others.
  *
- * SVG rather than canvas (docs/adr/0003): a lane's colour is
+ * SVG rather than canvas: a lane's colour is
  * `stroke: var(--color-lane-3)`, which the browser recalculates by itself when
  * the theme changes, so the palette lives in `tokens.css` and nowhere else.
  *

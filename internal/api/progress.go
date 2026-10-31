@@ -9,8 +9,8 @@ import (
 	"github.com/ngsanogo/yagit/internal/repo"
 )
 
-// Progress for a long network command rides the request that started it —
-// see docs/adr/0030. Clone was the first consumer; fetch, pull and push reuse
+// Progress for a long network command rides the request that started it.
+// Clone was the first consumer; fetch, pull and push reuse
 // the same NDJSON shape: progress lines while git runs, then either the
 // operation's answer or the failure.
 

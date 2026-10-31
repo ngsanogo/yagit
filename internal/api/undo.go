@@ -11,14 +11,14 @@ import (
 
 // Undo over HTTP: reverse the most recent action yagit knows how to reverse.
 //
-// Plan then execute, leased by object names — docs/adr/0031. Works on a
+// Plan then execute, leased by object names. Works on a
 // detached HEAD (checkout undo often returns from one), so it asks
 // repositoryIdle rather than branchUnderfoot.
 //
 // Almost all of it is a reading of the HEAD reflog. The exception is a branch
 // this repository deleted, which the reflog cannot see at all: that one is
 // answered from what was read before the delete ran, and it wins while HEAD
-// has not moved since (docs/adr/0032, and deleted.go for the record).
+// has not moved since (the deleted-branch record, and deleted.go for the record).
 
 var undoOperation = branchOperation{gerund: "undoing", preposition: "on"}
 

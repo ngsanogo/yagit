@@ -1,21 +1,26 @@
+import { execFileSync } from 'node:child_process';
+import { homedir } from 'node:os';
 import { defineConfig, devices } from '@playwright/test';
 
 import { baseURL } from './e2e/session';
 
 /**
- * The end-to-end tests run against a real daemon.
- *
- * Don't run them by hand: `./do test e2e` brings up the stack — daemon and
- * Vite — if it is not already running, and passes its address through
- * YAGIT_BASE_URL. The fallback is the address `./do dev` serves.
+ * The end-to-end tests run against a real daemon and Vite: the stack
+ * `mise run dev` / `./do up` serves, reused when it is already up, otherwise
+ * started for the run (`mise run test:e2e`).
  */
+process.env['YAGIT_TOKEN'] ??= execFileSync('node', ['../scripts/session-token.mjs'], {
+  encoding: 'utf8',
+}).trim();
+process.env['YAGIT_ROOT'] ??= homedir();
+
 export default defineConfig({
   testDir: './e2e',
   // The suite is the spec files. Playwright's default would also collect
   // fixtures.test.ts, which is a Vitest test of the sweep the global setup
   // runs — loaded here it fails on the first import.
   testMatch: '**/*.spec.ts',
-  // release.spec.ts belongs to `./do test release`, which runs the built
+  // release.spec.ts belongs to `mise run test:release`, which runs the built
   // binary with its frontend embedded. Running it here would prove only that
   // Vite still serves the page, which every other spec in this suite already
   // proves.
@@ -34,9 +39,7 @@ export default defineConfig({
   // Same condition as the reporter below, so "we are in CI" is one notion in
   // this file rather than two. Locally a `.only` is the point of typing it.
   forbidOnly: process.env.CI !== undefined,
-  // And retries stay at 0 deliberately. `./do test soak` exists to hunt the
-  // flakiness that retries would hide, and a retry here would undo that
-  // decision quietly.
+  // And retries stay at 0 deliberately: a retry would hide flakiness.
   reporter: process.env.CI === undefined ? 'list' : 'github',
   use: {
     baseURL: baseURL(),
@@ -48,4 +51,23 @@ export default defineConfig({
     // CI, and every axe scan would measure a palette nobody picked.
     colorScheme: 'dark',
   },
+  webServer: [
+    {
+      command: 'go run ./cmd/yagit',
+      cwd: '..',
+      url: `${baseURL()}/api/health`,
+      reuseExistingServer: true,
+      timeout: 180_000,
+      env: {
+        YAGIT_ADDR: '127.0.0.1:7420',
+        YAGIT_FRONTEND_DEV_SERVER: 'http://127.0.0.1:7421',
+      },
+    },
+    {
+      command: 'pnpm run dev',
+      url: 'http://127.0.0.1:7421',
+      reuseExistingServer: true,
+      env: { YAGIT_VITE_PORT: '7421' },
+    },
+  ],
 });

@@ -16,7 +16,7 @@ import (
 //
 // No NDJSON here. `git init` writes a handful of files and returns; a progress
 // stream would be a protocol for one line that always arrives at once
-// (docs/adr/0030 is about the commands that do not).
+// (the progress-on-the-request design is about the commands that do not).
 
 type initRequest struct {
 	// Path is the absolute destination under YAGIT_ROOT. The parent must

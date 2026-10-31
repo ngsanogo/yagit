@@ -8,7 +8,6 @@
 
 ```sh
 ./do test go      # unit + integration + fuzz seeds
-./do test fuzz    # fuzz search (longer)
 ./do test bench   # benchmarks, no -race, not a gate
 ./do test coverage  # baseline report, not a threshold gate
 ```
@@ -26,7 +25,6 @@ skips until `YAGIT_REAL_REPOSITORY` names a repository to measure against.
 ./do test web     # Vitest unit tests
 ./do test e2e     # Playwright — starts daemon and Vite automatically
 ./do test release # built binary from dist/ — needs ./do build first; CI Build job
-./do test soak [runs]  # the e2e suite N times, every CPU busy; not a gate
 ```
 
 E2E tests never assume `./do dev` is already running — they start their own

@@ -192,7 +192,7 @@ export function HistoryDialogs({
           preferringMergeCommit={dialog.preferMergeCommit}
           // Re-asked, the way the publish dialog re-asks when the remote
           // changes: the command on screen must never describe a preference
-          // other than the one selected (ADR 0021).
+          // other than the one selected.
           onPreferMergeCommit={(prefer) => proposals.proposeBranchMerge(dialog.plan.branch, prefer)}
           onCancel={close}
           // The plan goes back whole. The daemon checks the branch it names

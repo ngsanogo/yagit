@@ -135,7 +135,7 @@ interface RequestOptions extends Omit<RequestInit, 'headers'> {
  * Repeated `ref=` rather than one comma-separated value, because a ref name
  * may hold a comma — git forbids a short list of bytes and that is not among
  * them — and a separator a name can contain is one that eventually splits a
- * reference into two that do not exist (docs/adr/0033).
+ * reference into two that do not exist.
  *
  * Empty under the two scopes that do not read refs, and the daemon refuses a
  * `ref=` sent with either: a client narrowing a walk that ignores the
@@ -302,7 +302,7 @@ export const api = {
   /**
    * Clones into path, streaming progress lines, then opens the result.
    *
-   * The response is NDJSON on success of the request setup (ADR 0030). A
+   * The response is NDJSON on success of the request setup. A
    * refusal before git starts — path outside the root, destination taken —
    * is still an ordinary JSON error. `onProgress` receives each stderr
    * segment as git writes it.
@@ -986,8 +986,8 @@ export const api = {
    * Brings the remote-tracking branches up to date.
    *
    * An empty remote means every one of them, which is what a fetch button with
-   * no picker beside it has to mean. Progress rides the response as NDJSON
-   * (ADR 0030); the done event carries the references the fetch moved.
+   * no picker beside it has to mean. Progress rides the response as NDJSON;
+   * the done event carries the references the fetch moved.
    */
   fetchRemote: (id: string, remote: string, onProgress: (line: string) => void = () => undefined) =>
     networkWithProgress<RefsPayload>(`/api/repos/${id}/fetch`, { remote }, onProgress),
@@ -1403,7 +1403,7 @@ export const api = {
  *
  * Validation refusals before git starts are ordinary JSON errors. Once the
  * stream begins, a git failure arrives as an error event on a 200 — the same
- * shape clone uses (ADR 0030).
+ * shape clone uses.
  */
 async function networkWithProgress<T>(
   path: string,

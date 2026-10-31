@@ -1,21 +1,21 @@
+import { randomBytes } from 'node:crypto';
+import { mkdtempSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { defineConfig, devices } from '@playwright/test';
 
-import { baseURL } from './e2e/session';
-
 /**
- * What `./do test release` runs: one spec, against the built binary.
- *
- * A configuration of its own rather than a file argument to
- * playwright.config.ts, because what differs is the setup and not the file
- * list. That suite's global setup asks the daemon which repositories are open
- * and then deletes every fixture nobody holds — pointed at a release binary,
- * which runs on a scratch root of its own and has none open, it would answer
- * "none" and sweep away the fixtures a `./do up` in another terminal is still
- * using.
- *
- * Nothing here needs a fixture, or YAGIT_ROOT, or a token file: `./do test
- * release` passes the address and the session token in the environment.
+ * `mise run test:release`: one spec, against the binary `mise run build` made
+ * for this machine, with its frontend embedded, on a scratch root and port.
  */
+const binary = `../dist/yagit-${process.platform === 'win32' ? 'windows' : process.platform}-${
+  process.arch === 'x64' ? 'amd64' : process.arch
+}${process.platform === 'win32' ? '.exe' : ''}`;
+const address = '127.0.0.1:7430';
+process.env['YAGIT_BASE_URL'] ??= `http://${address}`;
+process.env['YAGIT_TOKEN'] ??= randomBytes(32).toString('base64url');
+const root = mkdtempSync(join(tmpdir(), 'yagit-release-'));
+
 export default defineConfig({
   testDir: './e2e',
   testMatch: 'release.spec.ts',
@@ -25,7 +25,7 @@ export default defineConfig({
   forbidOnly: process.env.CI !== undefined,
   reporter: process.env.CI === undefined ? 'list' : 'github',
   use: {
-    baseURL: baseURL(),
+    baseURL: process.env['YAGIT_BASE_URL'],
     ...devices['Desktop Chrome'],
     // Pinned, because the workbench now follows the machine's colour
     // preference when the reader has not chosen one — and a test runner's
@@ -33,5 +33,10 @@ export default defineConfig({
     // this the suite would assert against one theme locally and the other in
     // CI, and every axe scan would measure a palette nobody picked.
     colorScheme: 'dark',
+  },
+  webServer: {
+    command: `${binary} -root ${root} -addr ${address}`,
+    url: `${process.env['YAGIT_BASE_URL']}/api/health`,
+    reuseExistingServer: false,
   },
 });

@@ -6,22 +6,18 @@ use the one-line installer in the [README](../README.md).
 ## Requirements
 
 [mise](https://mise.jdx.dev), and nothing else. It installs Go, Node, pnpm,
-air, golangci-lint, shellcheck, actionlint and zizmor at the versions pinned in
-[`mise.toml`](../mise.toml) — and at the checksums pinned in
-[`mise.lock`](../mise.lock) — in user space, without sudo and without touching
-`/usr/local`.
+air, golangci-lint, shellcheck, actionlint, zizmor and govulncheck at the
+versions pinned in [`mise.toml`](../mise.toml) (checksums in
+[`mise.lock`](../mise.lock)), and runs the project's tasks.
 
 ```sh
 curl https://mise.run | sh          # macOS, Linux
 winget install jdx.mise             # Windows
 ```
 
-`./do` is a POSIX `sh` shim over a Go program, so it needs no bash at all; on
-Windows, `do.cmd` beside it does the same job.
-
 And `git` itself, which mise does not install and should not: yagit drives the
 one already on your machine, with your configuration, your hooks and your
-credential helpers ([ADR 0002](adr/0002-drive-the-git-binary.md)). Any
+credential helpers. Any
 reasonably current version will do, and a handful of flags set the bar.
 
 The floor is **2.31**, from March 2021. Opening a repository at all reads
@@ -35,8 +31,7 @@ Above the floor, two operations set their own bar. Everything else works on
 2.31; a force push's `--force-if-includes` is 2.30's and so is already in.
 
 **Rebase wants 2.38**, from October 2022, for `--no-update-refs` — without it
-`rebase.updateRefs` force-moves branches the confirmation never named
-([ADR 0023](adr/0023-a-rebase-is-read-in-both-directions.md)). An older git
+`rebase.updateRefs` force-moves branches the confirmation never named. An older git
 refuses the flag by name rather than ignoring it, so that one operation fails
 loudly and nothing else does.
 
@@ -53,104 +48,46 @@ at it, and no output from that git can say otherwise.
 ```sh
 git clone https://github.com/ngsanogo/yagit
 cd yagit
-./do up
+./do up        # start the stack in the background; prints the URL and the token
 ```
 
-On first run `./do` creates a `.env`, installs the toolchain and the frontend
-dependencies, starts the stack in the background, and prints what to open:
+`./do <task>` is a shortcut for `mise run <task>` (`do.cmd` on Windows), and
+`./do` alone lists the tasks. The stack is the daemon, rebuilt by air on every
+saved Go file, and Vite; the daemon proxies everything outside `/api` to Vite,
+so the browser only talks to `http://127.0.0.1:7420`.
 
-```
-  yagit   http://127.0.0.1:7420/
-  Token    …   (paste on first visit)
+The session token belongs to the checkout (`.yagit/session-token`), so
+restarting the stack leaves an open tab logged in. `./do token --new` replaces
+it and logs every browser out.
 
-  ./do down    stop
-  ./do logs    follow output
-  ./do dev     run in the foreground
-```
+`.env` is optional; [`.env.example`](../.env.example) documents it:
+`YAGIT_ROOT` (the directory under which yagit may open repositories, your home
+directory by default) and the two ways to browse from another machine — a
+reverse proxy (`YAGIT_PUBLIC_URL`), or the machine's name with
+`YAGIT_PUBLIC_HOST` and `YAGIT_LISTEN_ALL=1`. The daemon refuses a combination
+of the two.
 
-The token belongs to the checkout rather than to the run that printed it, so
-stopping and starting the stack leaves an open tab logged in; a browser asks
-for it again only when its own session cookie is gone. `./do up --new-token`
-replaces it, and logs every browser out.
+## Tasks
 
-Everything the checkout needs at runtime lives under `.yagit/` in the
-repository — the toolchain mise installs, Go's build and module caches, pnpm's
-store, Playwright's browsers, the session token, the logs. Nothing is written
-to your home directory, and removing the clone removes all of it.
-
-`./do up` installs what it needs on first run. `./do bootstrap --browsers`
-adds Chromium, which only screenshots and end-to-end tests need. `./do
-shell-hook` prints aliases for up, down and logs; `--write` appends the one
-line to your `~/.bashrc` or `~/.zshrc`. Every command takes `--help`.
-
-`.env` holds one required value, `YAGIT_ROOT`: the directory under which
-yagit is allowed to open repositories. It defaults to your home directory.
-[`.env.example`](../.env.example) documents every other setting, including how
-to develop on one machine and browse from another.
-
-### Browsing from another machine
-
-There are two ways, and `.env` takes one of them.
-
-**Through a reverse proxy on the development machine** — the recommended one,
-and the shape of a VM that serves each of its apps under a host name of its
-own:
-
-```sh
-YAGIT_PUBLIC_URL=https://yagit.my-dev-box.local
-```
-
-The daemon stays on `127.0.0.1:7420`, where the proxy connects; point the proxy
-there, let WebSocket upgrades through, leave responses unbuffered — the event
-stream never ends — and have it send `X-Forwarded-Proto`. `./do up` prints the
-public URL, the daemon accepts writes from a page served at it, the session
-cookie is `Secure` because the browser's side is HTTPS, and hot reload rides
-the proxy like every other request. A host name of its own matters: browsers
-keep cookies per host rather than per port, so applications sharing one name on
-different ports log each other out.
-
-**Straight to the daemon**, by setting `YAGIT_PUBLIC_HOST` to the machine's
-name and `YAGIT_LISTEN_ALL=1`, which widens the listen address to `0.0.0.0`.
-
-Setting `YAGIT_PUBLIC_URL` beside either of those is refused, with the lines to
-comment out for each way. `./do up --restart` picks up a changed `.env`.
-
-The ports are `7420` for the daemon and `7421` for Vite, both on the loopback
-and both defined in `cmd/do/main.go`. Vite is never addressed directly — the
-daemon proxies to it — and it sits beside the daemon's port rather than on its
-own default, which every other Vite project on the machine would also want.
-
-## Commands
-
-Everything goes through `./do`. There is no second path: no Makefile, no
-`pnpm run` to type by hand, no container to build. When two paths lead to the
-same place, one of them goes stale and nobody notices.
-
-| Command | Effect |
+| Task | Effect |
 | --- | --- |
-| `./do up [--restart] [--foreground] [--new-token]` | Start the stack in the background. Print the URL and token, then return. `--new-token` replaces the token and restarts the stack on it. |
-| `./do down` | Stop the background stack. |
-| `./do status` | Report whether the stack is running. |
-| `./do logs [--no-follow]` | Show output from the background stack. |
-| `./do dev [--new-token]` | Run the stack in the foreground, with logs in the terminal. A background stack is stopped first: the two cannot share the ports. |
-| `./do bootstrap [--browsers]` | Install dependencies into `.yagit/` and `web/node_modules/`. |
-| `./do shell-hook [--write]` | Generate `yagit-up`, `yagit-down`, `yagit-logs` aliases. |
-| `./do build` | Build the frontend and the binaries into `dist/`. |
-| `./do test [go\|web\|e2e\|release\|bench\|fuzz\|soak\|coverage]` | Run tests. With no argument, go, web and e2e. `release` starts the built binary; `bench` times the graph against the repository `YAGIT_REAL_REPOSITORY` names, and fails when nothing was timed; `soak` repeats the end-to-end suite on a busy machine; `coverage` prints a baseline. |
-| `./do lint` | Static analysis of Go — for every platform yagit ships to, not only this one — the frontend, the shell — the `./do` shim and the release installers under `scripts/` — and the CI workflows. |
-| `./do audit` | Check every dependency, the Go standard library included, against the vulnerability databases. |
-| `./do fmt` | Reformat the code. |
-| `./do shot [url] [out]` | Screenshot a page into a PNG, through Playwright. |
-| `./do drive [url]` | Drive the running interface from stdin: one command per line, in a headless browser. |
-| `./do token` | Print the session token, to query the API with curl — once the stack answers it. |
-| `./do version` | Print the version this checkout would be released as, if anything warrants one. |
+| `up` / `down` / `status` / `logs` | The stack in the background (Unix). On Windows, use `dev`. |
+| `dev` | The stack in the foreground. |
+| `bootstrap` / `bootstrap:browsers` | Install the frontend dependencies / the Chromium the e2e tests drive. |
+| `build` | Build the frontend, then the binaries for every platform into `dist/`. |
+| `test` | Go, frontend and end-to-end tests. |
+| `test:go`, `test:web`, `test:e2e` | One of them. `test:e2e` reuses a running stack, or starts one for the run. |
+| `test:release` | Playwright against the binary `build` made for this machine. |
+| `test:coverage`, `test:bench` | Coverage of both suites; Go benchmarks. |
+| `lint` | Go (for every shipped platform), the frontend, the shell scripts, the workflows. |
+| `audit` | Go (standard library included) and frontend dependencies against the vulnerability databases. |
+| `fmt` | Reformat the code. |
+| `shot [url] [file]`, `drive [url]` | Screenshot a page / drive the running interface from stdin, headless. |
+| `token` | Print the session token, to query the API with curl. |
+| `version` | The version the next release would carry, from the Conventional Commits. |
 
-`./do test e2e` starts the daemon and Vite for you, or reuses them when
-`./do up` is already running in another terminal. No test requires you to have
-remembered to start anything first.
-
-`./do lint` and `./do test` are the gates before a pull request. `./do audit`
-is informative only — it queries live vulnerability databases.
+`lint` and `test` are the gates before a pull request; `audit` is informative,
+since its answer changes without the code changing.
 
 ## The interface (dev)
 
@@ -168,8 +105,7 @@ ten: git's own takes about three quarters of a second the first time, and
 twelve milliseconds a page afterwards.
 
 The graph is assigned in the daemon, because a commit's column follows from
-every commit above it and the browser only ever holds a window
-([ADR 0012](adr/0012-lanes-are-assigned-in-the-daemon.md)). Some histories
+every commit above it and the browser only ever holds a window. Some histories
 are too wide to draw at all — git's own needs 280 columns with every ref drawn
 — and yagit says so, with the number, rather than drawing a narrower picture
 that leaves branches out.
@@ -178,26 +114,14 @@ Every visual value comes from `web/src/design/tokens.css`, and the design
 system page at `/design` shows all of it: every token, every component, in
 every state.
 
-## Why it is built this way
+## Principles
 
-Every choice had a serious alternative. What was decided, what against, and
-what it costs is in [docs/adr/](adr/README.md).
-
-- **One entry point, and one definition per value.** `./do` is the only way to
-  develop, build, test and run yagit. Tool versions live in `mise.toml`, the
-  ports in `cmd/do/main.go`, the visual values in `tokens.css`. A value written
-  in three files is a value that will drift.
-- **Everything third-party is pinned by content, not by name.** `mise.lock`
-  holds a SHA256 per tool per platform, `web/pnpm-lock.yaml` does the same
-  for the frontend, and every GitHub Action is referenced by commit digest. A
-  version tag is a mutable pointer someone else controls; a hash is not.
-- **The daemon listens on the loopback unless told otherwise**, and what
-  protects it afterwards is the session token required on every route — never
-  the address. A repository is opened by path once and addressed by an opaque
-  id from then on. The full model is in [SECURITY.md](../SECURITY.md).
-- **When git fails, everything is shown.** The exact command, the exit code,
-  the raw stderr. Never "Something went wrong" — and the rule holds for the
-  project's own tooling too.
+- **Third-party code is pinned by content**: `mise.lock`, `web/pnpm-lock.yaml`,
+  and every GitHub Action by commit digest.
+- **The daemon listens on the loopback unless told otherwise**, and the session
+  token guards every route. The full model is in [SECURITY.md](../SECURITY.md).
+- **When git fails, everything is shown**: the exact command, the exit code, the
+  raw stderr.
 
 ## Release install scripts
 

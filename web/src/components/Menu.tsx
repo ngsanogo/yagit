@@ -17,7 +17,7 @@ import { EllipsisIcon } from './Icons';
  * panel, so a menu in that flow would be clipped by the first `overflow:auto`
  * above it. A popover is in the browser's top layer, where nothing clips it —
  * and Escape, click-anywhere-else, focus restoration and stacking come with it
- * rather than being reimplemented here. ADR 0018 is that decision, and what it
+ * rather than being reimplemented here. the platform-overlays decision is that decision, and what it
  * was decided against.
  *
  * What does NOT come with it is placement: the top layer has no idea where the

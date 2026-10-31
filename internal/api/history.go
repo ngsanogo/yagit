@@ -244,7 +244,7 @@ func requestedScope(request *http.Request) (git.Scope, error) {
 // Repeated rather than one comma-separated value. A ref name may hold a comma
 // — git forbids a short list of bytes and that is not among them — and a
 // separator a name can contain is a separator that eventually splits one ref
-// into two that do not exist (docs/adr/0033).
+// into two that do not exist.
 //
 // Both mismatches are refused rather than quietly corrected:
 //

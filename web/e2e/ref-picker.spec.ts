@@ -13,7 +13,7 @@ import { closeRepositoryAt, openWorkbench, sessionToken } from './session';
  * What only a browser talking to a daemon shows: ticking a box changes which
  * commits the list holds, and the choice survives the request that carries it
  * — the refs travel as repeated `ref=` parameters and the daemon walks exactly
- * those. See docs/adr/0033.
+ * those.
  */
 
 const opened: string[] = [];

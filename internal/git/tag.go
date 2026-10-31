@@ -30,13 +30,20 @@ var ErrNoTagMessage = errors.New("no tag message given")
 
 // Exported so the line the confirmation could show and the line git receives
 // stay one definition. Target empty means HEAD, left to git. Annotated takes
-// -a and -m; lightweight is the bare form with neither.
+// -a and -m; lightweight is the bare form with neither, plus --no-sign.
+//
+// --no-sign is what keeps a lightweight tag lightweight. tag.gpgsign, which
+// a user sets so their annotated tags are signed, also rewrites a bare
+// `git tag name` into a signed tag — and a signed tag is an annotated tag,
+// so git then opens an editor for the message this dialog deliberately
+// does not collect. The override is local to this command: an annotated
+// tag still follows tag.gpgsign.
 func CreateTagArgs(name, message, target string, annotated bool) []string {
 	var args []string
 	if annotated {
 		args = []string{"tag", "-a", "-m", message, "--", name}
 	} else {
-		args = []string{"tag", "--", name}
+		args = []string{"tag", "--no-sign", "--", name}
 	}
 	if target != "" {
 		args = append(args, target)

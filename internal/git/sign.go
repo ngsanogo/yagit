@@ -11,7 +11,7 @@ import (
 // Read, never written. `commit.gpgsign`, `user.signingkey` and `gpg.format`
 // are the user's configuration, and a client that set them would be a client
 // deciding whose key a commit carries — which is the one thing about a
-// signature that has to stay the person's own decision (ADR 0021 is the same
+// signature that has to stay the person's own decision (the shown-command rule is the same
 // rule for a command: what the interface shows, configuration does not
 // change).
 //

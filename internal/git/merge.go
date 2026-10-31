@@ -24,10 +24,10 @@ import (
 // the confirmation shows one line and promises it means one thing. So the
 // outcome is read from the two branches first (PreviewMerge) and the flag that
 // pins it is passed every time. PullArgs makes the same decision for the same
-// reason, and docs/adr/0021 is the rule both follow; the line on screen is then
+// reason, and the shown-command rule is the rule both follow; the line on screen is then
 // the whole of the operation, with nothing read from a file to complete it.
 //
-// Two more halves of that same promise are pinned here, and docs/adr/0022 is
+// Two more halves of that same promise are pinned here, and the merge-check rule is
 // why. The branch is named refs/heads/…, because a short name is resolved by
 // git's own search order and a tag of the same name wins it. And the message
 // of a merge commit is written out, because the one git composes is assembled

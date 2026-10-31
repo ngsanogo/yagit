@@ -111,7 +111,7 @@ export function HistoryView({
   // The graph is drawn from the current branch until somebody asks for more.
   // Every ref is the picture that does not exist on a repository with enough
   // tags — 280 columns on git's own — and it is a choice rather than a default
-  // for exactly that reason (docs/adr/0016).
+  // for exactly that reason.
   const [scope, setScope] = useState<HistoryScope>(
     () => readStoredScope(repository.path) ?? 'head',
   );

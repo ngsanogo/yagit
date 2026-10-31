@@ -20,7 +20,7 @@ import (
 // it resolved, and the commits after it, oldest first, in the order a todo
 // list is executed. The client arranges them. The run route reads the range
 // again and refuses any plan that is not exactly those commits, each once —
-// which is the lease of docs/adr/0022 in its strongest form here, because a
+// which is the lease of the merge-check rule in its strongest form here, because a
 // commit landing on the branch while the dialog was open makes the plan a list
 // about a history that no longer exists.
 //

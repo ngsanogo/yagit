@@ -12,8 +12,8 @@ import (
 // something.
 //
 // Asked rather than assumed, and asked for one reason only: a flag that an
-// older git refuses by name. yagit drives the git already installed
-// (ADR 0002), which means the range of versions is somebody else's decision,
+// older git refuses by name. yagit drives the git already installed,
+// which means the range of versions is somebody else's decision,
 // and a feature built on a flag from 2022 has to know whether it may use it.
 //
 // This is NOT a feature-detection framework, and it should not grow into one.
