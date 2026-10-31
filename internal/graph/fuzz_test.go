@@ -20,7 +20,7 @@ import (
 // the shape of the graph, not the parsing of anything.
 //
 // `go test` runs the seed corpus on every run, so these are regression tests
-// for free. `./do test fuzz` is what actually goes looking.
+// for free. `go test -fuzz` is what actually goes looking.
 func FuzzAssign(f *testing.F) {
 	f.Add([]byte{0x00})                                     // a lone root
 	f.Add([]byte{0x11, 0x11, 0x11})                         // a straight line

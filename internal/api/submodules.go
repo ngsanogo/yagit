@@ -26,7 +26,7 @@ type submoduleRequest struct {
 
 type addSubmoduleRequest struct {
 	// URL is where git clones from. yagit authenticates nothing; the
-	// credentials are git's, exactly as for a clone (ADR 0020).
+	// credentials are git's, exactly as for a clone.
 	URL  string `json:"url"`
 	Path string `json:"path"`
 }

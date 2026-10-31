@@ -11,8 +11,8 @@ import (
 // Searching the history: which commits match, in one of four ways.
 //
 // Not a filter over the drawn graph, and that is the decision this file rests
-// on. Lane assignment draws a picture of how commits connect
-// (docs/adr/0012); running it over a filtered set draws connections that are
+// on. Lane assignment draws a picture of how commits connect;
+// running it over a filtered set draws connections that are
 // not in the repository — two commits side by side that have three others
 // between them. So a search answers with a LIST, and following a result takes
 // the graph to that commit, which is the same movement clicking a branch in

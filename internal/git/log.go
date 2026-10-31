@@ -85,8 +85,8 @@ const (
 // with a thousand tags and a hundred topic branches, one nobody can read. The
 // checked-out branch is the one nearly everyone is looking at. Between the two
 // sits the question people actually arrive with — how far has this topic
-// drifted from main — which neither end answers. See docs/adr/0016 and
-// docs/adr/0033.
+// drifted from main — which neither end answers. See the checked-out-graph rule and
+// the ref-scope rule.
 type Scope string
 
 const (
@@ -99,7 +99,7 @@ const (
 
 	// ScopeRefs walks the refs the caller named, and nothing else. The chosen
 	// set IS the scope here: main alone and main with a topic branch are two
-	// different histories, not two views of one (docs/adr/0033).
+	// different histories, not two views of one.
 	ScopeRefs Scope = "refs"
 )
 

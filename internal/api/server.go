@@ -39,7 +39,7 @@ type Options struct {
 	AllowedOrigins []string
 	Logger         *slog.Logger
 
-	// Events is the one push channel of ADR 0007. Built by the caller rather
+	// Events is the one push channel of the one-event-stream design. Built by the caller rather
 	// than here, because the git Runner publishes into it and the Runner
 	// exists before this server does.
 	Events *EventStream

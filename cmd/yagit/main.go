@@ -40,12 +40,10 @@ var version = "dev"
 // defaultAddr listens on the loopback only: the safe default for a binary
 // running on the same machine as the browser that talks to it.
 //
-// `./do` widens the listen address only when both a non-loopback
-// YAGIT_PUBLIC_HOST and YAGIT_LISTEN_ALL=1 are set — a headless development
-// machine browsed from somewhere else, and a person who agreed to it. The
-// binary never reads .env and so cannot apply that rule, but it applies the
-// half it can: validateListenAddress refuses any non-loopback -addr without
-// -listen-all or YAGIT_LISTEN_ALL=1, so neither path widens by accident.
+// The development stack widens the listen address only when YAGIT_LISTEN_ALL=1
+// is set — a headless development machine browsed from somewhere else, and a
+// person who agreed to it — and validateListenAddress refuses any non-loopback
+// -addr without -listen-all or YAGIT_LISTEN_ALL=1, so nothing widens by accident.
 // What protects the daemon once it is widened is no longer the listen address
 // but the session token, required on every route.
 //
@@ -185,8 +183,7 @@ func parseConfiguration() (configuration, error) {
 
 		// A public URL says browsers reach this daemon through a reverse proxy,
 		// and a proxy on the same machine reaches it on the loopback — that is
-		// the point of naming one. `./do` refuses the widening combination
-		// before anything starts; the binary run by hand holds the same line,
+		// the point of naming one. So the widening combination is refused,
 		// or the released daemon would listen on every interface in exactly
 		// the deployment that announced it would not.
 		if *listenAll || !isLoopbackAddress(*addr) {

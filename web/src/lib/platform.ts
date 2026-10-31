@@ -7,7 +7,7 @@
  * keyboard does not have for the only shortcut that view offers.
  *
  * It has to be asked in the browser rather than answered at build time, and
- * that follows from [ADR 0001]: the daemon runs on a machine that may have no
+ * that follows from the local-daemon design: the daemon runs on a machine that may have no
  * screen at all and the page is opened from somewhere else, so which of the
  * six binaries was built says nothing about the keyboard in front of the
  * reader. A Go-side flag or a compile-time constant would be answering a
@@ -17,7 +17,6 @@
  * without a browser; `commandModifier` is the one place in the product that
  * reads `navigator`.
  *
- * [ADR 0001]: ../../../docs/adr/0001-a-local-daemon-and-a-browser.md
  */
 
 /** A modifier key, as it is drawn and as it is read out. */

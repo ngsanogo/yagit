@@ -93,7 +93,7 @@ export async function establishSession(page: Page): Promise<void> {
 
 /**
  * Opens the design system showcase. It is not linked from the workbench;
- * `/design` is the way in (ADR 0006).
+ * `/design` is the way in.
  */
 export async function openDesignSystem(page: Page): Promise<void> {
   await establishSession(page);

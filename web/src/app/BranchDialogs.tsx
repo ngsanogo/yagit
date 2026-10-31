@@ -216,8 +216,7 @@ export function MergeBranchDialog({
   busy: boolean;
   /**
    * Whether the "merge commit anyway" preference is on. Only meaningful when
-   * a fast-forward was possible; the dialog re-asks the daemon when it flips
-   * (ADR 0021).
+   * a fast-forward was possible; the dialog re-asks the daemon when it flips.
    */
   preferringMergeCommit: boolean;
   onPreferMergeCommit: (prefer: boolean) => void;

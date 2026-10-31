@@ -67,7 +67,7 @@ export interface LineHistory {
  *
  * The column comes from the daemon rather than being worked out here, and it
  * has to: a commit's column follows from every commit above it, so it cannot
- * be derived from a page. See docs/adr/0012.
+ * be derived from a page.
  */
 export interface CommitRow extends Commit {
   lane: number;
@@ -105,13 +105,12 @@ export interface GraphEdge {
  * `head` is what is checked out — the current branch, or the commit a detached
  * HEAD sits on — and is the picture the interface asks for first. `all` is
  * every ref, which on a repository with a thousand tags is the three hundred
- * column graph nobody can read. See docs/adr/0014.
+ * column graph nobody can read.
  *
  * `refs` is the middle neither of them reaches: the two or three references
  * somebody picked, and the graph between them. The chosen set IS the scope
  * there — main alone and main with a topic branch are two different histories,
  * not two views of one — which is why the refs travel with it everywhere.
- * See docs/adr/0033.
  */
 export type HistoryScope = 'head' | 'all' | 'refs';
 
@@ -587,9 +586,9 @@ export interface UndoStatus {
 /**
  * Reverse of the tip HEAD-reflog entry (commit, amend, or checkout).
  *
- * Leased by object names — see ADR 0031. Soft reset for commit, amend and
+ * Leased by object names. Soft reset for commit, amend and
  * reset; switch or detach for checkout; `git branch` for a deletion the
- * daemon remembered (ADR 0032 — the reflog cannot see that one).
+ * daemon remembered (the deleted-branch record — the reflog cannot see that one).
  */
 export interface UndoPlan {
   command: string;

@@ -10,8 +10,8 @@ import (
 
 // The HEAD reflog: every movement of HEAD, newest first.
 //
-// Undo reads this rather than inventing a second journal
-// (docs/adr/0031-undo-reads-the-head-reflog.md). Positions (HEAD@{n}) are
+// Undo reads this rather than inventing a second journal.
+// Positions (HEAD@{n}) are
 // display and parse input only; anything that runs leases on the object names
 // the entries hold.
 

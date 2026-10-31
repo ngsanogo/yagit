@@ -23,7 +23,7 @@
  * so they go in as `var(--color-lane-N)` in an inline style or an SVG
  * attribute, and no class name mentions them anywhere in the source. Those
  * tokens would then be missing and their colors merely transparent: a silent
- * visual failure with no error message anywhere. See docs/adr/0011.
+ * visual failure with no error message anywhere.
  *
  * Two families are not in this block at all — durations and shadows — and the
  * one immediately after it says why. `static` rescues a token Tailwind never
@@ -249,7 +249,7 @@
  * follow without any component having to know") already promised, and is how
  * every color token has always worked.
  *
- * The price is the one ADR 0011 names, and it already applies to the durations:
+ * The price is the one the Tailwind choice names, and it already applies to the durations:
  * delete one of these and the utility paints nothing instead of failing the
  * build. That is the trade for a token a theme can override at all.
  *

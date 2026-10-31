@@ -115,14 +115,12 @@ export interface PlanRequest<Input, Answer> {
  *
  * `propose` is that second shape written once. Almost every confirmation in
  * the workbench asks the daemon what a command would do and opens on the
- * answer, which is [ADR 0021] and [ADR 0022] made executable: the line a
+ * answer, which is the shown-command rule and the merge-check rule made executable: the line a
  * dialog shows is read from the repository at the moment of the click, never
  * assembled in the browser out of a list it has been holding since before it.
  * Twenty copies of that shape were twenty chances to claim the slot after the
  * request instead of before it, or to swallow the refusal.
  *
- * [ADR 0021]: ../../../docs/adr/0021-a-shown-command-is-not-a-setting.md
- * [ADR 0022]: ../../../docs/adr/0022-a-merge-is-checked-before-it-runs.md
  */
 export function useWorkbenchDialog() {
   const [dialog, setDialog] = useState<WorkbenchDialog | undefined>(undefined);

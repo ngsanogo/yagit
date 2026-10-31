@@ -10,7 +10,7 @@
  * Coordinates are local to the window being drawn. The graph is never a
  * hundred thousand rows tall — it is an SVG the height of the rows on screen,
  * moved down as they scroll, which is what makes drawing it cost the same
- * whatever the history's length (docs/adr/0003).
+ * whatever the history's length.
  */
 
 import { ABSENT_ROW, type GraphEdge } from '../api/types';
@@ -55,8 +55,8 @@ export const LANE_WIDTH = 16;
  * same history. Nothing readable exists at either figure.
  *
  * What fixes it is choosing which refs the graph draws, and that choice now
- * exists: the graph is the current branch unless every ref is asked for
- * (docs/adr/0016). This bound stays, as the honest refusal for the day the
+ * exists: the graph is the current branch unless every ref is asked for.
+ * This bound stays, as the honest refusal for the day the
  * chosen set is itself too wide — saying so is better than a picture nobody
  * can read, and far better than a narrower one that leaves branches out.
  */

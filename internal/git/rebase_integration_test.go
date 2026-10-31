@@ -18,7 +18,7 @@ import (
 // three of the four are what a one-directional commit count read as each
 // other: a branch behind its upstream was called "changes nothing" while git
 // moved it, and a branch ahead of it was promised a replay git refuses to
-// perform. See docs/adr/0023.
+// perform.
 
 // twoCommits builds a repository whose branches can be arranged afterwards.
 //
@@ -282,7 +282,7 @@ func TestPreviewRebaseFastForwardsABranchWithNothingOfItsOwn(t *testing.T) {
 	}
 }
 
-// The arrangement the outcome rule got wrong until docs/adr/0023: the branch is
+// The arrangement the outcome rule got wrong until the two-way rebase reading: the branch is
 // strictly AHEAD of the upstream, which reads as "nothing to do", and it holds a
 // merge commit, which stops git taking its up-to-date shortcut. git flattens the
 // branch instead — every commit written again, the merge gone — so the plan has

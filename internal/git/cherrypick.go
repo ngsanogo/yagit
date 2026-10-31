@@ -20,7 +20,7 @@ import (
 // commit's parent" into a pointer moving onto that commit, and without it the
 // same arrangement writes a new object with the same tree. So the outcome is
 // read first (PreviewCherryPick) and the flag that pins it is passed every
-// time. docs/adr/0021 is the rule; the line on screen is then the whole of the
+// time. the shown-command rule is the rule; the line on screen is then the whole of the
 // operation.
 //
 // `--no-edit` belongs beside it for the same reason merge carries it: a

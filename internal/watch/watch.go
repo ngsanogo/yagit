@@ -6,7 +6,7 @@
 // passing through the daemon.
 //
 // It watches a bounded set of directories per repository and never the work
-// tree — see docs/adr/0008. Depends on fsnotify and on nothing else in the
+// tree —. Depends on fsnotify and on nothing else in the
 // project.
 package watch
 

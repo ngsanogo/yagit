@@ -30,7 +30,7 @@ import (
 // gets committed as the subject. Pinned here so the line on screen and the
 // commit it records cannot disagree because of a setting nobody was shown.
 //
-// docs/adr/0021 is the rule; the line on screen is then the whole of the
+// the shown-command rule is the rule; the line on screen is then the whole of the
 // operation.
 //
 // A merge commit is refused rather than offered with `-m`, for the same reason

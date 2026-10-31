@@ -33,7 +33,7 @@ interface CommandLogPanelProps {
  * top row is always the last thing git did.
  *
  * A run of the same command is one row with a count. The work tree is polled
- * with `git status` every two seconds while the window has focus (ADR 0015),
+ * with `git status` every two seconds while the window has focus,
  * and a log that drew each poll as a line of its own was thirty identical
  * lines between any two commands worth reading. Nothing is hidden by the
  * fold: the count says how many times, the duration is the latest, and a run

@@ -20,7 +20,7 @@ import (
 // thought of. These pin the ones we did not.
 //
 // `go test` runs the seed corpus of every target below on each run, so they are
-// regression tests for free. `./do test fuzz` is what actually goes looking.
+// regression tests for free. `go test -fuzz` is what actually goes looking.
 
 // fixedDate keeps the fuzzer on the framing.
 //

@@ -53,7 +53,7 @@ import (
 // A limit rather than a promise to draw anything: a plan is a list somebody
 // reads, reorders and answers for, and a thousand rows is not a list — it is a
 // wall that gets approved unread, holding a rewrite of a thousand commits. The
-// graph makes the same judgement about width in docs/adr/0016 and says so
+// graph makes the same judgement about width in the checked-out-graph rule and says so
 // rather than drawing a picture nobody can read.
 //
 // Two hundred and fifty is far past any branch anybody edits by hand and far

@@ -51,8 +51,8 @@ interface TooltipProps {
  * codebase's idiom for hover text that is worth reading and not worth
  * blocking on. The day a bubble with real styling is needed inside a scroller,
  * this needs the top layer and the measure-on-open Menu already implements —
- * which reverses the third bullet of ADR 0018 and therefore starts with a new
- * ADR saying the premise stopped holding.
+ * which reverses the third bullet of the platform-overlays decision; say why
+ * where the change is made.
  *
  * It is what a disabled control explains itself with, and the only thing that
  * can. A `title` attribute on a disabled Button never appears: Button drops

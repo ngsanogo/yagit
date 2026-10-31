@@ -103,7 +103,7 @@ const rewriteTimeout = 10 * time.Minute
 // commands which "return instantly". This one does not. It reads every commit
 // in the repository in one pass, because a commit's column follows from every
 // commit above it and so the walk cannot be paginated
-// (docs/adr/0012-lanes-are-assigned-in-the-daemon.md) — the pagination the
+// — the pagination the
 // interface shows is over an answer already computed.
 //
 // What the wrong deadline costs is the largest repositories, which are exactly
@@ -333,7 +333,7 @@ type Command struct {
 	// the whole time, and a spinner that waits for the Execution at the end
 	// is not a progress report. The full stderr is still kept for the
 	// Execution and the Error — this is a tee, not a divert. See
-	// docs/adr/0030.
+	// the progress-on-the-request design.
 	OnProgress func(line string)
 }
 

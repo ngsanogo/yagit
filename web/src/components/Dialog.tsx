@@ -73,7 +73,7 @@ interface DialogProps {
  * Built on the native <dialog> element, which brings the focus trap, Escape to
  * close, inertness for the rest of the page and the backdrop for free.
  * Reimplementing all of that in React would cost several hundred lines and be
- * less accessible. It is the first half of ADR 0018; Menu is the second.
+ * less accessible. It is the first half of the platform-overlays decision; Menu is the second.
  *
  * Maximum depth: one. There is no dialog inside a dialog.
  */

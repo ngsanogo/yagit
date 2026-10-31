@@ -2,8 +2,8 @@
 // answers with what both programs need from it: the origin a browser presents
 // on a page served from there.
 //
-// `./do` reads it from .env, refuses a malformed one before anything starts,
-// and prints it on the card; the daemon reads the same value from -public-url,
+// The daemon reads it from -public-url (or YAGIT_PUBLIC_URL, which the
+// development stack takes from .env),
 // accepts its origin on cookie-authenticated writes, and announces it. Two
 // copies of the rule would drift in the one direction nobody sees — a card
 // printing an address whose origin the daemon refuses on the first click — so,

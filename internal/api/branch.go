@@ -20,7 +20,7 @@ import (
 //
 // The working directory changed too and is NOT in the answer. Sending it would
 // cost a second `git status` on every checkout, and the interface polls that
-// status twice a second anyway (ADR 0015); what it does instead is drop what it
+// status twice a second anyway; what it does instead is drop what it
 // holds, which is one request rather than two.
 
 // switchRequest names what to check out.
@@ -215,7 +215,7 @@ func (s *Server) handleDeleteBranch(writer http.ResponseWriter, request *http.Re
 	// Read where the branch stands BEFORE deleting it, because afterwards
 	// nothing can: `git branch -d` leaves no HEAD-reflog entry and removes the
 	// branch's own reflog with the branch. This is the whole of what makes the
-	// deletion undoable — docs/adr/0032. A failure to read it is not a failure
+	// deletion undoable. A failure to read it is not a failure
 	// to delete: the delete goes ahead and the undo offer is what is missing,
 	// which is the right way round for a user who asked for the deletion.
 	deleted, remembered := s.branchBeingDeleted(request, opened, body.Name)

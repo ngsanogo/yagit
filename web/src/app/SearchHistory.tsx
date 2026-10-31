@@ -18,8 +18,8 @@ import { refsKey } from './historyScope';
  * Searching the history: a query, one of four places to look, and a list of
  * commits to follow.
  *
- * A list and not a filtered graph. The graph draws how commits connect
- * (ADR 0012), and drawing it over the matches alone would put two commits side
+ * A list and not a filtered graph. The graph draws how commits connect,
+ * and drawing it over the matches alone would put two commits side
  * by side with three others between them — a picture of a history nobody has.
  * Following a result takes the graph to that commit, which is the movement
  * clicking a branch in the sidebar already makes.

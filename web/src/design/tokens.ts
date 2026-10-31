@@ -8,7 +8,7 @@
  * inline style.
  *
  * There is deliberately no function here that reads a computed value back out
- * of the document. The graph is SVG (docs/adr/0003), so it takes the variable
+ * of the document. The graph is SVG, so it takes the variable
  * itself and lets the browser resolve it — including when the theme changes.
  * Reading tokens into JavaScript would put a second copy of the palette in
  * memory, and the first one is the only one.

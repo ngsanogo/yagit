@@ -4,8 +4,8 @@ import "sync"
 
 // Which open repositories are not being watched, and why.
 //
-// yagit refreshes itself because it watches each repository's git directories
-// (ADR 0008). When that fails the daemon writes one line to its own journal and
+// yagit refreshes itself because it watches each repository's git directories.
+// When that fails the daemon writes one line to its own journal and
 // carries on serving a repository that will never refresh again: a commit made
 // in the user's terminal changes nothing on screen, and nothing on screen says
 // so. Silent staleness is the failure this project refuses everywhere else —

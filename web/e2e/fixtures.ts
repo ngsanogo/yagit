@@ -51,7 +51,7 @@ export const BRANCH_COMMITS = 2;
  * They are the whole difference between the two scopes of the history: they
  * are reachable from a ref and from nothing that is checked out. Without them
  * the two scopes answer the same number, and the control that chooses between
- * them could do nothing and still pass (docs/adr/0016).
+ * them could do nothing and still pass.
  */
 export const UNMERGED_COMMITS = 1;
 

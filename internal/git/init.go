@@ -35,7 +35,7 @@ const DefaultInitialBranch = "main"
 // line the user is shown and the line git receives have one definition between
 // them.
 //
-// `--initial-branch` is always present, and that is ADR 0021 applied to the
+// `--initial-branch` is always present, and that is the shown-command rule applied to the
 // one command whose result depends on a config key more than any other. Left
 // off, `git init` reads `init.defaultBranch` — so the same button makes `main`
 // on one machine and `master` on the next, and the line in the log panel would

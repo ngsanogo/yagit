@@ -20,7 +20,7 @@ import (
 // reached by passing the environment through rather than by asking for a
 // password yagit would then have to hold. A daemon that collected credentials
 // would be a daemon that stores them, and it has no better place to put them
-// than the keyring git is already using. See docs/adr/0020.
+// than the keyring git is already using.
 //
 // The rule from staging.go holds here too: a name reaches git where git reads
 // a name. `git push` and `git fetch` both take their repository after `--`,
@@ -325,7 +325,7 @@ func RedactURL(raw string) string {
 // is what makes the choice a fair one to take on the user's behalf.
 //
 // `--progress` is unconditional for the same reason `clone` carries it: the
-// counters ride the request that started the fetch (ADR 0030), and a fetch
+// counters ride the request that started the fetch, and a fetch
 // without them is a busy button over a silent network.
 //
 // An empty remote means every one of them. That is what a fetch button with no
@@ -386,7 +386,7 @@ const (
 // ParsePullStrategy reads a strategy sent by a client.
 //
 // An unknown one is refused rather than read as the default, for the reason a
-// nonsense scope is (docs/adr/0016): answering with an operation that looks
+// nonsense scope is: answering with an operation that looks
 // entirely correct to a client that asked for a different one hides the defect
 // for good — and here the two differ by a merge commit.
 func ParsePullStrategy(raw string) (PullStrategy, error) {

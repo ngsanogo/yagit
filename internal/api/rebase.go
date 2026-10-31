@@ -29,11 +29,11 @@ import (
 // command refuses two of the three ways the plan could have gone stale. git
 // offers a rebase no such flag: `--no-ff` pins the replay and there is nothing
 // that pins the other two, so for them the reading below is the whole of the
-// lease. See docs/adr/0023.
+// lease.
 //
 // The working directory changes, and the answer is still the references, for
 // the reason the merge route gives: that is what moved, and the changes panel
-// polls anyway (ADR 0015).
+// polls anyway.
 //
 // The refusals that come before any of it — HEAD on no branch, a repository
 // already busy, a branch that is the one HEAD is on, HEAD somewhere other than

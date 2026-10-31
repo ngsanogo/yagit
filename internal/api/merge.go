@@ -21,7 +21,7 @@ import (
 // the reason the pull route gives: that is what moved, and a sidebar that had
 // to ask again would draw one frame of the state it just left. The status the
 // changes panel reads is not in the answer; the interface polls it anyway
-// (ADR 0015) and drops what it holds instead.
+// and drops what it holds instead.
 //
 // Where the operation is decided is worth naming. The client never assembles a
 // command and never decides what the merge is; it names the branch it clicked
@@ -37,7 +37,7 @@ import (
 // `git merge --ff-only` refuses to move a branch that was described as going
 // nowhere. So the two branches are read once more, and a merge that has become
 // something other than the one on screen is refused rather than run under the
-// old description. See docs/adr/0022.
+// old description.
 
 // The refusals that come before any of that — HEAD on no branch, a repository
 // already busy, a branch that is the one HEAD is on, HEAD somewhere other than
@@ -55,7 +55,7 @@ type mergePlanRequest struct {
 	Branch string `json:"branch"`
 
 	// MergeCommit asks for a merge commit even where a fast-forward is
-	// possible — the door ADR 0021 left open. Ignored when the reading is
+	// possible — the door the shown-command rule left open. Ignored when the reading is
 	// already a merge commit or up-to-date: the first needs no preference,
 	// and the second has nothing to commit.
 	MergeCommit bool `json:"merge_commit"`
@@ -205,8 +205,8 @@ func (s *Server) handleMerge(writer http.ResponseWriter, request *http.Request) 
 	// The plan again, from the repository rather than from the request. What
 	// comes back chooses the command; what was approved only gets to agree
 	// with it — with one deliberate exception: a merge-commit approval over a
-	// fast-forward reading is the "create a merge commit anyway" preference
-	// (ADR 0021), and --no-ff is what makes that preference true.
+	// fast-forward reading is the "create a merge commit anyway" preference,
+	// and --no-ff is what makes that preference true.
 	preview, err := s.runner.PreviewMerge(request.Context(), opened.Path, into, branch)
 	if err != nil {
 		writeError(writer, s.logger, statusForOperationError(err), err)

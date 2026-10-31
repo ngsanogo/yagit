@@ -147,7 +147,7 @@ func TestParseRemotesRedactsCredentials(t *testing.T) {
 
 func TestFetchArgs(t *testing.T) {
 	// Every remote when none is named: a fetch button with no picker beside it
-	// cannot mean one of them. --progress rides the request (ADR 0030).
+	// cannot mean one of them. --progress rides the request.
 	if got, want := git.FetchArgs(""), []string{"fetch", "--all", "--prune", "--progress"}; !slices.Equal(got, want) {
 		t.Errorf("FetchArgs(\"\") = %v, want %v", got, want)
 	}

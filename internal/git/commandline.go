@@ -7,7 +7,7 @@ import "strings"
 // Every destructive operation shows its command before it runs, so this is
 // what the user reads and then confirms. It is also the quoting the one string
 // git itself hands to a shell goes through — GIT_SEQUENCE_EDITOR, see
-// docs/adr/0029 — which is why shellQuote lives beside it rather than being
+// the written rebase plan — which is why shellQuote lives beside it rather than being
 // invented again there.
 
 // CommandLine renders a git command you can paste into a terminal.

@@ -176,7 +176,7 @@ func (s *Server) handleOpenRepo(writer http.ResponseWriter, request *http.Reques
 // anyway. Both halves matter. Refusing to open would make an inotify limit
 // into a repository nobody can look at; staying quiet would leave an
 // interface that has silently stopped refreshing, which is the worse of the
-// two — see docs/adr/0008.
+// two —.
 func (s *Server) startWatching(opened *repo.Repo) {
 	if s.watcher == nil {
 		return

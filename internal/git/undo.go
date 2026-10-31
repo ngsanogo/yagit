@@ -9,7 +9,7 @@ import (
 
 // Undo of the most recent HEAD-reflog entry yagit knows how to reverse.
 //
-// See docs/adr/0031-undo-reads-the-head-reflog.md: classify the tip, lease by
+// Classify the tip, lease by
 // object names, pin the reverse command. Commit/amend → soft reset.
 // Checkout → switch or detach back to where HEAD came from. Reset → soft
 // reset to the tip the branch held before it.
@@ -18,7 +18,7 @@ import (
 // it cannot be: `git branch -d` writes nothing to the HEAD reflog and deletes
 // the branch's own reflog along with the branch, so afterwards the tip it held
 // exists nowhere git will name. The caller passes what it read before running
-// the delete (docs/adr/0032-a-deleted-branch-is-remembered-not-recalled.md);
+// the delete;
 // everything after that — the lease, the pinned command — is the same shape as
 // the rest of this file.
 

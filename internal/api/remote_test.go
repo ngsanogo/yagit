@@ -209,7 +209,7 @@ func TestPullRefusesDivergedBranchesWithGitsOwnWords(t *testing.T) {
 
 	response := postJSON(t, handler, "/api/repos/"+id+"/pull", `{"strategy":"ff-only"}`)
 	// Progress already started before git refused, so the refusal rides the
-	// stream as an error event — the same shape a failed clone uses (ADR 0030).
+	// stream as an error event — the same shape a failed clone uses.
 	if response.Code != http.StatusOK {
 		t.Fatalf("status = %d, want 200 with an error event: %s", response.Code, response.Body)
 	}

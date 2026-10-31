@@ -42,7 +42,7 @@ export function stashesQuery(repositoryId: string, enabled: boolean) {
     queryFn: () => api.stashes(repositoryId),
     // No interval. A stash changes when something in this session changes it,
     // or when git's directory moves — and the event stream says so, which
-    // invalidates this key by name (ADR 0007). Polling for it would be a
+    // invalidates this key by name. Polling for it would be a
     // subprocess every two seconds for a list that is usually empty.
     enabled,
   };

@@ -17,7 +17,7 @@ import { cx } from '../lib/cx';
  * and touch behaviour is a component; `<select>` is all of that already,
  * correct in every browser and every assistive technology, and the only thing
  * it costs is that the open list is drawn by the operating system rather than
- * from tokens.css. ADR 0018 is the same trade taken for overlays, and this is
+ * from tokens.css. the platform-overlays decision is the same trade taken for overlays, and this is
  * it taken one step further.
  */
 

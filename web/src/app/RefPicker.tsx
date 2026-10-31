@@ -11,7 +11,7 @@ import { pluralize } from '../lib/format';
  * Which references the graph is drawn from, when the answer is neither "the
  * one I am on" nor "all of them".
  *
- * The middle of ADR 0033. Every ref is the picture that does not exist on a
+ * The middle of the ref-scope rule. Every ref is the picture that does not exist on a
  * repository with enough tags — git's own is 280 columns — and the current
  * branch alone cannot answer "how far has this topic drifted from main". What
  * is wanted then is two or three refs, chosen, and the graph between them.
