@@ -49,14 +49,20 @@ jobs:
           retention-days: 7
 
   # Every shipped platform runs the Go suite on itself.
+  # The check is required by name. `Go on ${{ matrix.os }}` would stop matching
+  # the ruleset the day the runner label changes.
   platform:
-    name: Go on ${{ matrix.os }}
+    name: Go on ${{ matrix.platform }}
     runs-on: ${{ matrix.os }}
     timeout-minutes: 30
     strategy:
       fail-fast: false
       matrix:
-        os: [windows-latest, macos-latest]
+        include:
+          - os: windows-latest
+            platform: Windows
+          - os: macos-latest
+            platform: macOS
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
