@@ -23,7 +23,7 @@ func TestCreateTagArgsPutsTheNameAfterTheDashDash(t *testing.T) {
 
 func TestCreateTagArgsLightweightOmitsMessageFlags(t *testing.T) {
 	args := git.CreateTagArgs("v1", "ignored", "", false)
-	want := "tag -- v1"
+	want := "tag --no-sign -- v1"
 	if strings.Join(args, " ") != want {
 		t.Fatalf("CreateTagArgs = %v, want %s", args, want)
 	}
@@ -81,6 +81,25 @@ func TestCreateTagRefusesAnEmptyMessage(t *testing.T) {
 	err := git.NewRunner(nil).CreateTag(context.Background(), dir, "v1", "  ", "", true)
 	if !errors.Is(err, git.ErrNoTagMessage) {
 		t.Fatalf("error = %v, want ErrNoTagMessage", err)
+	}
+}
+
+func TestCreateTagLightweightStaysLightweightWhenSigningIsOn(t *testing.T) {
+	dir := initRepo(t)
+	runner := git.NewRunner(nil)
+	// The same setting that signs annotated tags. Without --no-sign, git
+	// turns this create into an annotated tag and asks an editor for a
+	// message.
+	runGit(t, runner, dir, "config", "tag.gpgsign", "true")
+	if err := runner.CreateTag(context.Background(), dir, "v1", "", "", false); err != nil {
+		t.Fatalf("CreateTag: %v", err)
+	}
+	output, err := runner.Run(context.Background(), dir, "cat-file", "-t", "refs/tags/v1")
+	if err != nil {
+		t.Fatalf("cat-file: %v", err)
+	}
+	if got := strings.TrimSpace(string(output)); got != "commit" {
+		t.Fatalf("tag object type = %q, want commit (lightweight)", got)
 	}
 }
 
