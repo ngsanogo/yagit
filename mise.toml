@@ -1,8 +1,8 @@
 # yagit's toolchain.
 #
-# mise (https://mise.jdx.dev) is the project's only prerequisite. The ./do
-# shim sets MISE_DATA_DIR to .yagit/mise so the pinned tools stay inside the
-# checkout. You never run `mise install` by hand.
+# mise (https://mise.jdx.dev) is the project's only prerequisite: it installs
+# the tools below and runs the project's tasks (`mise tasks` lists them;
+# `./do <task>` is a shortcut for `mise run <task>`).
 #
 # Versions live HERE and nowhere else. A version pinned in two places always
 # ends up drifting.
@@ -32,8 +32,7 @@
 # Top-level, above the first table: below one, TOML files it under that table
 # and mise never sees it. The workflows repeat it as `version:` on every
 # jdx/mise-action step, because the action installs mise before anything can
-# read this file. That repeat is sanctioned and held to this line: `./do lint`
-# fails on a step that names another version, or none.
+# read this file: move them together.
 min_version = "2026.10.2"
 
 [settings]
@@ -68,10 +67,7 @@ air = "1.67.4"
 # Static analysis for Go (see .golangci.yml).
 golangci-lint = "2.14.0"
 
-# Static analysis for the ./do shim, which is the one piece of shell left in the
-# project and which nothing else checks. Pinned rather than "latest" because
-# shellcheck's diagnostics change between releases, and a lint gate that shifts
-# under you is not a gate.
+# Static analysis for the shell scripts (./do, scripts/*.sh).
 shellcheck = "0.11.0"
 
 # Static analysis for the GitHub workflows. A typo in a workflow file is only
@@ -101,3 +97,145 @@ zizmor = "1.30.1"
 # sum.golang.org — a transparency log, which is a stronger guarantee than a
 # hash we wrote down ourselves, not a weaker one.
 "go:golang.org/x/vuln/cmd/govulncheck" = "1.8.0"
+
+# ---------------------------------------------------------------------------
+# Tasks: `mise run <task>` (or `./do <task>`). `mise tasks` lists them.
+# ---------------------------------------------------------------------------
+
+# This machine's settings, optional (see .env.example).
+[env]
+_.file = ".env"
+
+[tasks.bootstrap]
+description = "Install the frontend dependencies"
+run = "pnpm --dir web install --frozen-lockfile"
+
+[tasks."bootstrap:browsers"]
+description = "Install the Chromium the end-to-end tests drive"
+depends = ["bootstrap"]
+run = "pnpm --dir web exec playwright install chromium"
+
+# The daemon (rebuilt by air on every saved Go file) may open repositories under
+# YAGIT_ROOT (your home directory unless .env says otherwise), and proxies
+# everything outside /api to Vite, so the browser only ever talks to http://127.0.0.1:7420. The
+# token is the checkout's (scripts/session-token.mjs), so a rebuild does not log
+# the browser out.
+[tasks.dev]
+description = "Run the daemon (hot reload) and Vite in the foreground"
+depends = ["dev:daemon", "dev:web"]
+
+[tasks."dev:daemon"]
+hide = true
+env = { YAGIT_ROOT = "{{ env.YAGIT_ROOT | default(value=env.HOME | default(value=env.USERPROFILE)) }}", YAGIT_ADDR = "{% if env.YAGIT_LISTEN_ALL %}0.0.0.0{% else %}127.0.0.1{% endif %}:7420", YAGIT_FRONTEND_DEV_SERVER = "http://127.0.0.1:7421", YAGIT_TOKEN = "{{ exec(command='node scripts/session-token.mjs') }}" }
+run = "air -c .air.toml"
+
+[tasks."dev:web"]
+hide = true
+depends = ["bootstrap"]
+env = { YAGIT_VITE_PORT = "7421" }
+run = "pnpm --dir web run dev"
+
+[tasks.up]
+description = "Start the development stack in the background and print its URL and token"
+run = "sh scripts/stack.sh up"
+
+[tasks.down]
+description = "Stop the background stack"
+run = "sh scripts/stack.sh down"
+
+[tasks.status]
+description = "Report whether the background stack is running"
+run = "sh scripts/stack.sh status"
+
+[tasks.logs]
+description = "Follow the background stack's output"
+run = "sh scripts/stack.sh logs"
+
+[tasks.token]
+description = "Print the session token (--new mints another)"
+quiet = true
+run = "node scripts/session-token.mjs"
+
+[tasks.build]
+description = "Build the frontend, then the binaries for every platform into dist/"
+depends = ["bootstrap"]
+run = "sh scripts/build.sh"
+
+[tasks.test]
+description = "Go, frontend and end-to-end tests"
+depends = ["test:go", "test:web"]
+run = "mise run test:e2e"
+
+[tasks."test:go"]
+description = "Go tests, with the race detector"
+run = "go test -race ./cmd/... ./internal/..."
+
+[tasks."test:web"]
+description = "Frontend unit tests"
+depends = ["bootstrap"]
+run = "pnpm --dir web run test"
+
+[tasks."test:e2e"]
+description = "Playwright against the development stack (started for the run if it is not up)"
+depends = ["bootstrap:browsers"]
+run = "pnpm --dir web run test:e2e"
+
+[tasks."test:release"]
+description = "Playwright against the built binary for this machine (after `mise run build`)"
+depends = ["bootstrap:browsers"]
+run = "pnpm --dir web run test:release"
+
+[tasks."test:coverage"]
+description = "Go and frontend coverage"
+depends = ["bootstrap"]
+run = [
+  "go test -race -covermode=atomic -coverprofile=.yagit/coverage.out ./cmd/... ./internal/...",
+  "go tool cover -func=.yagit/coverage.out | tail -n 1",
+  "pnpm --dir web run test:coverage",
+]
+
+[tasks."test:bench"]
+description = "Go benchmarks"
+run = "go test -run '^$' -bench . -benchmem ./internal/..."
+
+[tasks.lint]
+description = "Static analysis: Go (every platform), frontend, shell, workflows"
+depends = ["bootstrap"]
+run = [
+  "golangci-lint run",
+  "GOOS=darwin go vet ./cmd/... ./internal/...",
+  "GOOS=windows go vet ./cmd/... ./internal/...",
+  "pnpm --dir web run lint",
+  "pnpm --dir web run fmt:check",
+  "shellcheck --shell=sh do scripts/*.sh",
+  "actionlint",
+  "zizmor --offline --persona pedantic .github",
+]
+
+[tasks.audit]
+description = "Check Go and frontend dependencies against the vulnerability databases"
+depends = ["bootstrap"]
+run = ["govulncheck ./cmd/... ./internal/...", "pnpm --dir web audit --audit-level=low"]
+
+[tasks.fmt]
+description = "Reformat the code"
+depends = ["bootstrap"]
+run = ["golangci-lint fmt", "pnpm --dir web run fmt"]
+
+[tasks.shot]
+description = "Screenshot a page of the running stack: [url] [file.png]"
+depends = ["bootstrap:browsers"]
+env = { YAGIT_TOKEN = "{{ exec(command='node scripts/session-token.mjs') }}" }
+run = "node web/scripts/shot.mjs"
+
+[tasks.drive]
+description = "Drive the running interface from stdin: [url]"
+raw = true
+depends = ["bootstrap:browsers"]
+env = { YAGIT_TOKEN = "{{ exec(command='node scripts/session-token.mjs') }}" }
+run = "node web/scripts/driver.mjs"
+
+[tasks.version]
+description = "Print the version the next release would carry (nothing if none)"
+quiet = true
+run = "sh scripts/next-version.sh"

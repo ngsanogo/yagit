@@ -1,6 +1,6 @@
 // The conditions every yagit capture is taken under.
 //
-// `./do shot` and `./do drive` both photograph the interface, and the pictures
+// `mise run shot` and `mise run drive` both photograph the interface, and the pictures
 // are compared across runs and across the two commands — a before from one and
 // an after from the other. A viewport changed in one file alone would make
 // every such pair meaningless, so the numbers live here and nowhere else. The

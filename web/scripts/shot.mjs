@@ -1,6 +1,6 @@
 // Captures a yagit page into a PNG file.
 //
-// Called by `./do shot`. It exists to see what the interface really renders
+// Run by `mise run shot [url] [file.png]`. It exists to see what the interface really renders
 // without a human in front of a screen — useful while building the design
 // system and the views, and the only eye available on a headless machine.
 
@@ -11,12 +11,7 @@ import { chromium } from '@playwright/test';
 
 import { captureViewport, pageLoadTimeout } from './capture.mjs';
 
-const [url, outputPath] = process.argv.slice(2);
-
-if (!url || !outputPath) {
-  console.error('usage: node web/scripts/shot.mjs <url> <file.png>');
-  process.exit(2);
-}
+const [url = 'http://127.0.0.1:7420/', outputPath = '.yagit/shot.png'] = process.argv.slice(2);
 
 // Every daemon route requires the token. Without it the capture would be a 401
 // page, which on disk is indistinguishable from a successful screenshot. The
@@ -37,7 +32,7 @@ try {
   await browser.close();
   console.error(`cannot load ${target.origin}${target.pathname}`);
   console.error(String(error.message ?? error));
-  console.error('\nIs the stack running? `./do shot` needs `./do up` first.');
+  console.error('\nIs the stack running? `mise run shot` needs `mise run up` first.');
   process.exit(1);
 }
 
