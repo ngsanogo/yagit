@@ -14,7 +14,7 @@
 changelog:
   categories:
     # A configuration that stops being accepted. The label is applied by hand,
-    # and docs/adr/0014-a-breaking-configuration-change-announces-itself.md says
+    # and the announce-breaking-config rule says
     # why that is the weakest of the three announcements rather than the only
     # one: the program's own refusal is what reaches the person who is blocked.
     - title: Breaking changes

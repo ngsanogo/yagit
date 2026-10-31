@@ -20,7 +20,7 @@ version: 2
 # read; the rest is routine, and routine in fifteen pull requests is noise.
 #
 # Subjects are `chore(deps):`, or `chore(deps-dev):` for a development
-# dependency. `./do version` treats a chore as no release, which is what a
+# dependency. `mise run version` treats a chore as no release, which is what a
 # dependency bump is. The label is `dependencies`.
 updates:
   - package-ecosystem: npm

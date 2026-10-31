@@ -3,16 +3,16 @@ name: Installers
 # The two install scripts are the front door, and until this file existed
 # nothing ever ran them.
 #
-# `./do lint` covers `./do` and `scripts/*.sh`; the PowerShell pair was read by
+# `mise run lint` covers `./do` and `scripts/*.sh`; the PowerShell pair was read by
 # reviewers and executed by nobody, on the platform where the launcher is a
 # .cmd file written in the console code page rather than a shell script. The
 # checksum path differs by platform too: install.sh reaches for `sha256sum` and
 # falls back to `shasum -a 256`, which is the only one macOS has.
 #
-# Not a required check, and deliberately not in `./do test`: these jobs
+# Not a required check, and deliberately not in `mise run test`: these jobs
 # download a published release, so their answer depends on the network and on
 # GitHub's redirects rather than on the commit. A gate that can go red
-# overnight is not a gate — the same reason `./do audit` lives in
+# overnight is not a gate — the same reason `mise run audit` lives in
 # supply-chain.yml instead of ci.yml.
 #
 # Actions are pinned by digest — see the note at the top of ci.yml.

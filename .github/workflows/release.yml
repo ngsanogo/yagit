@@ -5,7 +5,7 @@ name: Release
 
 # Releases happen by merging to main. Nobody tags anything by hand.
 #
-# `./do version` reads the Conventional Commits since the last release tag and
+# `mise run version` (scripts/next-version.sh) reads the Conventional Commits since the last release tag and
 # says what the next version is, or says nothing when no commit asks for one —
 # a branch of docs, tests and CI work produces no release, which is right,
 # because a release nobody can tell apart from the last one is noise.
@@ -50,10 +50,7 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
 
-      # Only the mise binary. The ./do shim installs the tools into
-      # .yagit/mise, so anything installed here would be downloaded twice and
-      # read never — and this workflow caches nothing on purpose, for the
-      # reason spelled out in the publish job below.
+      # Only mise and the shell: deciding needs no other tool.
       - uses: jdx/mise-action@fc42bcc7ddbf51124c30f95a877a0c5168a3bfde # v5.2.1
         with:
           version: 2026.10.2
@@ -62,15 +59,13 @@ jobs:
 
       - id: decide
         run: |
-          version="$(./do version)"
+          version="$(mise run --quiet version)"
 
           # Checked, not trusted. Whatever lands on stdout here becomes a git
           # tag, and a tag in this repository is public and immutable by
-          # ruleset. `./do` runs mise and a Go build before the command itself,
-          # and any of the three could learn to print something one day —
-          # turning a stray warning into a release named after it.
+          # ruleset: a stray warning must never become a release name.
           if [ -n "$version" ] && ! printf '%s' "$version" | grep -qE '^v[0-9]+\.[0-9]+\.[0-9]+$'; then
-            echo "::error::./do version printed something that is not a version: $version"
+            echo "::error::mise run version printed something that is not a version: $version"
             exit 1
           fi
 
@@ -92,7 +87,7 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          # `./do build` stamps the binary through `git describe`; without the
+          # `mise run build` stamps the binary through `git describe`; without the
           # tags it would silently produce "dev" and ship a mislabelled release.
           fetch-depth: 0
 
@@ -103,8 +98,7 @@ jobs:
 
       - uses: jdx/mise-action@fc42bcc7ddbf51124c30f95a877a0c5168a3bfde # v5.2.1
         with:
-          # The mise that mise.toml names, and so the one this commit's CI ran
-          # on. ./do lint holds it to min_version there.
+          # The mise that mise.toml names (min_version), as in CI.
           version: 2026.10.2
 
           # No cache on the release path. A cache is writable by any workflow
@@ -113,18 +107,13 @@ jobs:
           # minute, once per release.
           cache: false
 
-          # And only the mise binary: the ./do shim installs the tools from
-          # mise.lock into .yagit/mise, which is where every command below
-          # reads them from.
-          install: false
-
       # A release must never ship code that does not pass the gates. Running
       # them here rather than trusting the CI run on the same commit keeps the
       # two from drifting apart.
-      - run: ./do lint
-      - run: ./do test
+      - run: mise run lint
+      - run: mise run test
 
-      # Tagged locally before the build, and only locally: `./do build` stamps
+      # Tagged locally before the build, and only locally: `mise run build` stamps
       # the binary with `git describe`, so without the tag in place first every
       # binary in the release would carry the version before it. The tag
       # reaches the remote below, as part of creating the release, so a build
@@ -134,7 +123,7 @@ jobs:
           VERSION: ${{ needs.decide.outputs.version }}
         run: git tag "$VERSION"
 
-      - run: ./do build
+      - run: mise run build
 
       - name: Checksums
         working-directory: dist
@@ -158,7 +147,7 @@ jobs:
 
       # The Go side is one direct dependency deep — fsnotify, and the
       # golang.org/x/sys it brings with it — so a naive reading says an SBOM
-      # here is two lines. It is not: `./do build` embeds the built frontend
+      # here is two lines. It is not: `mise run build` embeds the built frontend
       # into every binary, and that frontend is compiled out of several hundred
       # npm packages. They ship inside the executable and belong in the
       # inventory of what someone is running.
