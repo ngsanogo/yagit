@@ -65,7 +65,7 @@ pnpm = "12.16.1"
 air = "1.67.4"
 
 # Static analysis for Go (see .golangci.yml).
-golangci-lint = "2.14.0"
+golangci-lint = "2.15.0"
 
 # Static analysis for the shell scripts (./do, scripts/*.sh).
 shellcheck = "0.11.0"
@@ -96,7 +96,7 @@ zizmor = "1.31.1"
 # tool here. It is installed by `go install`, which verifies the module against
 # sum.golang.org — a transparency log, which is a stronger guarantee than a
 # hash we wrote down ourselves, not a weaker one.
-"go:golang.org/x/vuln/cmd/govulncheck" = "1.8.0"
+"go:golang.org/x/vuln/cmd/govulncheck" = "1.9.0"
 
 # ---------------------------------------------------------------------------
 # Tasks: `mise run <task>` (or `./do <task>`). `mise tasks` lists them.
