@@ -49,7 +49,7 @@ lockfile = true
 go = "1.27.3"
 
 # The frontend.
-node = "26.11.1"
+node = "26.13.0"
 
 # The frontend's package manager. Pinned here like every other tool, because
 # Node stopped shipping corepack with 25 and nothing else would fetch it.
@@ -59,13 +59,13 @@ node = "26.11.1"
 # other. pnpm reads that field, and web/pnpm-workspace.yaml tells it to refuse
 # a mismatch rather than download the other version — so the two cannot drift
 # without the first command saying so.
-pnpm = "12.9.1"
+pnpm = "12.16.1"
 
 # Hot reload for the daemon during `./do dev` (see .air.toml).
 air = "1.67.4"
 
 # Static analysis for Go (see .golangci.yml).
-golangci-lint = "2.14.0"
+golangci-lint = "2.15.0"
 
 # Static analysis for the shell scripts (./do, scripts/*.sh).
 shellcheck = "0.11.0"
@@ -79,7 +79,7 @@ actionlint = "1.7.12"
 # YAML and as shell; zizmor reads them as an attack surface — an unpinned
 # action, a `${{ }}` interpolated into a `run:` block, a token scoped wider
 # than the job needs. Two tools because they answer two different questions.
-zizmor = "1.30.1"
+zizmor = "1.31.1"
 
 # Go's vulnerability scanner, run by `./do audit`.
 #
@@ -96,7 +96,7 @@ zizmor = "1.30.1"
 # tool here. It is installed by `go install`, which verifies the module against
 # sum.golang.org — a transparency log, which is a stronger guarantee than a
 # hash we wrote down ourselves, not a weaker one.
-"go:golang.org/x/vuln/cmd/govulncheck" = "1.8.0"
+"go:golang.org/x/vuln/cmd/govulncheck" = "1.9.0"
 
 # ---------------------------------------------------------------------------
 # Tasks: `mise run <task>` (or `./do <task>`). `mise tasks` lists them.
