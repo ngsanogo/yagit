@@ -41,7 +41,7 @@ func superproject(t *testing.T) (super, sub string, runner *git.Runner) {
 	runGit(t, runner, root, "init", "-b", "main", sub)
 	runGit(t, runner, sub, "config", "user.name", "yagit Test")
 	runGit(t, runner, sub, "config", "user.email", "test@yagit.local")
-	write(t, sub, "lib.txt", "one\n")
+	writeFile(t, sub, "lib.txt", "one\n")
 	runGit(t, runner, sub, "add", "-A")
 	runGit(t, runner, sub, "commit", "-m", "the library's first commit")
 
@@ -49,7 +49,7 @@ func superproject(t *testing.T) (super, sub string, runner *git.Runner) {
 	runGit(t, runner, root, "init", "-b", "main", super)
 	runGit(t, runner, super, "config", "user.name", "yagit Test")
 	runGit(t, runner, super, "config", "user.email", "test@yagit.local")
-	write(t, super, "readme.md", "the superproject\n")
+	writeFile(t, super, "readme.md", "the superproject\n")
 	runGit(t, runner, super, "add", "-A")
 	runGit(t, runner, super, "commit", "-m", "first")
 
@@ -118,7 +118,7 @@ func TestSubmodulesReportsACheckoutThatMoved(t *testing.T) {
 	// is local config, and local config is not what a clone copies.
 	runGit(t, runner, inside, "config", "user.name", "yagit Test")
 	runGit(t, runner, inside, "config", "user.email", "test@yagit.local")
-	write(t, inside, "lib.txt", "two\n")
+	writeFile(t, inside, "lib.txt", "two\n")
 	runGit(t, runner, inside, "add", "-A")
 	runGit(t, runner, inside, "commit", "-m", "a commit the superproject does not pin")
 

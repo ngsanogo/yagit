@@ -3,8 +3,6 @@ package git_test
 import (
 	"context"
 	"errors"
-	"os"
-	"path/filepath"
 	"testing"
 
 	"github.com/ngsanogo/yagit/internal/git"
@@ -15,7 +13,7 @@ func TestLogPathFollowsARename(t *testing.T) {
 	runner := git.NewRunner(nil)
 	ctx := context.Background()
 
-	write(t, dir, "notes.md", "first\n")
+	writeFile(t, dir, "notes.md", "first\n")
 	runGit(t, runner, dir, "add", "notes.md")
 	runGit(t, runner, dir, "commit", "-m", "add notes")
 
@@ -42,12 +40,12 @@ func TestLogPathStartsAtARevision(t *testing.T) {
 	runner := git.NewRunner(nil)
 	ctx := context.Background()
 
-	write(t, dir, "a.txt", "one\n")
+	writeFile(t, dir, "a.txt", "one\n")
 	runGit(t, runner, dir, "add", "a.txt")
 	runGit(t, runner, dir, "commit", "-m", "one")
 	first := shaOf(t, runner, dir, "HEAD")
 
-	write(t, dir, "a.txt", "two\n")
+	writeFile(t, dir, "a.txt", "two\n")
 	runGit(t, runner, dir, "add", "a.txt")
 	runGit(t, runner, dir, "commit", "-m", "two")
 
@@ -65,12 +63,5 @@ func TestLogPathRefusesAnEmptyPath(t *testing.T) {
 	_, err := git.NewRunner(nil).LogPath(context.Background(), dir, "HEAD", "  ")
 	if !errors.Is(err, git.ErrNoPaths) {
 		t.Fatalf("err = %v, want ErrNoPaths", err)
-	}
-}
-
-func write(t *testing.T, dir, name, contents string) {
-	t.Helper()
-	if err := os.WriteFile(filepath.Join(dir, name), []byte(contents), 0o644); err != nil {
-		t.Fatal(err)
 	}
 }

@@ -156,10 +156,6 @@ type Status struct {
 	Files []FileStatus `json:"files"`
 }
 
-// Clean says nothing differs anywhere: no staged change, no unstaged change,
-// no untracked file.
-func (s Status) Clean() bool { return len(s.Files) == 0 }
-
 // DirtyTracked counts the paths git already knows about that differ from HEAD
 // or from the index.
 //
@@ -184,17 +180,6 @@ func (s Status) DirtyTracked() int {
 		}
 	}
 	return count
-}
-
-// Conflicted says the repository is in the middle of a merge that did not
-// resolve on its own.
-func (s Status) Conflicted() bool {
-	for _, file := range s.Files {
-		if file.Kind == EntryUnmerged {
-			return true
-		}
-	}
-	return false
 }
 
 // statusArgs is the command, written once.

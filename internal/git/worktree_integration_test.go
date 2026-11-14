@@ -72,7 +72,7 @@ func TestRemoveWorktreeRefusesUncommittedWorkUntilForced(t *testing.T) {
 	if err := runner.AddWorktree(ctx, dir, beside, "side", "", false); err != nil {
 		t.Fatalf("AddWorktree: %v", err)
 	}
-	write(t, beside, "untracked.txt", "not committed\n")
+	writeFile(t, beside, "untracked.txt", "not committed\n")
 
 	if err := runner.RemoveWorktree(ctx, dir, beside, false); err == nil {
 		t.Fatal("a worktree holding uncommitted work was removed without --force")

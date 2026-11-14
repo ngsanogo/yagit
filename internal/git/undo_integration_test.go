@@ -60,11 +60,11 @@ func TestPreviewUndoCommit(t *testing.T) {
 	runner := git.NewRunner(nil)
 	ctx := context.Background()
 
-	write(t, dir, "f.txt", "one\n")
+	writeFile(t, dir, "f.txt", "one\n")
 	runGit(t, runner, dir, "add", "f.txt")
 	runGit(t, runner, dir, "commit", "-m", "first")
 
-	write(t, dir, "f.txt", "two\n")
+	writeFile(t, dir, "f.txt", "two\n")
 	runGit(t, runner, dir, "add", "f.txt")
 	runGit(t, runner, dir, "commit", "-m", "second")
 	tip := shaOf(t, runner, dir, "HEAD")
@@ -93,12 +93,12 @@ func TestUndoCommitRestoresTheIndex(t *testing.T) {
 	runner := git.NewRunner(nil)
 	ctx := context.Background()
 
-	write(t, dir, "f.txt", "one\n")
+	writeFile(t, dir, "f.txt", "one\n")
 	runGit(t, runner, dir, "add", "f.txt")
 	runGit(t, runner, dir, "commit", "-m", "first")
 	parent := shaOf(t, runner, dir, "HEAD")
 
-	write(t, dir, "f.txt", "two\n")
+	writeFile(t, dir, "f.txt", "two\n")
 	runGit(t, runner, dir, "add", "f.txt")
 	runGit(t, runner, dir, "commit", "-m", "second")
 	tip := shaOf(t, runner, dir, "HEAD")
@@ -128,7 +128,7 @@ func TestPreviewUndoCommitRefusesARoot(t *testing.T) {
 	runGit(t, runner, dir, "config", "user.name", "yagit Test")
 	runGit(t, runner, dir, "config", "user.email", "test@yagit.local")
 
-	write(t, dir, "f.txt", "one\n")
+	writeFile(t, dir, "f.txt", "one\n")
 	runGit(t, runner, dir, "add", "f.txt")
 	runGit(t, runner, dir, "commit", "-m", "first")
 
@@ -143,11 +143,11 @@ func TestPreviewUndoCheckout(t *testing.T) {
 	runner := git.NewRunner(nil)
 	ctx := context.Background()
 
-	write(t, dir, "f.txt", "one\n")
+	writeFile(t, dir, "f.txt", "one\n")
 	runGit(t, runner, dir, "add", "f.txt")
 	runGit(t, runner, dir, "commit", "-m", "first")
 	runGit(t, runner, dir, "switch", "-c", "side")
-	write(t, dir, "f.txt", "side\n")
+	writeFile(t, dir, "f.txt", "side\n")
 	runGit(t, runner, dir, "add", "f.txt")
 	runGit(t, runner, dir, "commit", "-m", "on side")
 	side := shaOf(t, runner, dir, "HEAD")
@@ -184,10 +184,10 @@ func TestPreviewUndoReset(t *testing.T) {
 	runner := git.NewRunner(nil)
 	ctx := context.Background()
 
-	write(t, dir, "f.txt", "one\n")
+	writeFile(t, dir, "f.txt", "one\n")
 	runGit(t, runner, dir, "add", "f.txt")
 	runGit(t, runner, dir, "commit", "-m", "first")
-	write(t, dir, "f.txt", "two\n")
+	writeFile(t, dir, "f.txt", "two\n")
 	runGit(t, runner, dir, "add", "f.txt")
 	runGit(t, runner, dir, "commit", "-m", "second")
 	tip := shaOf(t, runner, dir, "HEAD")
@@ -227,10 +227,10 @@ func TestUndoOfAnUndoRestoresTheCommit(t *testing.T) {
 	runner := git.NewRunner(nil)
 	ctx := context.Background()
 
-	write(t, dir, "f.txt", "one\n")
+	writeFile(t, dir, "f.txt", "one\n")
 	runGit(t, runner, dir, "add", "f.txt")
 	runGit(t, runner, dir, "commit", "-m", "first")
-	write(t, dir, "f.txt", "two\n")
+	writeFile(t, dir, "f.txt", "two\n")
 	runGit(t, runner, dir, "add", "f.txt")
 	runGit(t, runner, dir, "commit", "-m", "second")
 	tip := shaOf(t, runner, dir, "HEAD")
@@ -273,10 +273,10 @@ func TestPreviewUndoRefusesAResetThatMovedNothing(t *testing.T) {
 	runner := git.NewRunner(nil)
 	ctx := context.Background()
 
-	write(t, dir, "f.txt", "one\n")
+	writeFile(t, dir, "f.txt", "one\n")
 	runGit(t, runner, dir, "add", "f.txt")
 	runGit(t, runner, dir, "commit", "-m", "first")
-	write(t, dir, "f.txt", "dirty\n")
+	writeFile(t, dir, "f.txt", "dirty\n")
 	runGit(t, runner, dir, "stash", "push", "-m", "aside")
 
 	_, err := runner.PreviewUndo(ctx, dir)
@@ -290,16 +290,16 @@ func TestUndoCommitRefusesAMovedHead(t *testing.T) {
 	runner := git.NewRunner(nil)
 	ctx := context.Background()
 
-	write(t, dir, "f.txt", "one\n")
+	writeFile(t, dir, "f.txt", "one\n")
 	runGit(t, runner, dir, "add", "f.txt")
 	runGit(t, runner, dir, "commit", "-m", "first")
 	parent := shaOf(t, runner, dir, "HEAD")
-	write(t, dir, "f.txt", "two\n")
+	writeFile(t, dir, "f.txt", "two\n")
 	runGit(t, runner, dir, "add", "f.txt")
 	runGit(t, runner, dir, "commit", "-m", "second")
 	tip := shaOf(t, runner, dir, "HEAD")
 
-	write(t, dir, "f.txt", "three\n")
+	writeFile(t, dir, "f.txt", "three\n")
 	runGit(t, runner, dir, "add", "f.txt")
 	runGit(t, runner, dir, "commit", "-m", "third")
 
@@ -315,11 +315,11 @@ func TestPreviewUndoBranchDeletion(t *testing.T) {
 	runner := git.NewRunner(nil)
 	ctx := context.Background()
 
-	write(t, dir, "f.txt", "one\n")
+	writeFile(t, dir, "f.txt", "one\n")
 	runGit(t, runner, dir, "add", "f.txt")
 	runGit(t, runner, dir, "commit", "-m", "first")
 	runGit(t, runner, dir, "switch", "-c", "side")
-	write(t, dir, "f.txt", "side\n")
+	writeFile(t, dir, "f.txt", "side\n")
 	runGit(t, runner, dir, "add", "f.txt")
 	runGit(t, runner, dir, "commit", "-m", "work only side had")
 	side := shaOf(t, runner, dir, "HEAD")
@@ -368,7 +368,7 @@ func TestPreviewUndoBranchDeletionYieldsOnceHeadMoves(t *testing.T) {
 	runner := git.NewRunner(nil)
 	ctx := context.Background()
 
-	write(t, dir, "f.txt", "one\n")
+	writeFile(t, dir, "f.txt", "one\n")
 	runGit(t, runner, dir, "add", "f.txt")
 	runGit(t, runner, dir, "commit", "-m", "first")
 	runGit(t, runner, dir, "branch", "side")
@@ -379,7 +379,7 @@ func TestPreviewUndoBranchDeletionYieldsOnceHeadMoves(t *testing.T) {
 	head := shaOf(t, runner, dir, "HEAD")
 	runGit(t, runner, dir, "branch", "-D", "side")
 
-	write(t, dir, "f.txt", "two\n")
+	writeFile(t, dir, "f.txt", "two\n")
 	runGit(t, runner, dir, "add", "f.txt")
 	runGit(t, runner, dir, "commit", "-m", "something after the delete")
 
@@ -394,7 +394,7 @@ func TestPreviewUndoBranchDeletionRefusesANameThatIsBack(t *testing.T) {
 	runner := git.NewRunner(nil)
 	ctx := context.Background()
 
-	write(t, dir, "f.txt", "one\n")
+	writeFile(t, dir, "f.txt", "one\n")
 	runGit(t, runner, dir, "add", "f.txt")
 	runGit(t, runner, dir, "commit", "-m", "first")
 	runGit(t, runner, dir, "branch", "side")
@@ -417,7 +417,7 @@ func TestPreviewUndoBranchDeletionRefusesACollectedCommit(t *testing.T) {
 	runner := git.NewRunner(nil)
 	ctx := context.Background()
 
-	write(t, dir, "f.txt", "one\n")
+	writeFile(t, dir, "f.txt", "one\n")
 	runGit(t, runner, dir, "add", "f.txt")
 	runGit(t, runner, dir, "commit", "-m", "first")
 	head := shaOf(t, runner, dir, "HEAD")
