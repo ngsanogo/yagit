@@ -199,6 +199,7 @@ func (s *Server) Handler() http.Handler {
 	protected.HandleFunc("POST /api/repos/{id}/tags/delete", s.handleDeleteTag)
 	protected.HandleFunc("POST /api/repos/{id}/tags/push/plan", s.handlePlanPushTag)
 	protected.HandleFunc("POST /api/repos/{id}/tags/push", s.handlePushTag)
+	protected.HandleFunc("POST /api/repos/{id}/compare", s.handleCompare)
 	protected.HandleFunc("POST /api/repos/{id}/merge/plan", s.handlePlanMerge)
 	protected.HandleFunc("POST /api/repos/{id}/merge", s.handleMerge)
 	protected.HandleFunc("POST /api/repos/{id}/rebase/plan", s.handlePlanRebase)

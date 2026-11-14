@@ -91,6 +91,7 @@ stream — the destination is not an open repository yet
 | `POST /api/repos/{id}/tags/delete` | Deletes a local tag. Body: `{"name": "…"}`. |
 | `POST /api/repos/{id}/tags/push/plan` | Answers the command a tag push would run. Body: `{"name": "…", "remote": "…"}`. Changes nothing. |
 | `POST /api/repos/{id}/tags/push` | Pushes a local tag to a remote under the same name. Same body. |
+| `POST /api/repos/{id}/compare` | How far HEAD and another reference have diverged. Body: `{"ref": "refs/heads/…"}`. Changes nothing. |
 | `POST /api/repos/{id}/merge/plan` | What merging a branch would do, and the line it would run. Changes nothing. |
 | `POST /api/repos/{id}/merge` | Merges one into the branch HEAD is on. Body: `{"branch": "…", "into": "…", "outcome": "up-to-date\|fast-forward\|merge-commit\|squash"}`. |
 | `POST /api/repos/{id}/rebase/plan` | What rebasing the current branch onto another would do, and the line it would run. Changes nothing. |

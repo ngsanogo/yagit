@@ -325,6 +325,27 @@ export type PullStrategy = 'ff-only' | 'merge' | 'rebase';
 export type MergeOutcome = 'up-to-date' | 'fast-forward' | 'merge-commit' | 'squash';
 
 /**
+ * How far HEAD and another reference have diverged.
+ *
+ * A reading, not a plan: merge and rebase each answer what to do about the
+ * drift. This only names how many commits sit on each side.
+ */
+export interface CompareResult {
+  /** The branch HEAD is on; empty when detached. */
+  head: string;
+  /** Full reference name that was compared against. */
+  against: string;
+  /** Against without the refs/{heads,remotes,tags}/ prefix. */
+  against_short: string;
+  /** Commits on HEAD that Against does not hold. */
+  ahead: number;
+  /** Commits on Against that HEAD does not hold. */
+  behind: number;
+  head_sha: string;
+  against_sha: string;
+}
+
+/**
  * What a merge would do, and the line it would run.
  *
  * Answered by the daemon before the merge, for the reason PushPlan is: the

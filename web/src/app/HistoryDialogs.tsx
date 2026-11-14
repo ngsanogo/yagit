@@ -20,6 +20,7 @@ import type { HistoryOperations } from './historyOperations';
 import type { HistoryProposals } from './historyProposals';
 import { TrackLFSDialog, UntrackLFSDialog } from './LFSDialogs';
 import { RebasePlanDialog } from './RebasePlanDialog';
+import { CompareDialog } from './CompareDialog';
 import { SearchHistory } from './SearchHistory';
 import { StashApplyDialog, StashDropDialog, StashPushDialog } from './StashDialogs';
 import { AddSubmoduleDialog, RemoveSubmoduleDialog } from './SubmoduleDialogs';
@@ -74,6 +75,15 @@ export function HistoryDialogs({
   }
 
   switch (dialog.kind) {
+    case 'compare':
+      return (
+        <CompareDialog
+          repositoryId={repository.id}
+          refs={refs}
+          headName={head?.detached ? undefined : head?.name}
+          onClose={close}
+        />
+      );
     case 'search':
       return (
         <Dialog

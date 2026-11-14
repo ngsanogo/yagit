@@ -27,6 +27,7 @@ import type {
   LFSSupport,
   LineSelection,
   LocatedCommit,
+  CompareResult,
   MergePlan,
   Operation,
   OperationAction,
@@ -564,6 +565,19 @@ export const api = {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ name, remote }),
       timeoutMs: NETWORK_TIMEOUT_MS,
+    }),
+
+  /**
+   * How far HEAD and another reference have diverged.
+   *
+   * A reading rather than a plan: it changes nothing, and merge and rebase
+   * keep their own plan routes.
+   */
+  compare: (id: string, ref: string) =>
+    request<CompareResult>(`/api/repos/${id}/compare`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ref }),
     }),
 
   /**
