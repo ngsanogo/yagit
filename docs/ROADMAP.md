@@ -63,7 +63,9 @@ what will be lost.
   name and never where it reads an option.
 - **Merge and rebase** read the two branches first and say which of three
   things will happen, because `merge.ff` is a setting and a button that reads a
-  setting cannot say what it does
+  setting cannot say what it does. Merge also offers squash-and-merge
+  (`git merge --squash`), which stages the fold for a later commit — distinct
+  from an interactive-rebase `squash` line
 .
 - **Interactive rebase**: reorder, `fixup`, `fixup -C`, `edit`, `drop`. yagit
   writes the todo list itself and points git's sequence editor at its own

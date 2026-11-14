@@ -134,6 +134,46 @@ func TestMergeOfDivergedBranchesRecordsAMergeCommit(t *testing.T) {
 	}
 }
 
+// Squash-and-merge is the fourth outcome: the tree lands in the index, HEAD
+// stays put, and SQUASH_MSG holds what the next commit will say. Distinct from
+// an interactive-rebase squash line, which this package refuses on purpose.
+func TestMergeSquashStagesWithoutMovingHEAD(t *testing.T) {
+	dir, runner := mergeable(t)
+	diverged(t, runner, dir)
+
+	before := commitOf(t, runner, dir, "main")
+
+	if err := runner.Merge(context.Background(), dir, "main", "elsewhere", git.MergeSquash); err != nil {
+		t.Fatalf("Merge: %v", err)
+	}
+
+	head := headOf(t, runner, dir)
+	if head.SHA != before {
+		t.Errorf("HEAD moved to %s, want it still at %s after a squash", head.SHA, before)
+	}
+	if head.Name != "main" {
+		t.Errorf("HEAD on %q, want main", head.Name)
+	}
+
+	// The fold is staged, ready for an ordinary commit — not left as an
+	// unfinished merge the banner would have to finish.
+	staged, err := runner.Run(context.Background(), dir, "diff", "--cached", "--name-only")
+	if err != nil {
+		t.Fatalf("diff --cached: %v", err)
+	}
+	if !strings.Contains(string(staged), "other.md") {
+		t.Errorf("staged = %q, want the file the squashed branch brought in", staged)
+	}
+
+	squashMsg, err := os.ReadFile(filepath.Join(dir, ".git", "SQUASH_MSG"))
+	if err != nil {
+		t.Fatalf("reading SQUASH_MSG: %v", err)
+	}
+	if !strings.Contains(string(squashMsg), "elsewhere") {
+		t.Errorf("SQUASH_MSG = %q, want it to carry the squashed commit's message", squashMsg)
+	}
+}
+
 // The regression test for the whole design: merge.ff decides what a bare
 // `git merge` does, and yagit shows a command before it runs one.
 func TestMergeIsNotDecidedByTheUsersConfiguration(t *testing.T) {

@@ -11,11 +11,12 @@ import (
 //
 // Two routes with the shape the destructive operations in this package already
 // use: one says what would run, the other runs it. The plan is not decoration
-// here. A merge is one of three different things — a pointer moving, a commit
-// recorded under the user's hooks and signature, or nothing at all — and which
-// one it is cannot be worked out in a browser: it is read from the two
-// branches, at the moment the question is asked, and the command answered back
-// is the one that pins it. See git.MergeArgs.
+// here. A merge is one of four different things — a pointer moving, a commit
+// recorded under the user's hooks and signature, the tree folded into the
+// index for a later commit, or nothing at all — and which one it is cannot be
+// worked out in a browser: it is read from the two branches, at the moment the
+// question is asked, and the command answered back is the one that pins it.
+// See git.MergeArgs.
 //
 // The working directory changes, and the answer is still the references — for
 // the reason the pull route gives: that is what moved, and a sidebar that had
@@ -55,10 +56,16 @@ type mergePlanRequest struct {
 	Branch string `json:"branch"`
 
 	// MergeCommit asks for a merge commit even where a fast-forward is
-	// possible — the door the shown-command rule left open. Ignored when the reading is
-	// already a merge commit or up-to-date: the first needs no preference,
-	// and the second has nothing to commit.
+	// possible — the door the shown-command rule left open. Ignored when the
+	// reading is already a merge commit or up-to-date: the first needs no
+	// preference, and the second has nothing to commit. Ignored when Squash
+	// is set: the two preferences are different commands, and squash wins.
 	MergeCommit bool `json:"merge_commit"`
+
+	// Squash asks for `git merge --squash` wherever there is something to
+	// bring in — fast-forward or diverged. Ignored when the reading is
+	// up-to-date: there is nothing to fold into the index.
+	Squash bool `json:"squash"`
 }
 
 // mergeRequest is the merge the user was shown, sent back to be carried out.
@@ -137,10 +144,7 @@ func (s *Server) handlePlanMerge(writer http.ResponseWriter, request *http.Reque
 		return
 	}
 
-	outcome := preview.Outcome
-	if body.MergeCommit && outcome == git.MergeFastForward {
-		outcome = git.MergeCommit
-	}
+	outcome := preferredMergeOutcome(preview.Outcome, body.MergeCommit, body.Squash)
 
 	writeJSON(writer, s.logger, http.StatusOK, mergePlan{
 		Command: git.CommandLine(git.MergeArgs(into, branch, outcome)),
@@ -167,7 +171,7 @@ func (s *Server) handleMerge(writer http.ResponseWriter, request *http.Request) 
 
 	var body mergeRequest
 	if !decodeBody(writer, s.logger, request, &body,
-		`{"branch": "…", "into": "…", "outcome": "fast-forward|merge-commit|up-to-date"}`) {
+		`{"branch": "…", "into": "…", "outcome": "fast-forward|merge-commit|squash|up-to-date"}`) {
 		return
 	}
 
@@ -204,21 +208,29 @@ func (s *Server) handleMerge(writer http.ResponseWriter, request *http.Request) 
 
 	// The plan again, from the repository rather than from the request. What
 	// comes back chooses the command; what was approved only gets to agree
-	// with it — with one deliberate exception: a merge-commit approval over a
-	// fast-forward reading is the "create a merge commit anyway" preference,
-	// and --no-ff is what makes that preference true.
+	// with it — with two deliberate exceptions: a merge-commit approval over
+	// a fast-forward reading is the "create a merge commit anyway" preference,
+	// and a squash approval over either bringing-in reading is the
+	// "fold into the index" preference. Both are pinned by the flag the
+	// dialog showed.
 	preview, err := s.runner.PreviewMerge(request.Context(), opened.Path, into, branch)
 	if err != nil {
 		writeError(writer, s.logger, statusForOperationError(err), err)
 		return
 	}
 	runAs := preview.Outcome
-	if approved == git.MergeCommit && preview.Outcome == git.MergeFastForward {
+	switch {
+	case approved == git.MergeSquash &&
+		(preview.Outcome == git.MergeFastForward || preview.Outcome == git.MergeCommit):
+		runAs = git.MergeSquash
+	case approved == git.MergeCommit && preview.Outcome == git.MergeFastForward:
 		runAs = git.MergeCommit
-	} else if err := agreesOnPlan(approved, preview.Outcome,
-		fmt.Sprintf("merging %s into %s", branch, into)); err != nil {
-		writeError(writer, s.logger, statusForOperationError(err), err)
-		return
+	default:
+		if err := agreesOnPlan(approved, preview.Outcome,
+			fmt.Sprintf("merging %s into %s", branch, into)); err != nil {
+			writeError(writer, s.logger, statusForOperationError(err), err)
+			return
+		}
 	}
 
 	if err := s.runner.Merge(
@@ -228,4 +240,19 @@ func (s *Server) handleMerge(writer http.ResponseWriter, request *http.Request) 
 	}
 
 	s.answerWithRefs(writer, request, opened)
+}
+
+// preferredMergeOutcome applies the plan-time preferences onto the reading.
+//
+// Squash first: it is a different command from a merge commit, and the two
+// checkboxes are mutually exclusive in the dialog — if both arrive, the one
+// that stages rather than commits wins rather than inventing a third answer.
+func preferredMergeOutcome(reading git.MergeOutcome, mergeCommit, squash bool) git.MergeOutcome {
+	if squash && reading != git.MergeUpToDate {
+		return git.MergeSquash
+	}
+	if mergeCommit && reading == git.MergeFastForward {
+		return git.MergeCommit
+	}
+	return reading
 }

@@ -190,10 +190,23 @@ export function HistoryDialogs({
           plan={dialog.plan}
           busy={ops.branches.merge.isPending || ops.branches.planMerge.isPending}
           preferringMergeCommit={dialog.preferMergeCommit}
+          preferringSquash={dialog.preferSquash}
           // Re-asked, the way the publish dialog re-asks when the remote
           // changes: the command on screen must never describe a preference
-          // other than the one selected.
-          onPreferMergeCommit={(prefer) => proposals.proposeBranchMerge(dialog.plan.branch, prefer)}
+          // other than the one selected. The two preferences are mutually
+          // exclusive — each replan clears the other.
+          onPreferMergeCommit={(prefer) =>
+            proposals.proposeBranchMerge(dialog.plan.branch, {
+              mergeCommit: prefer,
+              squash: false,
+            })
+          }
+          onPreferSquash={(prefer) =>
+            proposals.proposeBranchMerge(dialog.plan.branch, {
+              mergeCommit: false,
+              squash: prefer,
+            })
+          }
           onCancel={close}
           // The plan goes back whole. The daemon checks the branch it names
           // against where HEAD actually is, reads the two branches again, and

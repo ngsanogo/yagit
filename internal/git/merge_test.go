@@ -14,7 +14,7 @@ import (
 
 func TestMergeArgsNamesTheBranchWhereNothingElseCanAnswerTo(t *testing.T) {
 	for _, outcome := range []git.MergeOutcome{
-		git.MergeUpToDate, git.MergeFastForward, git.MergeCommit,
+		git.MergeUpToDate, git.MergeFastForward, git.MergeCommit, git.MergeSquash,
 	} {
 		args := git.MergeArgs("main", "feature", outcome)
 
@@ -38,6 +38,7 @@ func TestMergeArgsPinsWhatTheMergeWillBe(t *testing.T) {
 			"-m", "Merge branch 'feature' into main",
 			"--", "refs/heads/feature",
 		},
+		git.MergeSquash: {"merge", "--squash", "--", "refs/heads/feature"},
 	}
 
 	for outcome, want := range cases {
@@ -61,10 +62,13 @@ func TestMergeArgsWritesTheMessageItselfWhereACommitIsRecorded(t *testing.T) {
 		t.Errorf("message = %q, want %q", message, want)
 	}
 
-	// And not where none is recorded: --ff-only writes no object, so a message
-	// on that line would describe a commit that never happens.
-	if _, found := messageIn(git.MergeArgs("main", "feature", git.MergeFastForward)); found {
-		t.Error("a fast-forward carries a commit message, want none")
+	// And not where none is recorded: --ff-only writes no object, and --squash
+	// stages for a later commit, so a message on either line would describe a
+	// commit that never happens here.
+	for _, outcome := range []git.MergeOutcome{git.MergeFastForward, git.MergeSquash} {
+		if _, found := messageIn(git.MergeArgs("main", "feature", outcome)); found {
+			t.Errorf("%q carries a commit message, want none", outcome)
+		}
 	}
 }
 
@@ -87,8 +91,8 @@ func TestMergeArgsNeverLeavesTheDecisionToConfiguration(t *testing.T) {
 	}
 }
 
-func TestParseMergeOutcomeTakesTheThreeAndNothingElse(t *testing.T) {
-	for _, raw := range []string{"up-to-date", "fast-forward", "merge-commit"} {
+func TestParseMergeOutcomeTakesTheFourAndNothingElse(t *testing.T) {
+	for _, raw := range []string{"up-to-date", "fast-forward", "merge-commit", "squash"} {
 		outcome, err := git.ParseMergeOutcome(raw)
 		if err != nil {
 			t.Errorf("ParseMergeOutcome(%q): %v", raw, err)
@@ -99,7 +103,7 @@ func TestParseMergeOutcomeTakesTheThreeAndNothingElse(t *testing.T) {
 	}
 
 	// The empty string is not the default. A client that names no outcome has
-	// not read one off a plan, and the two commands differ by a commit.
+	// not read one off a plan, and the commands differ by a commit.
 	for _, raw := range []string{"", "ff", "no-ff", "rebase"} {
 		if _, err := git.ParseMergeOutcome(raw); err == nil {
 			t.Errorf("ParseMergeOutcome(%q) = nil, want a refusal", raw)
