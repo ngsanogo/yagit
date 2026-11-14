@@ -1,7 +1,9 @@
 import { execFileSync } from 'node:child_process';
+import { mkdirSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { defineConfig, devices } from '@playwright/test';
 
+import { fixtureDir } from './e2e/fixtures';
 import { baseURL } from './e2e/session';
 
 /**
@@ -13,6 +15,22 @@ process.env['YAGIT_TOKEN'] ??= execFileSync('node', ['../scripts/session-token.m
   encoding: 'utf8',
 }).trim();
 process.env['YAGIT_ROOT'] ??= homedir();
+
+/**
+ * The root of the daemon this suite starts, when it starts one: the fixtures,
+ * not the developer's YAGIT_ROOT.
+ *
+ * The add-repository dialog scans its root as it opens, and a home directory
+ * of real work takes longer to walk than a test waits — the scan is cancelled,
+ * the field it fills stays empty, and tests that never asked for a scan fail
+ * on a busy machine while passing on a runner with an empty home. Nothing the
+ * suite opens lives outside the fixtures; what it refuses (`/etc`, a clone
+ * into `/tmp`) is refused by a narrower root all the same. Made here because
+ * the daemon starts before the global setup that would otherwise create it. A
+ * stack already running (`./do up`) is reused with the root it has.
+ */
+const suiteRoot = fixtureDir();
+mkdirSync(suiteRoot, { recursive: true });
 
 export default defineConfig({
   testDir: './e2e',
@@ -61,6 +79,7 @@ export default defineConfig({
       env: {
         YAGIT_ADDR: '127.0.0.1:7420',
         YAGIT_FRONTEND_DEV_SERVER: 'http://127.0.0.1:7421',
+        YAGIT_ROOT: suiteRoot,
       },
     },
     {
