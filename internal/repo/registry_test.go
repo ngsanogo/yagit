@@ -493,7 +493,10 @@ func TestGetRefusesADifferentRepositoryUnderTheSamePath(t *testing.T) {
 // error from handing it back would have nowhere to go. A daemon that runs for
 // weeks does not get to leak one per call.
 func TestOpenTwiceHoldsOneDescriptor(t *testing.T) {
-	t.Parallel()
+	// Not parallel: the count is of every descriptor this process holds, and
+	// a test running beside this one opens and closes its own in the middle
+	// of it. A test that does not call t.Parallel runs while every parallel
+	// one is held back, so the count is this test's alone.
 
 	// Windows holds no descriptor by design — see pin_windows.go — so there is
 	// nothing here to leak and nothing to count.
@@ -594,7 +597,10 @@ func TestCloseIsIdempotent(t *testing.T) {
 // turns a long session into a descriptor leak — the opposite of what closing
 // is for.
 func TestCloseReleasesTheDescriptor(t *testing.T) {
-	t.Parallel()
+	// Not parallel: the count is of every descriptor this process holds, and
+	// a test running beside this one opens and closes its own in the middle
+	// of it. A test that does not call t.Parallel runs while every parallel
+	// one is held back, so the count is this test's alone.
 
 	if runtime.GOOS == "windows" {
 		t.Skip("no descriptor is held on Windows")
