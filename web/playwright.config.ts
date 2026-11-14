@@ -1,6 +1,5 @@
 import { execFileSync } from 'node:child_process';
 import { mkdirSync } from 'node:fs';
-import { homedir } from 'node:os';
 import { defineConfig, devices } from '@playwright/test';
 
 import { fixtureDir } from './e2e/fixtures';
@@ -14,8 +13,6 @@ import { baseURL } from './e2e/session';
 process.env['YAGIT_TOKEN'] ??= execFileSync('node', ['../scripts/session-token.mjs'], {
   encoding: 'utf8',
 }).trim();
-process.env['YAGIT_ROOT'] ??= homedir();
-
 /**
  * The root of the daemon this suite starts, when it starts one: the fixtures,
  * not the developer's YAGIT_ROOT.

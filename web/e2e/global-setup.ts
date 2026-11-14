@@ -1,7 +1,5 @@
-import { resolve, sep } from 'node:path';
-
 import { fixtureDir, sweepStaleFixtures } from './fixtures';
-import { yagitRoot, baseURL, sessionToken } from './session';
+import { baseURL, sessionToken } from './session';
 
 /**
  * Clears the fixtures an older shape left behind, before the first worker
@@ -22,7 +20,7 @@ import { yagitRoot, baseURL, sessionToken } from './session';
  * or reused one that already responded.
  */
 export default async function globalSetup(): Promise<void> {
-  checkFixturesAreReachable();
+  await checkFixturesAreReachable();
   sweepStaleFixtures(fixtureDir(), await openRepositories());
 }
 
@@ -31,31 +29,39 @@ export default async function globalSetup(): Promise<void> {
  * open.
  *
  * The fixtures live in the checkout, under `.yagit/e2e/`. The daemon opens
- * nothing outside YAGIT_ROOT — that is the boundary, and it holds here like
- * anywhere else — so a checkout outside the configured root makes every test
- * that opens a repository fail at once, each with a 403 about a security
- * boundary. The cause is one line of `.env`, and nothing in that message says
- * so.
+ * nothing outside its root — that is the boundary, and it holds here like
+ * anywhere else — so fixtures outside it make every test that opens a
+ * repository fail at once, each with a 403 about a security boundary. The
+ * cause is one line of configuration, and nothing in that message says so.
+ *
+ * The daemon is asked rather than an environment variable read: the suite may
+ * have started its own, rooted at the fixtures, or be reusing a `./do up`
+ * with whatever root that one has, and only the daemon knows which. A scan of
+ * the fixture directory one level deep is refused with 403 exactly when it is
+ * outside the root, and costs nothing when it is not.
  *
  * Checked here rather than in each test: it is one fact about the machine, it
  * is true or false before any browser starts, and saying it once beats saying
  * it forty times in the wrong words.
  */
-function checkFixturesAreReachable(): void {
-  const root = resolve(yagitRoot());
-  const fixtures = resolve(fixtureDir());
+async function checkFixturesAreReachable(): Promise<void> {
+  const endpoint = new URL('/api/repos/discover', baseURL());
+  endpoint.searchParams.set('dir', fixtureDir());
+  endpoint.searchParams.set('depth', '1');
 
-  // The separator is what keeps /srv/data from counting as containing
-  // /srv/database — the same comparison the daemon makes, and the same trap.
-  if (fixtures === root || fixtures.startsWith(root.endsWith(sep) ? root : root + sep)) {
+  const response = await fetch(endpoint, {
+    headers: { 'X-Yagit-Token': sessionToken() },
+    signal: AbortSignal.timeout(10_000),
+  });
+  if (response.status !== 403) {
     return;
   }
 
   throw new Error(
-    `the end-to-end fixtures live in ${fixtures}, which is outside YAGIT_ROOT ` +
-      `(${root}). The daemon opens nothing outside its root, so every test that ` +
-      'opens a repository would be refused. Point YAGIT_ROOT in .env at a ' +
-      'directory that contains this checkout.',
+    `the end-to-end fixtures live in ${fixtureDir()}, which the running daemon ` +
+      `refuses: ${await response.text()}. Every test that opens a repository ` +
+      'would be refused the same way. Stop the stack that is running, or point ' +
+      'its YAGIT_ROOT at a directory that contains this checkout.',
   );
 }
 
