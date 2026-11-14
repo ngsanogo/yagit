@@ -13,15 +13,15 @@ func TestLogLineTracksAChangedLine(t *testing.T) {
 	runner := git.NewRunner(nil)
 	ctx := context.Background()
 
-	write(t, dir, "notes.md", "one\ntwo\nthree\n")
+	writeFile(t, dir, "notes.md", "one\ntwo\nthree\n")
 	runGit(t, runner, dir, "add", "notes.md")
 	runGit(t, runner, dir, "commit", "-m", "add three lines")
 
-	write(t, dir, "notes.md", "one\ntwo changed\nthree\n")
+	writeFile(t, dir, "notes.md", "one\ntwo changed\nthree\n")
 	runGit(t, runner, dir, "add", "notes.md")
 	runGit(t, runner, dir, "commit", "-m", "change line two")
 
-	write(t, dir, "notes.md", "one\ntwo changed\nthree\nfour\n")
+	writeFile(t, dir, "notes.md", "one\ntwo changed\nthree\nfour\n")
 	runGit(t, runner, dir, "add", "notes.md")
 	runGit(t, runner, dir, "commit", "-m", "add line four")
 
@@ -45,7 +45,7 @@ func TestLogLineFollowsARename(t *testing.T) {
 	runner := git.NewRunner(nil)
 	ctx := context.Background()
 
-	write(t, dir, "notes.md", "one\ntwo\n")
+	writeFile(t, dir, "notes.md", "one\ntwo\n")
 	runGit(t, runner, dir, "add", "notes.md")
 	runGit(t, runner, dir, "commit", "-m", "add notes")
 

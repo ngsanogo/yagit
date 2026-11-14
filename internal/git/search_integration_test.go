@@ -21,17 +21,17 @@ func searchable(t *testing.T) (string, *git.Runner) {
 	dir := initRepo(t)
 	runner := git.NewRunner(nil)
 
-	write(t, dir, "parser.go", "func tokenise() {}\n")
+	writeFile(t, dir, "parser.go", "func tokenise() {}\n")
 	runGit(t, runner, dir, "add", "-A")
 	runGit(t, runner, dir, "-c", "user.name=Ada Lovelace", "-c", "user.email=ada@example.com",
 		"commit", "-m", "add the parser")
 
-	write(t, dir, "api.go", "func handler() {}\n")
+	writeFile(t, dir, "api.go", "func handler() {}\n")
 	runGit(t, runner, dir, "add", "-A")
 	runGit(t, runner, dir, "-c", "user.name=Grace Hopper", "-c", "user.email=grace@example.com",
 		"commit", "-m", "fix(api): a paren (")
 
-	write(t, dir, "parser.go", "func parse() {}\n")
+	writeFile(t, dir, "parser.go", "func parse() {}\n")
 	runGit(t, runner, dir, "add", "-A")
 	runGit(t, runner, dir, "-c", "user.name=Ada Lovelace", "-c", "user.email=ada@example.com",
 		"commit", "-m", "tidy")

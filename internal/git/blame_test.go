@@ -68,12 +68,12 @@ func TestBlameAttributesLinesToCommits(t *testing.T) {
 	runner := git.NewRunner(nil)
 	ctx := context.Background()
 
-	write(t, dir, "notes.md", "one\n")
+	writeFile(t, dir, "notes.md", "one\n")
 	runGit(t, runner, dir, "add", "notes.md")
 	runGit(t, runner, dir, "commit", "-m", "add one")
 	first := shaOf(t, runner, dir, "HEAD")
 
-	write(t, dir, "notes.md", "one\ntwo\n")
+	writeFile(t, dir, "notes.md", "one\ntwo\n")
 	runGit(t, runner, dir, "add", "notes.md")
 	runGit(t, runner, dir, "commit", "-m", "add two")
 	second := shaOf(t, runner, dir, "HEAD")
