@@ -1,4 +1,7 @@
+import { useQuery } from '@tanstack/react-query';
 import { useMemo, useState, type KeyboardEvent } from 'react';
+
+import { api } from '../api/client';
 
 import type { DiffHunk, DiffLine, DiffSide, FileDiff } from '../api/types';
 import { Badge } from '../components/Badge';
@@ -7,6 +10,7 @@ import { EmptyState } from '../components/EmptyState';
 import { FileIcon, MinusIcon, PlusIcon, TrashIcon } from '../components/Icons';
 import { Kbd } from '../components/Kbd';
 import { cx } from '../lib/cx';
+import { errorDescription } from '../lib/errorDisplay';
 import { Capped, MAX_DRAWN_LINES, Truncated } from './drawnLines';
 import {
   blobURL,
@@ -955,15 +959,45 @@ function ImageDiffPreview({
               {side.label}
               <span className="text-ink-muted"> · {side.path}</span>
             </figcaption>
-            <img
-              src={blobURL(repositoryId, side)}
-              alt={`${side.label}: ${side.path}`}
-              className="max-h-80 w-full object-contain"
-            />
+            <PreviewImage url={blobURL(repositoryId, side)} alt={`${side.label}: ${side.path}`} />
           </figure>
         ))}
       </div>
     </div>
+  );
+}
+
+/**
+ * One side of an image preview, or the reason it could not be drawn.
+ *
+ * An <img> that fails says nothing but "failed", so the same URL is asked
+ * again once, through the API client, for the daemon's sentence — a file
+ * over the preview's cap, a path that is gone — and that is what replaces
+ * the picture.
+ */
+function PreviewImage({ url, alt }: { url: string; alt: string }) {
+  const [failed, setFailed] = useState(false);
+  const why = useQuery({
+    queryKey: ['blob-failure', url],
+    queryFn: () => api.blobFailure(url),
+    enabled: failed,
+    retry: false,
+  });
+
+  if (failed) {
+    return (
+      <p className="py-6 text-center text-xs text-ink-muted">
+        {why.isError ? errorDescription(why.error) : 'Reading why this side did not load…'}
+      </p>
+    );
+  }
+  return (
+    <img
+      src={url}
+      alt={alt}
+      onError={() => setFailed(true)}
+      className="max-h-80 w-full object-contain"
+    />
   );
 }
 

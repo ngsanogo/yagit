@@ -26,9 +26,11 @@ import (
 // Only image extensions are served: this route exists for a side-by-side
 // preview, not as a general file download.
 func (s *Server) handleBlob(writer http.ResponseWriter, request *http.Request) {
-	opened, err := s.workTree(request)
+	// Any repository, bare ones included: a commit's image is in its objects.
+	// Only the work-tree side below needs a work tree, and asks for one.
+	opened, err := s.lookupRepo(request)
 	if err != nil {
-		writeError(writer, s.logger, statusForWorkTreeError(err), err)
+		writeError(writer, s.logger, statusForLookupError(err), err)
 		return
 	}
 
@@ -56,6 +58,10 @@ func (s *Server) handleBlob(writer http.ResponseWriter, request *http.Request) {
 
 	var body []byte
 	if strings.EqualFold(at, "worktree") {
+		if opened, err = s.workTree(request); err != nil {
+			writeError(writer, s.logger, statusForWorkTreeError(err), err)
+			return
+		}
 		body, err = edit.ReadBytes(editLocation(opened), filePath, git.MaxBlobBytes)
 		if err != nil {
 			writeError(writer, s.logger, statusForBlobError(err), err)
@@ -73,6 +79,13 @@ func (s *Server) handleBlob(writer http.ResponseWriter, request *http.Request) {
 	// A preview is re-read when the diff fingerprint moves; caching by URL
 	// alone would keep a stale work-tree image after the next edit.
 	writer.Header().Set("Cache-Control", "no-store")
+	// The bytes come from whatever repository is open, and an SVG is a
+	// document that can carry script. Drawn in an <img> it runs none, but
+	// opened on its own — "open image in new tab" — it would run on this
+	// origin, which holds the session; development's policy even allows
+	// inline script. A sandbox makes such a page an origin of its own, and
+	// default-src 'none' leaves it nothing to load.
+	writer.Header().Set("Content-Security-Policy", "default-src 'none'; style-src 'unsafe-inline'; sandbox")
 	writer.WriteHeader(http.StatusOK)
 	if _, err := writer.Write(body); err != nil {
 		s.logger.Warn("blob response interrupted",

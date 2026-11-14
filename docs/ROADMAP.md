@@ -41,6 +41,9 @@ step.
   granularities. Anything finer than a path is a patch handed to `git apply`,
   built once for both directions and fuzzed, because a patch with a miscounted
   range applies cleanly and stages a file nobody asked for.
+- **Images** in a diff are drawn rather than called binary: the two sides of a
+  PNG, JPEG, GIF, WebP or SVG change beside each other, in the changes panel
+  and in a commit or a stash, up to five mebibytes a side.
 - **Commit and amend**, with the user's hooks and signing configuration. The
   box starts from the message git would open an editor on, in git's own order:
   `MERGE_MSG` or `SQUASH_MSG`, the commit an amend replaces, then

@@ -21,6 +21,9 @@ func TestBlobServesAnImageFromTheWorkTree(t *testing.T) {
 	if response.Body.String() != png {
 		t.Fatalf("body = %q", response.Body)
 	}
+	if policy := response.Header().Get("Content-Security-Policy"); !strings.Contains(policy, "sandbox") {
+		t.Fatalf("Content-Security-Policy = %q, want a sandbox: an SVG opened on its own must not run here", policy)
+	}
 }
 
 func TestBlobServesStagedAndHeadSides(t *testing.T) {
