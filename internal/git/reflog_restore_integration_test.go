@@ -9,7 +9,8 @@ import (
 )
 
 func TestReflogRestoreSoft(t *testing.T) {
-	isolateGitConfiguration(t)
+	t.Parallel()
+
 	dir := t.TempDir()
 	runner := git.NewRunner(nil)
 
@@ -51,7 +52,8 @@ func TestReflogRestoreSoft(t *testing.T) {
 // moment after the one it showed. The click names what it saw, and the plan
 // refuses rather than restoring whatever HEAD@{1} has become.
 func TestReflogRestoreRefusesASelectorThatNowNamesAnotherMoment(t *testing.T) {
-	isolateGitConfiguration(t)
+	t.Parallel()
+
 	dir := t.TempDir()
 	runner := git.NewRunner(nil)
 
@@ -73,7 +75,8 @@ func TestReflogRestoreRefusesASelectorThatNowNamesAnotherMoment(t *testing.T) {
 }
 
 func TestReflogRestoreGoneEntry(t *testing.T) {
-	isolateGitConfiguration(t)
+	t.Parallel()
+
 	dir := t.TempDir()
 	runner := git.NewRunner(nil)
 	runGit(t, runner, dir, "init", "-b", "main")
@@ -89,7 +92,8 @@ func TestReflogRestoreGoneEntry(t *testing.T) {
 // An entry ahead of HEAD — a reset undone through the reflog — can track a
 // file the work tree now holds untracked, and a hard restore writes over it.
 func TestAHardReflogRestoreCountsTheUntrackedFilesItOverwrites(t *testing.T) {
-	isolateGitConfiguration(t)
+	t.Parallel()
+
 	dir := t.TempDir()
 	runner := git.NewRunner(nil)
 

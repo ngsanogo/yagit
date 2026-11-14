@@ -12,6 +12,8 @@ import (
 // NOT after `--` — see ResetArgs: that separator turns it into a pathspec.
 
 func TestResetArgsPinsEachMode(t *testing.T) {
+	t.Parallel()
+
 	cases := []struct {
 		mode git.ResetMode
 		flag string
@@ -29,6 +31,8 @@ func TestResetArgsPinsEachMode(t *testing.T) {
 }
 
 func TestResetArgsDoesNotPutAPathspecSeparatorBeforeTheRevision(t *testing.T) {
+	t.Parallel()
+
 	args := git.ResetArgs("abc1234", git.ResetHard)
 	if slices.Contains(args, "--") {
 		t.Errorf("ResetArgs = %v, must not contain --: git would read the revision as a path", args)
@@ -39,6 +43,8 @@ func TestResetArgsDoesNotPutAPathspecSeparatorBeforeTheRevision(t *testing.T) {
 }
 
 func TestParseResetModeTakesTheThreeAndNothingElse(t *testing.T) {
+	t.Parallel()
+
 	for _, raw := range []string{"soft", "mixed", "hard"} {
 		mode, err := git.ParseResetMode(raw)
 		if err != nil {

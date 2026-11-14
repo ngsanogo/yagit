@@ -65,12 +65,8 @@ func serverOnRoot(t *testing.T) (handler http.Handler, root string) {
 func serverOnWatchedRoot(t *testing.T, watching bool) (http.Handler, string, *api.EventStream) {
 	t.Helper()
 
-	// git here must read no configuration of the machine's own: a global
-	// init.templateDir or commit.gpgsign would change what these repositories
-	// come out as, and the test would pass or fail depending on whose laptop
-	// ran it.
-	t.Setenv("GIT_CONFIG_GLOBAL", os.DevNull)
-	t.Setenv("GIT_CONFIG_SYSTEM", os.DevNull)
+	// git here reads no configuration of the machine's own: TestMain points
+	// it at empty files for the whole binary.
 
 	root, err := filepath.EvalSymlinks(t.TempDir())
 	if err != nil {
@@ -330,6 +326,8 @@ func decodeProgressError(t *testing.T, response *httptest.ResponseRecorder) wire
 // `repos.map(…)` on null throws — so the empty list has to stay an empty list
 // all the way out.
 func TestListingNoRepositoriesIsAnEmptyArray(t *testing.T) {
+	t.Parallel()
+
 	handler, _ := serverOnRoot(t)
 
 	response := get(t, handler, "/api/repos")
@@ -343,6 +341,8 @@ func TestListingNoRepositoriesIsAnEmptyArray(t *testing.T) {
 }
 
 func TestDiscoverEmptyListIsAnEmptyArray(t *testing.T) {
+	t.Parallel()
+
 	handler, _ := serverOnRoot(t)
 
 	response := get(t, handler, "/api/repos/discover")
@@ -355,6 +355,8 @@ func TestDiscoverEmptyListIsAnEmptyArray(t *testing.T) {
 }
 
 func TestDiscoverListsRepositoriesUnderRoot(t *testing.T) {
+	t.Parallel()
+
 	handler, root := serverOnRoot(t)
 
 	pathA := filepath.Join(root, "alpha")
@@ -395,6 +397,8 @@ func TestDiscoverListsRepositoriesUnderRoot(t *testing.T) {
 // by field, a renamed tag was a zero, and a zero is what six of the seven
 // counters legitimately are.
 func TestDiscoverReportsWhyItFoundNothing(t *testing.T) {
+	t.Parallel()
+
 	handler, root := serverOnRoot(t)
 
 	makeRepo(t, filepath.Join(root, ".hidden", "project"))
@@ -457,6 +461,8 @@ func TestDiscoverReportsWhyItFoundNothing(t *testing.T) {
 // carries is the whole of the point: without the command, the exit code and
 // git's own stderr this is "Something went wrong" with a path beside it.
 func TestDiscoverReportsASubmoduleFailureOnTheWire(t *testing.T) {
+	t.Parallel()
+
 	handler, root := serverOnRoot(t)
 
 	child := filepath.Join(root, "child")
@@ -536,6 +542,8 @@ func addSubmodule(t *testing.T, parent, child, at string) {
 // ?depth= has been on the route since the scan existed. It is worth one test
 // that it reaches the walk, now that something sets it.
 func TestDiscoverHonoursTheDepthAsked(t *testing.T) {
+	t.Parallel()
+
 	handler, root := serverOnRoot(t)
 	makeRepo(t, filepath.Join(root, "one", "two", "project"))
 
@@ -553,6 +561,8 @@ func TestDiscoverHonoursTheDepthAsked(t *testing.T) {
 }
 
 func TestDiscoverRefusesDirectoryOutsideRoot(t *testing.T) {
+	t.Parallel()
+
 	handler, _ := serverOnRoot(t)
 	outside := filepath.Join(t.TempDir(), "elsewhere")
 	makeRepo(t, outside)
@@ -564,6 +574,8 @@ func TestDiscoverRefusesDirectoryOutsideRoot(t *testing.T) {
 }
 
 func TestOpeningARepositoryThenListingIt(t *testing.T) {
+	t.Parallel()
+
 	handler, root := serverOnRoot(t)
 	path := filepath.Join(root, "project")
 	makeRepo(t, path)
@@ -600,6 +612,8 @@ func TestOpeningARepositoryThenListingIt(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestOpenRefusalsCarryTheRightStatus(t *testing.T) {
+	t.Parallel()
+
 	handler, root := serverOnRoot(t)
 
 	insideButNotARepo := filepath.Join(root, "plain-directory")
@@ -687,6 +701,8 @@ func TestOpenRefusalsCarryTheRightStatus(t *testing.T) {
 // TestOpeningTheSameRepositoryTwiceIsIdempotent covers what a second tab on
 // the same repository does: the same entry, not a second one under a new id.
 func TestOpeningTheSameRepositoryTwiceIsIdempotent(t *testing.T) {
+	t.Parallel()
+
 	handler, root := serverOnRoot(t)
 	path := filepath.Join(root, "project")
 	makeRepo(t, path)
@@ -711,6 +727,8 @@ func TestOpeningTheSameRepositoryTwiceIsIdempotent(t *testing.T) {
 // repository starts: someone pastes a path from deep inside their tree, and
 // the answer is the repository, not a refusal.
 func TestOpeningARepositoryBySubdirectory(t *testing.T) {
+	t.Parallel()
+
 	handler, root := serverOnRoot(t)
 	path := filepath.Join(root, "project")
 	makeRepo(t, path)
@@ -731,6 +749,8 @@ func TestOpeningARepositoryBySubdirectory(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestCommitsAndRefsOfAnOpenRepository(t *testing.T) {
+	t.Parallel()
+
 	handler, root := serverOnRoot(t)
 	path := filepath.Join(root, "project")
 	makeRepo(t, path)
@@ -810,6 +830,8 @@ type wireCommit struct {
 // repository in. No branch is current there, and marking one would name a
 // branch nobody is on.
 func TestADetachedHEADIsReportedAsDetached(t *testing.T) {
+	t.Parallel()
+
 	handler, root := serverOnRoot(t)
 	path := filepath.Join(root, "project")
 	makeRepo(t, path)
@@ -829,6 +851,8 @@ func TestADetachedHEADIsReportedAsDetached(t *testing.T) {
 // TestARepositoryWithNoCommitHasNoHEAD pins the state right after git init.
 // An object with an empty name would read as a branch called nothing.
 func TestARepositoryWithNoCommitHasNoHEAD(t *testing.T) {
+	t.Parallel()
+
 	handler, root := serverOnRoot(t)
 	path := filepath.Join(root, "fresh")
 	if err := os.MkdirAll(path, 0o755); err != nil {
@@ -859,6 +883,8 @@ func TestARepositoryWithNoCommitHasNoHEAD(t *testing.T) {
 // ignored the order would pass on a one-commit history and send every click to
 // the top of the list.
 func TestACommitIsLocatedAndCarriesTheRestOfItsMessage(t *testing.T) {
+	t.Parallel()
+
 	handler, root := serverOnRoot(t)
 	path := filepath.Join(root, "project")
 	makeRepo(t, path)
@@ -902,6 +928,8 @@ func TestACommitIsLocatedAndCarriesTheRestOfItsMessage(t *testing.T) {
 // not exist — and the sentence names the walk, because under the default scope
 // the answer is often "switch to every reference".
 func TestACommitOutsideTheHistoryIs404(t *testing.T) {
+	t.Parallel()
+
 	handler, root := serverOnRoot(t)
 	path := filepath.Join(root, "project")
 	makeRepo(t, path)
@@ -929,6 +957,8 @@ func TestACommitOutsideTheHistoryIs404(t *testing.T) {
 // case that version had to be written around. Reading through the runner
 // makes it true by construction, and this is what says so out loud.
 func TestTheRefsRouteFollowsTheRepository(t *testing.T) {
+	t.Parallel()
+
 	handler, root := serverOnRoot(t)
 	path := filepath.Join(root, "project")
 	makeRepo(t, path)
@@ -1011,6 +1041,8 @@ func upstreamOf(t *testing.T, handler http.Handler, identifier, shortName string
 // an identifier that designates nothing grants access to nothing, and the
 // message says what to do about it.
 func TestHistoryOfAnUnknownRepositoryIs404(t *testing.T) {
+	t.Parallel()
+
 	handler, _ := serverOnRoot(t)
 
 	for _, route := range []string{
@@ -1061,6 +1093,8 @@ type historyPayload struct {
 //	            ╲       ╱
 //	feature:      B ───
 func TestCommitsCarryTheGraph(t *testing.T) {
+	t.Parallel()
+
 	handler, root := serverOnRoot(t)
 	path := filepath.Join(root, "project")
 	makeRepo(t, path) // A
@@ -1134,6 +1168,8 @@ func TestCommitsCarryTheGraph(t *testing.T) {
 // is not making a mistake. It gets an empty page and the new total, which is
 // what it needs to correct itself.
 func TestAPagePastTheEndIsEmptyRatherThanAnError(t *testing.T) {
+	t.Parallel()
+
 	handler, root := serverOnRoot(t)
 	path := filepath.Join(root, "project")
 	makeRepo(t, path)
@@ -1166,6 +1202,8 @@ func TestAPagePastTheEndIsEmptyRatherThanAnError(t *testing.T) {
 // would answer a plausible list to a client that computed its request wrong,
 // and hide the defect for good.
 func TestAPageThatIsNotAPageIsRefused(t *testing.T) {
+	t.Parallel()
+
 	handler, root := serverOnRoot(t)
 	path := filepath.Join(root, "project")
 	makeRepo(t, path)
@@ -1196,6 +1234,8 @@ func TestAPageThatIsNotAPageIsRefused(t *testing.T) {
 // correct answer. Every other bad page number is visibly refused; this one was
 // silently agreed with.
 func TestAPageNumberThatWouldOverflowIsRefused(t *testing.T) {
+	t.Parallel()
+
 	handler, root := serverOnRoot(t)
 	path := filepath.Join(root, "project")
 	makeRepo(t, path)
@@ -1216,6 +1256,8 @@ func TestAPageNumberThatWouldOverflowIsRefused(t *testing.T) {
 // `git log --all` and nothing else, which is what made a repository with a
 // thousand tags too wide to draw.
 func TestTheDefaultScopeIsWhatIsCheckedOut(t *testing.T) {
+	t.Parallel()
+
 	handler, root := serverOnRoot(t)
 	path := filepath.Join(root, "project")
 	makeRepo(t, path) // A, on main
@@ -1253,6 +1295,8 @@ func TestTheDefaultScopeIsWhatIsCheckedOut(t *testing.T) {
 // for a different one — the same reason a nonsense page number is refused
 // rather than rounded to the first.
 func TestAScopeThatNamesNoRefsIsRefused(t *testing.T) {
+	t.Parallel()
+
 	handler, root := serverOnRoot(t)
 	path := filepath.Join(root, "project")
 	makeRepo(t, path)
@@ -1274,6 +1318,8 @@ func TestAScopeThatNamesNoRefsIsRefused(t *testing.T) {
 // 409 is the difference between "that never existed" and "that is not what it
 // was" — and the second is the one worth interrupting the user for.
 func TestHistoryOfARepositoryReplacedUnderneathIs409(t *testing.T) {
+	t.Parallel()
+
 	handler, root := serverOnRoot(t)
 	path := filepath.Join(root, "project")
 	makeRepo(t, path)
@@ -1306,6 +1352,8 @@ func TestHistoryOfARepositoryReplacedUnderneathIs409(t *testing.T) {
 // than a proof — nothing here can read the TypeScript — but a reminder that
 // fires at the moment of the change beats a discovery six months later.
 func TestTheWireFormatIsWhatTheClientDeclares(t *testing.T) {
+	t.Parallel()
+
 	handler, root := serverOnRoot(t)
 	path := filepath.Join(root, "project")
 	makeRepo(t, path)
@@ -1409,6 +1457,8 @@ func TestTheWireFormatIsWhatTheClientDeclares(t *testing.T) {
 // a nested shape would have meant a second type on the client for the same
 // commit the history list already describes.
 func TestTheCommitWireFormatIsWhatTheClientDeclares(t *testing.T) {
+	t.Parallel()
+
 	handler, root := serverOnRoot(t)
 	path := filepath.Join(root, "project")
 	makeRepo(t, path)
@@ -1490,6 +1540,8 @@ func serverWithFrontend(t *testing.T, frontend http.Handler) http.Handler {
 // arrived. Measured over a real socket, because httptest.ResponseRecorder
 // cannot show a connection being dropped.
 func TestAPanickingHandlerStillAnswers(t *testing.T) {
+	t.Parallel()
+
 	handler := serverWithFrontend(t, http.HandlerFunc(func(http.ResponseWriter, *http.Request) {
 		panic("something nobody thought of")
 	}))
@@ -1532,6 +1584,8 @@ func TestAPanickingHandlerStillAnswers(t *testing.T) {
 // "drop this connection, deliberately". Swallowing it would turn an intentional
 // abort into a 500 and a log line about a failure that did not happen.
 func TestAnAbortedHandlerIsNotTurnedIntoA500(t *testing.T) {
+	t.Parallel()
+
 	handler := serverWithFrontend(t, http.HandlerFunc(func(http.ResponseWriter, *http.Request) {
 		panic(http.ErrAbortHandler)
 	}))
@@ -1559,6 +1613,8 @@ func TestAnAbortedHandlerIsNotTurnedIntoA500(t *testing.T) {
 // messages that never point at the middleware to blame. This is the WebSocket
 // upgrade behind Vite's hot reload, in miniature.
 func TestTheWrapperHandsBackTheConnection(t *testing.T) {
+	t.Parallel()
+
 	handler := serverWithFrontend(t, http.HandlerFunc(func(writer http.ResponseWriter, _ *http.Request) {
 		hijacker, capable := writer.(http.Hijacker)
 		if !capable {
@@ -1604,6 +1660,8 @@ func TestTheWrapperHandsBackTheConnection(t *testing.T) {
 // TestTheWrapperFlushes covers the other half: an event stream is worth
 // nothing unless what is written arrives as it happens.
 func TestTheWrapperFlushes(t *testing.T) {
+	t.Parallel()
+
 	handler := serverWithFrontend(t, http.HandlerFunc(func(writer http.ResponseWriter, _ *http.Request) {
 		if _, err := writer.Write([]byte("event: hello\n\n")); err != nil {
 			t.Errorf("writing: %v", err)
@@ -1634,6 +1692,8 @@ func TestTheWrapperFlushes(t *testing.T) {
 // something wrong rather than nothing: no token is no authentication at all,
 // and no frontend is a daemon serving an interface it does not have.
 func TestNewServerRefusesToStartHalfAssembled(t *testing.T) {
+	t.Parallel()
+
 	root, err := filepath.EvalSymlinks(t.TempDir())
 	if err != nil {
 		t.Fatalf("resolving: %v", err)
@@ -1709,6 +1769,8 @@ func decodeBody(t *testing.T, response *http.Response) struct {
 // that actively harmful: a repository deleted and re-cloned — which people do —
 // is refused afterwards with 409 forever, correctly and with no way back.
 func TestClosingARepositoryIsIdempotent(t *testing.T) {
+	t.Parallel()
+
 	handler, root := serverOnRoot(t)
 	path := filepath.Join(root, "project")
 	makeRepo(t, path)
@@ -1744,6 +1806,8 @@ func TestClosingARepositoryIsIdempotent(t *testing.T) {
 // TestAReplacedRepositoryCanBeClosedAndReopened is the whole point of the
 // route: the refusal is right, and it must not be permanent.
 func TestAReplacedRepositoryCanBeClosedAndReopened(t *testing.T) {
+	t.Parallel()
+
 	handler, root := serverOnRoot(t)
 	path := filepath.Join(root, "project")
 	makeRepo(t, path)
@@ -1791,6 +1855,8 @@ func authenticated(request *http.Request) *http.Request {
 // first thing anyone browsing from another machine sees, which is the whole
 // case YAGIT_PUBLIC_HOST and YAGIT_PUBLIC_URL exist for.
 func TestAnUnauthenticatedBrowserGetsAPageAndAClientGetsJSON(t *testing.T) {
+	t.Parallel()
+
 	handler := testServer(t)
 
 	cases := []struct {
@@ -1887,6 +1953,8 @@ func TestAnUnauthenticatedBrowserGetsAPageAndAClientGetsJSON(t *testing.T) {
 // The announced address carries no token, so a refusal that sent the reader to
 // look in it would describe a place the token has never been.
 func TestTheClientRefusalNamesAWayIn(t *testing.T) {
+	t.Parallel()
+
 	handler := testServer(t)
 
 	response := execute(handler, httptest.NewRequest(http.MethodGet, "/api/repos", nil))
@@ -1911,6 +1979,8 @@ func TestTheClientRefusalNamesAWayIn(t *testing.T) {
 // TestSessionExchangeSetsACookie closes the loop: POST /api/session is how a
 // browser gets in without putting the secret in the URL.
 func TestSessionExchangeSetsACookie(t *testing.T) {
+	t.Parallel()
+
 	handler := testServer(t)
 
 	request := httptest.NewRequest(http.MethodPost, "/api/session", strings.NewReader("token="+testToken))
@@ -1931,6 +2001,8 @@ func TestSessionExchangeSetsACookie(t *testing.T) {
 // TestLegacyTokenInURLStillWorks keeps the query-string exchange for tools
 // that already pass ?token=, while steering browsers toward POST /api/session.
 func TestLegacyTokenInURLStillWorks(t *testing.T) {
+	t.Parallel()
+
 	handler := testServer(t)
 
 	request := httptest.NewRequest(http.MethodGet, "/?token="+testToken, nil)

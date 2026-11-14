@@ -19,8 +19,6 @@ import (
 // resettable is a linear history on main: base → one → two.
 func resettable(t *testing.T) (string, *git.Runner) {
 	t.Helper()
-	isolateGitConfiguration(t)
-
 	dir := t.TempDir()
 	runner := git.NewRunner(nil)
 
@@ -42,6 +40,8 @@ func resettable(t *testing.T) (string, *git.Runner) {
 }
 
 func TestPreviewResetCountsWhatTheBranchWouldLeave(t *testing.T) {
+	t.Parallel()
+
 	dir, runner := resettable(t)
 	one := commitOf(t, runner, dir, "main~1")
 
@@ -67,6 +67,8 @@ func TestPreviewResetCountsWhatTheBranchWouldLeave(t *testing.T) {
 }
 
 func TestPreviewResetToHEADDropsNothing(t *testing.T) {
+	t.Parallel()
+
 	dir, runner := resettable(t)
 	head := commitOf(t, runner, dir, "HEAD")
 
@@ -83,6 +85,8 @@ func TestPreviewResetToHEADDropsNothing(t *testing.T) {
 // count the confirmation names under "This will permanently discard" must be
 // the tracked ones only.
 func TestPreviewResetCountsOnlyTheTrackedFilesAHardResetWouldDiscard(t *testing.T) {
+	t.Parallel()
+
 	dir, runner := resettable(t)
 	one := commitOf(t, runner, dir, "main~1")
 	writeWorkFile(t, dir, "notes.md", "edited\n")
@@ -107,6 +111,8 @@ func TestPreviewResetCountsOnlyTheTrackedFilesAHardResetWouldDiscard(t *testing.
 }
 
 func TestPreviewResetRefusesACommitNotOnTheBranch(t *testing.T) {
+	t.Parallel()
+
 	dir, runner := resettable(t)
 
 	runGit(t, runner, dir, "switch", "-c", "side", "main~2")
@@ -123,6 +129,8 @@ func TestPreviewResetRefusesACommitNotOnTheBranch(t *testing.T) {
 }
 
 func TestResetSoftKeepsTheIndexAndTheWorkTree(t *testing.T) {
+	t.Parallel()
+
 	dir, runner := resettable(t)
 	one := commitOf(t, runner, dir, "main~1")
 	two := commitOf(t, runner, dir, "HEAD")
@@ -149,6 +157,8 @@ func TestResetSoftKeepsTheIndexAndTheWorkTree(t *testing.T) {
 }
 
 func TestResetMixedUnstagesWhatSoftWouldKeep(t *testing.T) {
+	t.Parallel()
+
 	dir, runner := resettable(t)
 	one := commitOf(t, runner, dir, "main~1")
 
@@ -181,6 +191,8 @@ func TestResetMixedUnstagesWhatSoftWouldKeep(t *testing.T) {
 }
 
 func TestResetHardDiscardsTheWorkTree(t *testing.T) {
+	t.Parallel()
+
 	dir, runner := resettable(t)
 	one := commitOf(t, runner, dir, "main~1")
 	writeWorkFile(t, dir, "notes.md", "edited\n")

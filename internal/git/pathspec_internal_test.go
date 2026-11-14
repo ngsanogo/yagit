@@ -19,6 +19,8 @@ func longEnoughToCross(count int) []string {
 }
 
 func TestAShortListStaysOnTheCommandLine(t *testing.T) {
+	t.Parallel()
+
 	args, stdin := pathspecs([]string{"notes.md", "src/main.go"})
 
 	if stdin != nil {
@@ -36,6 +38,8 @@ func TestAShortListStaysOnTheCommandLine(t *testing.T) {
 }
 
 func TestALongListGoesToStandardInput(t *testing.T) {
+	t.Parallel()
+
 	paths := longEnoughToCross(1000)
 	args, stdin := pathspecs(paths)
 
@@ -69,6 +73,8 @@ func TestALongListGoesToStandardInput(t *testing.T) {
 }
 
 func TestTheThresholdIsCrossedOnceAndNotEarlier(t *testing.T) {
+	t.Parallel()
+
 	// Just under, then just over, so a change to the number is a deliberate
 	// one rather than something a refactor slid past.
 	under := strings.Repeat("x", maxPathspecArgv-len(":(literal)")-1)
@@ -83,6 +89,8 @@ func TestTheThresholdIsCrossedOnceAndNotEarlier(t *testing.T) {
 }
 
 func TestEveryCleanBatchFitsOnACommandLine(t *testing.T) {
+	t.Parallel()
+
 	// `git clean` takes no pathspec file, so the only way under the limit is
 	// to run it more than once. Each command has to fit on its own.
 	paths := longEnoughToCross(2000)
@@ -113,6 +121,8 @@ func TestEveryCleanBatchFitsOnACommandLine(t *testing.T) {
 }
 
 func TestASingleCleanCommandWhenTheListIsShort(t *testing.T) {
+	t.Parallel()
+
 	batches := DiscardUntrackedBatches([]string{"build/out.js", "build/out.map"})
 	if len(batches) != 1 {
 		t.Fatalf("a two-file discard produced %d commands, want one", len(batches))

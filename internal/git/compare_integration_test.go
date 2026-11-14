@@ -12,7 +12,8 @@ import (
 // from the fork — so comparing HEAD=topic against refs/heads/main is
 // ahead=2, behind=1.
 func TestCompareAheadBehind(t *testing.T) {
-	isolateGitConfiguration(t)
+	t.Parallel()
+
 	dir := t.TempDir()
 	runner := git.NewRunner(nil)
 
@@ -40,7 +41,8 @@ func TestCompareAheadBehind(t *testing.T) {
 }
 
 func TestCompareRefusesShortName(t *testing.T) {
-	isolateGitConfiguration(t)
+	t.Parallel()
+
 	dir := t.TempDir()
 	runner := git.NewRunner(nil)
 	runGit(t, runner, dir, "init", "-b", "main")
@@ -53,7 +55,8 @@ func TestCompareRefusesShortName(t *testing.T) {
 }
 
 func TestCompareSameTip(t *testing.T) {
-	isolateGitConfiguration(t)
+	t.Parallel()
+
 	dir := t.TempDir()
 	runner := git.NewRunner(nil)
 	runGit(t, runner, dir, "init", "-b", "main")

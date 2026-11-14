@@ -17,6 +17,8 @@ import (
 // field the framing has to survive.
 
 func TestShowReadsACommitWhole(t *testing.T) {
+	t.Parallel()
+
 	dir, runner := workingDirectory(t)
 	ctx := context.Background()
 
@@ -68,6 +70,8 @@ func TestShowReadsACommitWhole(t *testing.T) {
 }
 
 func TestShowOfACommitWithAOneLineMessage(t *testing.T) {
+	t.Parallel()
+
 	dir, runner := workingDirectory(t)
 	ctx := context.Background()
 
@@ -92,6 +96,8 @@ func TestShowOfACommitWithAOneLineMessage(t *testing.T) {
 }
 
 func TestShowOfARootCommitListsWhatItCreated(t *testing.T) {
+	t.Parallel()
+
 	dir, runner := workingDirectory(t)
 	ctx := context.Background()
 
@@ -116,6 +122,8 @@ func TestShowOfARootCommitListsWhatItCreated(t *testing.T) {
 }
 
 func TestShowOfAMergeSaysWhichDiffItIs(t *testing.T) {
+	t.Parallel()
+
 	dir, runner := testRepository(t)
 	ctx := context.Background()
 
@@ -141,6 +149,8 @@ func TestShowOfAMergeSaysWhichDiffItIs(t *testing.T) {
 }
 
 func TestShowRefusesARevisionGitWouldReadAsAnOption(t *testing.T) {
+	t.Parallel()
+
 	dir, runner := workingDirectory(t)
 
 	// git has no `--` for revisions the way it has for paths, so a leading
@@ -154,6 +164,8 @@ func TestShowRefusesARevisionGitWouldReadAsAnOption(t *testing.T) {
 }
 
 func TestShowOfANameGitDoesNotKnow(t *testing.T) {
+	t.Parallel()
+
 	dir, runner := workingDirectory(t)
 
 	_, err := runner.Show(context.Background(), dir, "0000000000000000000000000000000000000000")

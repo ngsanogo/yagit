@@ -22,6 +22,8 @@ func logOutput(records ...string) []byte {
 }
 
 func TestParseLogEmptyOutput(t *testing.T) {
+	t.Parallel()
+
 	commits, err := git.ParseLog(nil)
 	if err != nil {
 		t.Fatalf("empty output must not be an error: %v", err)
@@ -32,6 +34,8 @@ func TestParseLogEmptyOutput(t *testing.T) {
 }
 
 func TestParseLogRootCommit(t *testing.T) {
+	t.Parallel()
+
 	output := logOutput(logRecord(
 		"a1b2c3", "", "Ada Lovelace", "2024-03-01T10:00:00+01:00", "first commit", ""))
 
@@ -64,6 +68,8 @@ func TestParseLogRootCommit(t *testing.T) {
 }
 
 func TestParseLogMergeAndRefDecoration(t *testing.T) {
+	t.Parallel()
+
 	output := logOutput(
 		logRecord("ffff", "aaaa bbbb", "Grace Hopper", "2024-03-02T09:00:00Z",
 			"Merge branch 'feature'", "HEAD -> main, origin/main, tag: v1.0"),
@@ -107,6 +113,8 @@ func TestParseLogMergeAndRefDecoration(t *testing.T) {
 // the message body is added — and this test will then fail if someone has
 // "simplified" the splitting in the meantime.
 func TestParseLogSubjectWithNewline(t *testing.T) {
+	t.Parallel()
+
 	subject := "fix the parser\nrest of the message"
 	output := logOutput(logRecord(
 		"deadbeef", "cafe", "Barbara Liskov", "2024-03-03T12:00:00Z", subject, ""))
@@ -124,6 +132,8 @@ func TestParseLogSubjectWithNewline(t *testing.T) {
 }
 
 func TestParseLogSubjectWithTrickyCharacters(t *testing.T) {
+	t.Parallel()
+
 	subject := `feat(api): handles “quotes”, $variables and 🌳`
 	output := logOutput(logRecord(
 		"1234", "", "Ada", "2024-03-04T12:00:00Z", subject, ""))
@@ -138,6 +148,8 @@ func TestParseLogSubjectWithTrickyCharacters(t *testing.T) {
 }
 
 func TestParseLogWrongFieldCount(t *testing.T) {
+	t.Parallel()
+
 	output := logOutput("far\x00too\x00few\x00fields\x00\n")
 
 	_, err := git.ParseLog(output)
@@ -150,6 +162,8 @@ func TestParseLogWrongFieldCount(t *testing.T) {
 }
 
 func TestParseLogUnreadableDate(t *testing.T) {
+	t.Parallel()
+
 	output := logOutput(logRecord("1234", "", "Ada", "yesterday morning", "subject", ""))
 
 	_, err := git.ParseLog(output)

@@ -11,6 +11,8 @@ import (
 )
 
 func TestReadHEADOnABranch(t *testing.T) {
+	t.Parallel()
+
 	dir, runner := testRepository(t)
 
 	head, err := runner.ReadHEAD(context.Background(), dir)
@@ -37,6 +39,8 @@ func TestReadHEADOnABranch(t *testing.T) {
 }
 
 func TestReadHEADWhenDetached(t *testing.T) {
+	t.Parallel()
+
 	dir, runner := testRepository(t)
 	ctx := context.Background()
 
@@ -70,7 +74,7 @@ func TestReadHEADWhenDetached(t *testing.T) {
 // git command that fails here would put a fatal in front of the user on every
 // refresh of a repository where nothing is wrong.
 func TestReadHEADWithNoCommitYet(t *testing.T) {
-	isolateGitConfiguration(t)
+	t.Parallel()
 
 	var failures []git.Execution
 	runner := git.NewRunner(func(execution git.Execution) {
@@ -101,7 +105,7 @@ func TestReadHEADWithNoCommitYet(t *testing.T) {
 // repository without commits would hide the real problem behind an empty
 // history.
 func TestReadHEADOutsideARepository(t *testing.T) {
-	isolateGitConfiguration(t)
+	t.Parallel()
 
 	// A .git file pointing nowhere, rather than a bare directory: git walks up
 	// to the parent directories, and a temporary directory that happens to sit

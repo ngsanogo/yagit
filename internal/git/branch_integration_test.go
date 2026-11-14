@@ -28,8 +28,6 @@ import (
 //	origin/upstream-only ─── on A, in refs/remotes only
 func switchable(t *testing.T) (string, *git.Runner) {
 	t.Helper()
-	isolateGitConfiguration(t)
-
 	dir := t.TempDir()
 	runner := git.NewRunner(nil)
 
@@ -68,6 +66,8 @@ func headOf(t *testing.T, runner *git.Runner, dir string) git.HEAD {
 }
 
 func TestSwitchMovesHEADOntoABranch(t *testing.T) {
+	t.Parallel()
+
 	dir, runner := switchable(t)
 
 	if err := runner.Switch(context.Background(), dir, "side"); err != nil {
@@ -90,6 +90,8 @@ func TestSwitchMovesHEADOntoABranch(t *testing.T) {
 // checks it out — three things, from a request that named one, and the created
 // branch then appears in the sidebar as if somebody had made it.
 func TestSwitchRefusesToInventABranchFromARemote(t *testing.T) {
+	t.Parallel()
+
 	dir, runner := switchable(t)
 
 	err := runner.Switch(context.Background(), dir, "upstream-only")
@@ -121,6 +123,8 @@ func TestSwitchRefusesToInventABranchFromARemote(t *testing.T) {
 // matters is WHICH refusal: a sentence about the name, not about an unknown
 // option.
 func TestSwitchNamesADashedReferenceRatherThanReadingItAsAnOption(t *testing.T) {
+	t.Parallel()
+
 	dir, runner := switchable(t)
 
 	err := runner.Switch(context.Background(), dir, "--force")
@@ -142,6 +146,8 @@ func TestSwitchNamesADashedReferenceRatherThanReadingItAsAnOption(t *testing.T) 
 // A tag is not a place HEAD can sit, which is the whole reason detaching is a
 // separate operation rather than a flag nobody sets.
 func TestDetachPutsHEADOnTheCommitATagNames(t *testing.T) {
+	t.Parallel()
+
 	dir, runner := switchable(t)
 
 	if err := runner.Detach(context.Background(), dir, "v1"); err != nil {
@@ -168,6 +174,8 @@ func TestDetachPutsHEADOnTheCommitATagNames(t *testing.T) {
 // exactly why the interface does not offer it for a local branch: it is the
 // one case where "check out" and "detach here" differ in what the user gets.
 func TestDetachAtABranchLeavesTheBranchBehind(t *testing.T) {
+	t.Parallel()
+
 	dir, runner := switchable(t)
 	before := headOf(t, runner, dir).SHA
 
@@ -188,6 +196,8 @@ func TestDetachAtABranchLeavesTheBranchBehind(t *testing.T) {
 // has to arrive whole: the interface shows the files git named, and there is
 // nothing else on screen that could tell the user what is in the way.
 func TestSwitchReportsWhatUncommittedWorkWouldBeOverwritten(t *testing.T) {
+	t.Parallel()
+
 	dir, runner := switchable(t)
 
 	// The same file, different content on each branch, and a third version on
@@ -227,6 +237,8 @@ func TestSwitchReportsWhatUncommittedWorkWouldBeOverwritten(t *testing.T) {
 }
 
 func TestSwitchAndDetachRefuseAnEmptyReference(t *testing.T) {
+	t.Parallel()
+
 	dir, runner := switchable(t)
 
 	if err := runner.Switch(context.Background(), dir, ""); !errors.Is(err, git.ErrNoRef) {
@@ -244,8 +256,6 @@ func TestSwitchAndDetachRefuseAnEmptyReference(t *testing.T) {
 //	side   A ─── S
 func branchable(t *testing.T) (string, *git.Runner) {
 	t.Helper()
-	isolateGitConfiguration(t)
-
 	dir := t.TempDir()
 	runner := git.NewRunner(nil)
 
@@ -277,6 +287,8 @@ func branchNames(t *testing.T, runner *git.Runner, dir string) []string {
 }
 
 func TestCreateBranchStartsWhereItIsTold(t *testing.T) {
+	t.Parallel()
+
 	dir, runner := branchable(t)
 
 	if err := runner.CreateBranch(context.Background(), dir, "from-side", "side"); err != nil {
@@ -299,6 +311,8 @@ func TestCreateBranchStartsWhereItIsTold(t *testing.T) {
 }
 
 func TestCreateBranchWithNoStartPointUsesHEAD(t *testing.T) {
+	t.Parallel()
+
 	dir, runner := branchable(t)
 
 	if err := runner.CreateBranch(context.Background(), dir, "here", ""); err != nil {
@@ -319,6 +333,8 @@ func TestCreateBranchWithNoStartPointUsesHEAD(t *testing.T) {
 // branch the user was standing on is gone under a name they typed into a
 // "new branch" box.
 func TestCreateBranchRefusesAnOptionShapedNameByName(t *testing.T) {
+	t.Parallel()
+
 	dir, runner := branchable(t)
 
 	err := runner.CreateBranch(context.Background(), dir, "-m", "release")
@@ -337,6 +353,8 @@ func TestCreateBranchRefusesAnOptionShapedNameByName(t *testing.T) {
 }
 
 func TestCreateAndSwitchLandsOnTheNewBranch(t *testing.T) {
+	t.Parallel()
+
 	dir, runner := branchable(t)
 
 	if err := runner.CreateAndSwitch(context.Background(), dir, "working", "side"); err != nil {
@@ -360,6 +378,8 @@ func TestCreateAndSwitchLandsOnTheNewBranch(t *testing.T) {
 // start point, leaves --create without a name, and fails on a repository where
 // no such reference exists — or, worse, succeeds somewhere it does.
 func TestCreateAndSwitchRefusesAnOptionShapedName(t *testing.T) {
+	t.Parallel()
+
 	dir, runner := branchable(t)
 
 	err := runner.CreateAndSwitch(context.Background(), dir, "-m", "")
@@ -376,6 +396,8 @@ func TestCreateAndSwitchRefusesAnOptionShapedName(t *testing.T) {
 }
 
 func TestRenameBranchKeepsHEADWithIt(t *testing.T) {
+	t.Parallel()
+
 	dir, runner := branchable(t)
 
 	if err := runner.RenameBranch(context.Background(), dir, "main", "trunk"); err != nil {
@@ -399,6 +421,8 @@ func TestRenameBranchKeepsHEADWithIt(t *testing.T) {
 
 // `-m` and not `-M`, checked by making the collision it refuses.
 func TestRenameBranchRefusesToOverwriteAnExistingBranch(t *testing.T) {
+	t.Parallel()
+
 	dir, runner := branchable(t)
 
 	err := runner.RenameBranch(context.Background(), dir, "main", "side")
@@ -412,6 +436,8 @@ func TestRenameBranchRefusesToOverwriteAnExistingBranch(t *testing.T) {
 }
 
 func TestDeleteBranchRefusesUnmergedWorkUntilForced(t *testing.T) {
+	t.Parallel()
+
 	dir, runner := branchable(t)
 
 	// side holds a commit main cannot reach, which is exactly what -d exists
@@ -432,6 +458,8 @@ func TestDeleteBranchRefusesUnmergedWorkUntilForced(t *testing.T) {
 }
 
 func TestDeleteBranchRefusesTheBranchHEADIsOn(t *testing.T) {
+	t.Parallel()
+
 	dir, runner := branchable(t)
 
 	if err := runner.DeleteBranch(context.Background(), dir, "main", true); err == nil {
@@ -443,6 +471,8 @@ func TestDeleteBranchRefusesTheBranchHEADIsOn(t *testing.T) {
 }
 
 func TestBranchOperationsRefuseAnEmptyName(t *testing.T) {
+	t.Parallel()
+
 	dir, runner := branchable(t)
 	ctx := context.Background()
 

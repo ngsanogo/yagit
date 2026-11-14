@@ -19,6 +19,8 @@ import (
 var everyPlatformYagitShipsFor = []string{"linux", "darwin", "windows"}
 
 func TestInheritedNamesCarryWhatGitCannotWorkWithout(t *testing.T) {
+	t.Parallel()
+
 	// PATH finds git's own subcommands and the user's helpers;
 	// GIT_CONFIG_GLOBAL and GIT_CONFIG_SYSTEM are the only way a test — or a
 	// user — can hand git a known configuration.
@@ -35,6 +37,8 @@ func TestInheritedNamesCarryWhatGitCannotWorkWithout(t *testing.T) {
 }
 
 func TestWindowsInheritsWhatWindowsItselfNeeds(t *testing.T) {
+	t.Parallel()
+
 	// Each of these breaks something that does not look like an environment
 	// problem when it is missing: SystemRoot breaks name resolution inside
 	// Winsock, PATHEXT hides every credential helper that ships as a .cmd,
@@ -56,6 +60,8 @@ func TestWindowsInheritsWhatWindowsItselfNeeds(t *testing.T) {
 }
 
 func TestUnixDoesNotInheritWindowsVariables(t *testing.T) {
+	t.Parallel()
+
 	// Not a style rule. An allowlist is only readable while every name on it
 	// has a reason to be there, and a Windows variable on a Linux list is a
 	// name nobody can justify — which is how allowlists rot into "everything
@@ -70,6 +76,8 @@ func TestUnixDoesNotInheritWindowsVariables(t *testing.T) {
 }
 
 func TestNoPlatformListsAVariableTwice(t *testing.T) {
+	t.Parallel()
+
 	for _, platform := range everyPlatformYagitShipsFor {
 		names := inheritedNames(platform)
 		seen := make(map[string]bool, len(names))
@@ -83,6 +91,8 @@ func TestNoPlatformListsAVariableTwice(t *testing.T) {
 }
 
 func TestNoPlatformHandsGitAnAgent(t *testing.T) {
+	t.Parallel()
+
 	// A command that cannot authenticate must fail saying so, rather than
 	// succeed because an agent leaked in through an inherited environment.
 	// Every name git could reach a key through is listed here, and each one
@@ -111,6 +121,8 @@ func TestNoPlatformHandsGitAnAgent(t *testing.T) {
 }
 
 func TestSigningReachesTheUsersAgentsOnEveryPlatform(t *testing.T) {
+	t.Parallel()
+
 	// The other half of the test above. Dropping a name from the lists would
 	// otherwise be silent: commits would go on being made, unsigned, on a
 	// machine whose owner asked for every one of them to be signed.
@@ -125,6 +137,8 @@ func TestSigningReachesTheUsersAgentsOnEveryPlatform(t *testing.T) {
 }
 
 func TestNetworkCommandsReachTheProxyAndTheUsersSSH(t *testing.T) {
+	t.Parallel()
+
 	// The other half of the agent test above, for the commands that leave the
 	// machine. Each of these breaks a fetch on a machine where it is set, and
 	// none of them breaks it in a way that looks like an environment problem:
@@ -148,6 +162,8 @@ func TestNetworkCommandsReachTheProxyAndTheUsersSSH(t *testing.T) {
 }
 
 func TestCommandEnvironmentPinsYagitSettings(t *testing.T) {
+	t.Parallel()
+
 	environment := commandEnvironment()
 
 	fixed := []string{
@@ -192,6 +208,8 @@ func TestCommandEnvironmentPinsYagitSettings(t *testing.T) {
 // which is a different question, and the one that matters when somebody is
 // shortening a slice they do not have the history for.
 func TestTheDangerousTransportStaysRefused(t *testing.T) {
+	t.Parallel()
+
 	settings := map[string]string{}
 	for _, setting := range pinnedSettings {
 		settings[setting.key] = setting.value
@@ -251,6 +269,8 @@ func TestAnUnsetVariableStaysUnset(t *testing.T) {
 // for it: see Command.AcceptsPreparedMessage, and State.Blocked for the
 // rebases where accepting would still be a guess.
 func TestTheEnvironmentPinsNoEditor(t *testing.T) {
+	t.Parallel()
+
 	for _, value := range commandEnvironment() {
 		if strings.HasPrefix(value, "GIT_EDITOR=") {
 			t.Errorf("GIT_EDITOR is %q for every command; an editor nobody can see must be asked for", value)
@@ -259,6 +279,8 @@ func TestTheEnvironmentPinsNoEditor(t *testing.T) {
 }
 
 func TestACommandThatAcceptsAPreparedMessageGetsAnEditorThatOpensNothing(t *testing.T) {
+	t.Parallel()
+
 	plain := environmentFor(Command{Args: []string{"status"}})
 	if slices.Contains(plain, "GIT_EDITOR=:") {
 		t.Error("an ordinary command was handed an editor it never asked for")
@@ -286,6 +308,8 @@ func TestACommandThatAcceptsAPreparedMessageGetsAnEditorThatOpensNothing(t *test
 // nobody chose, so the day yagit grows an interactive rebase it has to decide
 // what that list says rather than inherit a silent yes from here.
 func TestTheSequenceEditorIsLeftUnset(t *testing.T) {
+	t.Parallel()
+
 	environments := [][]string{
 		commandEnvironment(),
 		environmentFor(Command{AcceptsPreparedMessage: true}),
@@ -306,6 +330,8 @@ func TestTheSequenceEditorIsLeftUnset(t *testing.T) {
 // on the ordinary failure — every command that writes nothing to stdout —
 // that blank line would be on every error message in the application.
 func TestBothStreamsJoinsOnlyWhatGitActuallyWrote(t *testing.T) {
+	t.Parallel()
+
 	conflict := bothStreams(
 		"Auto-merging notes.md\nCONFLICT (content): Merge conflict in notes.md",
 		"error: could not apply e27e201… side change",
@@ -336,6 +362,8 @@ func TestBothStreamsJoinsOnlyWhatGitActuallyWrote(t *testing.T) {
 // buffer — a `git rev-list` that died halfway would otherwise put its whole
 // answer there.
 func TestBorrowedOutputIsCutOnARuneBoundaryAndSaysSo(t *testing.T) {
+	t.Parallel()
+
 	if got := beginningOf([]byte("  needs merge\n"), 64); got != "needs merge" {
 		t.Errorf("short output came back as %q, want it whole and trimmed", got)
 	}

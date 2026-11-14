@@ -37,6 +37,8 @@ func stateDir(t *testing.T, files map[string]string) string {
 }
 
 func TestAnIdleRepositoryIsInTheMiddleOfNothing(t *testing.T) {
+	t.Parallel()
+
 	state, err := git.ReadState(stateDir(t, map[string]string{"HEAD": "ref: refs/heads/main\n"}))
 	if err != nil {
 		t.Fatalf("ReadState: %v", err)
@@ -47,6 +49,8 @@ func TestAnIdleRepositoryIsInTheMiddleOfNothing(t *testing.T) {
 }
 
 func TestEachMarkerNamesItsOperation(t *testing.T) {
+	t.Parallel()
+
 	for _, testCase := range []struct {
 		name  string
 		files map[string]string
@@ -77,6 +81,8 @@ func TestEachMarkerNamesItsOperation(t *testing.T) {
 // the second first would report a cherry-pick nobody started, and offer to
 // continue one.
 func TestARebaseStoppedOnAConflictIsARebaseAndNotACherryPick(t *testing.T) {
+	t.Parallel()
+
 	state, err := git.ReadState(stateDir(t, map[string]string{
 		"CHERRY_PICK_HEAD":         "abc\n",
 		"rebase-merge/head-name":   "refs/heads/feature\n",
@@ -103,6 +109,8 @@ func TestARebaseStoppedOnAConflictIsARebaseAndNotACherryPick(t *testing.T) {
 // banner over an unreadable counter costs the user the one sentence that
 // explains their conflicted files.
 func TestAnUnreadableCounterLeavesTheOperationIntact(t *testing.T) {
+	t.Parallel()
+
 	state, err := git.ReadState(stateDir(t, map[string]string{
 		"rebase-merge/head-name": "refs/heads/main\n",
 		"rebase-merge/msgnum":    "not a number\n",
@@ -123,6 +131,8 @@ func TestAnUnreadableCounterLeavesTheOperationIntact(t *testing.T) {
 // One counter without the other says nothing: "step 3 of 0" is worse than no
 // numbers at all.
 func TestHalfAProgressCountIsNoProgressCount(t *testing.T) {
+	t.Parallel()
+
 	state, err := git.ReadState(stateDir(t, map[string]string{
 		"rebase-merge/head-name": "refs/heads/main\n",
 		"rebase-merge/msgnum":    "3\n",
@@ -137,6 +147,8 @@ func TestHalfAProgressCountIsNoProgressCount(t *testing.T) {
 
 // A detached rebase writes no head-name. That is a real state, not a failure.
 func TestARebaseWithNoBranchNameIsStillARebase(t *testing.T) {
+	t.Parallel()
+
 	state, err := git.ReadState(stateDir(t, map[string]string{"rebase-merge/msgnum": "1\n"}))
 	if err != nil {
 		t.Fatalf("ReadState: %v", err)
@@ -153,6 +165,8 @@ func TestARebaseWithNoBranchNameIsStillARebase(t *testing.T) {
 // screen for as long as the condition lasts. The branch decorates a banner;
 // the operation is what the banner is for.
 func TestAnUnreadableHeadNameStillReportsTheRebase(t *testing.T) {
+	t.Parallel()
+
 	if runtime.GOOS == "windows" {
 		t.Skip("a mode of 0000 does not stop a read on Windows")
 	}
@@ -187,6 +201,8 @@ func TestAnUnreadableHeadNameStillReportsTheRebase(t *testing.T) {
 }
 
 func TestReadStateWithNoDirectoryIsAnError(t *testing.T) {
+	t.Parallel()
+
 	if _, err := git.ReadState(""); err == nil {
 		t.Fatal("ReadState(\"\") returned no error")
 	}
@@ -201,6 +217,8 @@ func TestReadStateWithNoDirectoryIsAnError(t *testing.T) {
 // currently in progress". Reading only the marker made the banner vanish with
 // commits still unapplied.
 func TestASequenceIsStillInProgressAfterItsMarkerIsGone(t *testing.T) {
+	t.Parallel()
+
 	for _, testCase := range []struct {
 		name string
 		todo string
@@ -236,6 +254,8 @@ func TestASequenceIsStillInProgressAfterItsMarkerIsGone(t *testing.T) {
 // operation. Claiming one would put a banner over a repository that is idle,
 // with buttons offering to abort something that is not happening.
 func TestAnEmptyTodoListIsNotAnOperation(t *testing.T) {
+	t.Parallel()
+
 	for _, todo := range []string{"", "\n\n", "# every line a comment\n", "noop\n"} {
 		state, err := git.ReadState(stateDir(t, map[string]string{
 			"HEAD":           "ref: refs/heads/main\n",
@@ -254,6 +274,8 @@ func TestAnEmptyTodoListIsNotAnOperation(t *testing.T) {
 // commit and the list only names the operation. They agree in practice; the
 // order is what makes that guaranteed rather than lucky.
 func TestTheCommitMarkerIsPreferredOverTheTodoList(t *testing.T) {
+	t.Parallel()
+
 	state, err := git.ReadState(stateDir(t, map[string]string{
 		"HEAD":             "ref: refs/heads/main\n",
 		"CHERRY_PICK_HEAD": "1a2b3c\n",
@@ -278,6 +300,8 @@ func TestTheCommitMarkerIsPreferredOverTheTodoList(t *testing.T) {
 // --abort` — a command aimed at the wrong operation, from a banner nobody
 // could have known was lying.
 func TestAMergeOnTopOfALeftoverSequenceIsAMerge(t *testing.T) {
+	t.Parallel()
+
 	state, err := git.ReadState(stateDir(t, map[string]string{
 		"HEAD":           "ref: refs/heads/main\n",
 		"MERGE_HEAD":     "abc\n",
@@ -299,6 +323,8 @@ func TestAMergeOnTopOfALeftoverSequenceIsAMerge(t *testing.T) {
 // two messages joined without showing them; a `reword` would leave the message
 // exactly as it was, which is the one thing the user asked it not to do.
 func TestARebaseThatWouldWriteAnUnreadMessageWillNotBeContinued(t *testing.T) {
+	t.Parallel()
+
 	for _, testCase := range []struct {
 		name  string
 		files map[string]string
@@ -388,6 +414,8 @@ func TestARebaseThatWouldWriteAnUnreadMessageWillNotBeContinued(t *testing.T) {
 // Everything else blocks nothing, and that is the common case: a rebase of
 // ordinary picks, and every operation that has no plan to read at all.
 func TestAnOrdinaryOperationBlocksNothing(t *testing.T) {
+	t.Parallel()
+
 	for _, testCase := range []struct {
 		name  string
 		files map[string]string
@@ -431,6 +459,8 @@ func TestAnOrdinaryOperationBlocksNothing(t *testing.T) {
 // rebase directory is tested first regardless — but a rebase reported as a
 // cherry-pick would offer to continue the wrong thing.
 func TestARebaseOutranksALeftoverSequence(t *testing.T) {
+	t.Parallel()
+
 	state, err := git.ReadState(stateDir(t, map[string]string{
 		"HEAD":                   "ref: refs/heads/main\n",
 		"rebase-merge/head-name": "refs/heads/feature",
@@ -451,6 +481,8 @@ func TestARebaseOutranksALeftoverSequence(t *testing.T) {
 // appends it to BISECT_LOG. Read from there, the verdicts that would follow it
 // are refused with the answer as the reason, and leaving stays possible.
 func TestAFinishedBisectNamesItsFirstBadCommit(t *testing.T) {
+	t.Parallel()
+
 	const sha = "422f9d2e5227f12748808bc3e1206259635eeeb1"
 	state, err := git.ReadState(stateDir(t, map[string]string{"BISECT_LOG": "" +
 		"git bisect start 'HEAD' 'HEAD~4' '--'\n" +
@@ -478,6 +510,8 @@ func TestAFinishedBisectNamesItsFirstBadCommit(t *testing.T) {
 // git quotes the term from the release after 2.54, and a bisect with terms of
 // its own names them; the answer is read the same from every form.
 func TestTheFirstBadCommitIsReadWhateverTheTermIsCalled(t *testing.T) {
+	t.Parallel()
+
 	const sha = "422f9d2e5227f12748808bc3e1206259635eeeb1"
 	for _, line := range []string{
 		"# first bad commit: [" + sha + "] c4",
@@ -497,6 +531,8 @@ func TestTheFirstBadCommitIsReadWhateverTheTermIsCalled(t *testing.T) {
 }
 
 func TestABisectStillSearchingHasNoAnswer(t *testing.T) {
+	t.Parallel()
+
 	state, err := git.ReadState(stateDir(t, map[string]string{"BISECT_LOG": "git bisect start\n"}))
 	if err != nil {
 		t.Fatalf("ReadState: %v", err)

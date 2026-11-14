@@ -9,6 +9,8 @@ import (
 )
 
 func TestLogPathFollowsARename(t *testing.T) {
+	t.Parallel()
+
 	dir := initRepo(t)
 	runner := git.NewRunner(nil)
 	ctx := context.Background()
@@ -36,6 +38,8 @@ func TestLogPathFollowsARename(t *testing.T) {
 }
 
 func TestLogPathStartsAtARevision(t *testing.T) {
+	t.Parallel()
+
 	dir := initRepo(t)
 	runner := git.NewRunner(nil)
 	ctx := context.Background()
@@ -59,6 +63,8 @@ func TestLogPathStartsAtARevision(t *testing.T) {
 }
 
 func TestLogPathRefusesAnEmptyPath(t *testing.T) {
+	t.Parallel()
+
 	dir := initRepo(t)
 	_, err := git.NewRunner(nil).LogPath(context.Background(), dir, "HEAD", "  ")
 	if !errors.Is(err, git.ErrNoPaths) {

@@ -9,6 +9,8 @@ import (
 )
 
 func TestLogLineTracksAChangedLine(t *testing.T) {
+	t.Parallel()
+
 	dir := initRepo(t)
 	runner := git.NewRunner(nil)
 	ctx := context.Background()
@@ -41,6 +43,8 @@ func TestLogLineTracksAChangedLine(t *testing.T) {
 }
 
 func TestLogLineFollowsARename(t *testing.T) {
+	t.Parallel()
+
 	dir := initRepo(t)
 	runner := git.NewRunner(nil)
 	ctx := context.Background()
@@ -62,6 +66,8 @@ func TestLogLineFollowsARename(t *testing.T) {
 }
 
 func TestLogLineRefusesABadRange(t *testing.T) {
+	t.Parallel()
+
 	dir := initRepo(t)
 	_, err := git.NewRunner(nil).LogLine(context.Background(), dir, "HEAD", "a.txt", 0, 1)
 	if !errors.Is(err, git.ErrBadLineRange) {
@@ -70,6 +76,8 @@ func TestLogLineRefusesABadRange(t *testing.T) {
 }
 
 func TestLogLineRefusesAColonInThePath(t *testing.T) {
+	t.Parallel()
+
 	dir := initRepo(t)
 	_, err := git.NewRunner(nil).LogLine(context.Background(), dir, "HEAD", "a:b.txt", 1, 1)
 	if !errors.Is(err, git.ErrNoPaths) {

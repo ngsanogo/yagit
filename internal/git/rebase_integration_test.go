@@ -26,8 +26,6 @@ import (
 //	side   base
 func twoCommits(t *testing.T) (string, *git.Runner) {
 	t.Helper()
-	isolateGitConfiguration(t)
-
 	dir := t.TempDir()
 	runner := git.NewRunner(nil)
 
@@ -118,6 +116,8 @@ func previewOf(t *testing.T, runner *git.Runner, dir, from, onto string) git.Reb
 }
 
 func TestRebaseReplayMovesTheBranch(t *testing.T) {
+	t.Parallel()
+
 	dir, runner := rebaseableClean(t)
 
 	before := commitOf(t, runner, dir, "side")
@@ -158,6 +158,8 @@ func TestRebaseReplayMovesTheBranch(t *testing.T) {
 }
 
 func TestRebaseConflictStopsAndLeavesMarkers(t *testing.T) {
+	t.Parallel()
+
 	dir, runner := rebaseableConflict(t)
 
 	if err := runner.Rebase(context.Background(), dir, "main", git.RebaseReplay); err == nil {
@@ -182,6 +184,8 @@ func TestRebaseConflictStopsAndLeavesMarkers(t *testing.T) {
 }
 
 func TestPreviewRebaseCountsCommitsToReplay(t *testing.T) {
+	t.Parallel()
+
 	dir, runner := rebaseableClean(t)
 
 	preview := previewOf(t, runner, dir, "side", "main")
@@ -202,6 +206,8 @@ func TestPreviewRebaseCountsCommitsToReplay(t *testing.T) {
 // The equal arrangement: the branch was created at the upstream's tip. git
 // answers "Current branch is up to date" and writes nothing.
 func TestPreviewRebaseUpToDateWhereTheBranchSitsOnTheUpstream(t *testing.T) {
+	t.Parallel()
+
 	dir, runner := twoCommits(t)
 
 	runGit(t, runner, dir, "switch", "-c", "at-main")
@@ -220,6 +226,8 @@ func TestPreviewRebaseUpToDateWhereTheBranchSitsOnTheUpstream(t *testing.T) {
 // plan promised two commits replayed — while git answers "Current branch is up
 // to date" and writes nothing at all.
 func TestPreviewRebaseUpToDateWhereTheBranchIsAheadOfTheUpstream(t *testing.T) {
+	t.Parallel()
+
 	dir, runner := twoCommits(t)
 
 	runGit(t, runner, dir, "switch", "-c", "ahead")
@@ -249,6 +257,8 @@ func TestPreviewRebaseUpToDateWhereTheBranchIsAheadOfTheUpstream(t *testing.T) {
 // strictly BEHIND, so `rev-list --count main..behind` is 0 — and git moves the
 // branch onto the upstream and rewrites every file under it.
 func TestPreviewRebaseFastForwardsABranchWithNothingOfItsOwn(t *testing.T) {
+	t.Parallel()
+
 	dir, runner := twoCommits(t)
 
 	runGit(t, runner, dir, "switch", "-c", "behind")
@@ -288,6 +298,8 @@ func TestPreviewRebaseFastForwardsABranchWithNothingOfItsOwn(t *testing.T) {
 // branch instead — every commit written again, the merge gone — so the plan has
 // to say a replay and not "rebasing changes nothing".
 func TestPreviewRebaseReplaysAnAheadBranchThatHoldsAMerge(t *testing.T) {
+	t.Parallel()
+
 	dir, runner := twoCommits(t)
 
 	runGit(t, runner, dir, "switch", "-c", "feature")
@@ -328,6 +340,8 @@ func TestPreviewRebaseReplaysAnAheadBranchThatHoldsAMerge(t *testing.T) {
 // base: they keep their hashes and stay on the branch, while the confirmation
 // promised new ones in their place. With it, none of the originals survives.
 func TestRebaseReplayWritesEveryCommitAgain(t *testing.T) {
+	t.Parallel()
+
 	dir, runner := twoCommits(t)
 
 	runGit(t, runner, dir, "switch", "-c", "feature")
@@ -361,6 +375,8 @@ func TestRebaseReplayWritesEveryCommitAgain(t *testing.T) {
 // four commits and git writes three of them again: the merge commit is
 // discarded and the branch comes back a straight line.
 func TestPreviewRebaseCountsTheMergeCommitsItWouldFlatten(t *testing.T) {
+	t.Parallel()
+
 	dir, runner := twoCommits(t)
 
 	runGit(t, runner, dir, "switch", "-c", "side")
@@ -402,6 +418,8 @@ func TestPreviewRebaseCountsTheMergeCommitsItWouldFlatten(t *testing.T) {
 // branch lands on the upstream with its merges gone, which is a loss the
 // confirmation has to name because no count of replayed commits would.
 func TestPreviewRebaseWhereTheBranchHoldsNothingButMerges(t *testing.T) {
+	t.Parallel()
+
 	dir, runner := twoCommits(t)
 
 	runGit(t, runner, dir, "switch", "-c", "topic-a")
@@ -445,6 +463,8 @@ func TestPreviewRebaseWhereTheBranchHoldsNothingButMerges(t *testing.T) {
 // the branch either way, which is what the number and the warning beside it
 // are about; erring towards more is the only direction that is safe here.
 func TestPreviewRebaseCountsWhatLeavesTheBranchRatherThanWhatGitKeeps(t *testing.T) {
+	t.Parallel()
+
 	dir, runner := twoCommits(t)
 
 	runGit(t, runner, dir, "switch", "-c", "side")
@@ -471,6 +491,8 @@ func TestPreviewRebaseCountsWhatLeavesTheBranchRatherThanWhatGitKeeps(t *testing
 // this refuses neither. What the plan answers instead is the whole branch,
 // about to be written again somewhere it has never been.
 func TestPreviewRebasePlansUnrelatedHistoriesAsAReplay(t *testing.T) {
+	t.Parallel()
+
 	dir, runner := twoCommits(t)
 
 	runGit(t, runner, dir, "checkout", "--orphan", "orphan")
@@ -499,6 +521,8 @@ func TestPreviewRebasePlansUnrelatedHistoriesAsAReplay(t *testing.T) {
 // and it does it silently under a dialog that named one branch.
 // --no-update-refs is what keeps the rest of the repository where it was.
 func TestRebaseLeavesOtherBranchesWhereTheyAre(t *testing.T) {
+	t.Parallel()
+
 	dir, runner := twoCommits(t)
 
 	runGit(t, runner, dir, "switch", "-c", "side")
@@ -524,6 +548,8 @@ func TestRebaseLeavesOtherBranchesWhereTheyAre(t *testing.T) {
 // a confirmation that named commits and said nothing about uncommitted work.
 // --no-autostash is what leaves git's own refusal to reach the screen.
 func TestRebaseRefusesADirtyWorkTreeRatherThanStashingIt(t *testing.T) {
+	t.Parallel()
+
 	dir, runner := rebaseableClean(t)
 
 	runGit(t, runner, dir, "config", "rebase.autoStash", "true")
@@ -559,6 +585,8 @@ func TestRebaseRefusesADirtyWorkTreeRatherThanStashingIt(t *testing.T) {
 // what rebaseSummary and rebaseLosses are about. Both numbers are asserted
 // here so that a change to either has to say which one it meant.
 func TestRebaseDropsAlreadyAppliedCommitsByDefault(t *testing.T) {
+	t.Parallel()
+
 	dir, runner := twoCommits(t)
 
 	runGit(t, runner, dir, "switch", "-c", "side")
@@ -596,6 +624,8 @@ func TestRebaseDropsAlreadyAppliedCommitsByDefault(t *testing.T) {
 // --no-fork-point — and the default is what this holds up, because no flag in
 // RebaseArgs does.
 func TestRebaseIgnoresForkPointWhereAnUpstreamIsNamed(t *testing.T) {
+	t.Parallel()
+
 	dir, runner := twoCommits(t)
 
 	// main moves, side is rebased onto it, and then main is rewound and moves

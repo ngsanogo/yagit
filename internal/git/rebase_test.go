@@ -10,6 +10,8 @@ import (
 )
 
 func TestRebaseArgsNamesTheBranchWhereNothingElseCanAnswerTo(t *testing.T) {
+	t.Parallel()
+
 	for _, outcome := range []git.RebaseOutcome{
 		git.RebaseUpToDate, git.RebaseFastForward, git.RebaseReplay,
 	} {
@@ -26,6 +28,8 @@ func TestRebaseArgsNamesTheBranchWhereNothingElseCanAnswerTo(t *testing.T) {
 // is the one worth naming: without it, `rebase.updateRefs` force-moves every
 // other branch pointing into the replayed range, which no confirmation named.
 func TestRebaseArgsPinsWhatConfigurationWouldDecide(t *testing.T) {
+	t.Parallel()
+
 	pinned := []string{
 		"--merge",
 		"--no-autosquash",
@@ -51,6 +55,8 @@ func TestRebaseArgsPinsWhatConfigurationWouldDecide(t *testing.T) {
 // up-to-date rebase it means "rebase forced", which rewrites every commit on
 // the branch under new hashes while the sentence said nothing would happen.
 func TestRebaseArgsForcesOnlyTheReplay(t *testing.T) {
+	t.Parallel()
+
 	want := []string{
 		"rebase",
 		"--merge",
@@ -75,6 +81,8 @@ func TestRebaseArgsForcesOnlyTheReplay(t *testing.T) {
 }
 
 func TestParseRebaseOutcomeTakesTheThreeAndNothingElse(t *testing.T) {
+	t.Parallel()
+
 	for _, raw := range []string{"up-to-date", "fast-forward", "rebase"} {
 		outcome, err := git.ParseRebaseOutcome(raw)
 		if err != nil {
@@ -93,6 +101,8 @@ func TestParseRebaseOutcomeTakesTheThreeAndNothingElse(t *testing.T) {
 }
 
 func TestRebaseRefusesAMissingName(t *testing.T) {
+	t.Parallel()
+
 	runner := git.NewRunner(nil)
 
 	for _, missing := range []string{"", "  ", "\n"} {
@@ -106,6 +116,8 @@ func TestRebaseRefusesAMissingName(t *testing.T) {
 }
 
 func TestPreviewRebaseRefusesAMissingName(t *testing.T) {
+	t.Parallel()
+
 	runner := git.NewRunner(nil)
 
 	for _, missing := range []struct{ from, onto string }{

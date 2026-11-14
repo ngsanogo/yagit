@@ -22,24 +22,6 @@ import (
 // these tests produce never depend on who runs them.
 var identity = []string{"-c", "user.name=yagit Test", "-c", "user.email=test@yagit.local"}
 
-// isolateGitConfiguration points git at empty configuration files.
-//
-// An explicit identity is not enough on its own. The Runner passes HOME
-// through, deliberately, so git reads the user's ~/.gitconfig — and on a
-// machine that sets commit.gpgsign, the commits made here come out signed.
-// The suite then passes or fails on whether that machine happens to have an
-// unlocked signing key, which is precisely the machine dependence these tests
-// exist to avoid.
-//
-// GIT_CONFIG_GLOBAL and GIT_CONFIG_SYSTEM are git's documented way to say
-// "read no configuration at this level"; the Runner forwards them for exactly
-// this purpose.
-func isolateGitConfiguration(t *testing.T) {
-	t.Helper()
-	t.Setenv("GIT_CONFIG_GLOBAL", os.DevNull)
-	t.Setenv("GIT_CONFIG_SYSTEM", os.DevNull)
-}
-
 func runGit(t *testing.T, runner *git.Runner, dir string, args ...string) {
 	t.Helper()
 	if _, err := runner.Run(context.Background(), dir, args...); err != nil {
@@ -61,8 +43,6 @@ func commitEmpty(t *testing.T, runner *git.Runner, dir, message string) {
 //	feature:           B ──
 func testRepository(t *testing.T) (string, *git.Runner) {
 	t.Helper()
-	isolateGitConfiguration(t)
-
 	dir := t.TempDir()
 	runner := git.NewRunner(nil)
 
@@ -85,6 +65,8 @@ func testRepository(t *testing.T) (string, *git.Runner) {
 }
 
 func TestLogAgainstARealRepository(t *testing.T) {
+	t.Parallel()
+
 	dir, runner := testRepository(t)
 
 	commits, err := runner.Log(context.Background(), dir)
@@ -131,6 +113,8 @@ func TestLogAgainstARealRepository(t *testing.T) {
 }
 
 func TestForEachRefAgainstARealRepository(t *testing.T) {
+	t.Parallel()
+
 	dir, runner := testRepository(t)
 
 	refs, err := runner.ForEachRef(context.Background(), dir)
@@ -173,6 +157,8 @@ func TestForEachRefAgainstARealRepository(t *testing.T) {
 // point, so v1.010 sorts before v1.09 and both sort before v1.0. Reading the
 // runs as plain integers reverses all three.
 func TestForEachRefSortsTagsByVersionNewestFirst(t *testing.T) {
+	t.Parallel()
+
 	dir, runner := testRepository(t)
 	ctx := context.Background()
 
@@ -216,6 +202,8 @@ func shortNamesOfKind(refs []git.Ref, kind git.RefKind) []string {
 // a commit under it. The sidebar marks the branch you are on, and a marker is
 // worth nothing unless it is right in both.
 func TestReadHEADAgainstARealRepository(t *testing.T) {
+	t.Parallel()
+
 	dir, runner := testRepository(t)
 	ctx := context.Background()
 
@@ -252,7 +240,7 @@ func TestReadHEADAgainstARealRepository(t *testing.T) {
 // `rev-parse HEAD` fails there with exit code 128, and reporting that as an
 // error would put a failure on screen for a repository that is merely new.
 func TestReadHEADOfARepositoryWithNoCommit(t *testing.T) {
-	isolateGitConfiguration(t)
+	t.Parallel()
 
 	dir := t.TempDir()
 	runner := git.NewRunner(nil)
@@ -271,6 +259,8 @@ func TestReadHEADOfARepositoryWithNoCommit(t *testing.T) {
 // "Something went wrong". A failing command has to surface the exact command,
 // its exit code and the raw stderr.
 func TestGitErrorCarriesFullContext(t *testing.T) {
+	t.Parallel()
+
 	dir, runner := testRepository(t)
 
 	_, err := runner.Run(context.Background(), dir, "checkout", "no-such-branch")
@@ -294,7 +284,7 @@ func TestGitErrorCarriesFullContext(t *testing.T) {
 }
 
 func TestObserverReceivesEveryExecution(t *testing.T) {
-	isolateGitConfiguration(t)
+	t.Parallel()
 
 	var executions []git.Execution
 	runner := git.NewRunner(func(execution git.Execution) {
@@ -333,8 +323,6 @@ func TestObserverReceivesEveryExecution(t *testing.T) {
 // while the only sentence that explained it — git missing from PATH — was held
 // in an error nobody rendered.
 func TestErrorCarriesTheCauseWhenGitCannotStart(t *testing.T) {
-	isolateGitConfiguration(t)
-
 	// A PATH with nothing in it: the git binary cannot be found, so the
 	// process never starts.
 	t.Setenv("PATH", t.TempDir())
@@ -377,6 +365,8 @@ func TestErrorCarriesTheCauseWhenGitCannotStart(t *testing.T) {
 // subject like the one below split one record into two, leaving the whole
 // history unparseable — "expected 6 NUL-separated fields, got 5".
 func TestLogSurvivesAControlByteInASubject(t *testing.T) {
+	t.Parallel()
+
 	dir, runner := testRepository(t)
 
 	// Written through a file: -m would go through the shell's own quoting.
@@ -401,6 +391,8 @@ func TestLogSurvivesAControlByteInASubject(t *testing.T) {
 // with a thousand tags too wide to draw, and it is no longer what the
 // interface asks for first.
 func TestLogScopeDrawsOnlyWhatIsCheckedOut(t *testing.T) {
+	t.Parallel()
+
 	dir, runner := testRepository(t)
 	ctx := context.Background()
 
@@ -447,7 +439,7 @@ func TestLogScopeDrawsOnlyWhatIsCheckedOut(t *testing.T) {
 // is nothing here yet". Both make `git log` exit 128, which is also what a
 // misspelled revision does, so neither is read from git's answer.
 func TestLogScopeOfARepositoryWithNothingToWalk(t *testing.T) {
-	isolateGitConfiguration(t)
+	t.Parallel()
 
 	dir := t.TempDir()
 	runner := git.NewRunner(nil)
@@ -482,6 +474,8 @@ func TestLogScopeOfARepositoryWithNothingToWalk(t *testing.T) {
 // alone got wrong: --all covers HEAD as well as refs/, so a repository whose
 // every branch has been deleted under a detached HEAD still has a history.
 func TestLogScopeWalksADetachedHEADWithNoRefLeft(t *testing.T) {
+	t.Parallel()
+
 	dir, runner := testRepository(t)
 	ctx := context.Background()
 
@@ -521,6 +515,8 @@ func TestLogScopeWalksADetachedHEADWithNoRefLeft(t *testing.T) {
 // TestLogScopeRefusesAScopeItDoesNotKnow. Falling back to --all would draw a
 // picture that looks right and answers a question nobody asked.
 func TestLogScopeRefusesAScopeItDoesNotKnow(t *testing.T) {
+	t.Parallel()
+
 	dir, runner := testRepository(t)
 	ctx := context.Background()
 

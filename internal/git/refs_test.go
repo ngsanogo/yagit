@@ -13,6 +13,8 @@ func refLine(fields ...string) string {
 }
 
 func TestParseRefsEmptyOutput(t *testing.T) {
+	t.Parallel()
+
 	refs, err := git.ParseRefs(nil)
 	if err != nil {
 		t.Fatalf("a repository with no ref is not an error: %v", err)
@@ -23,6 +25,8 @@ func TestParseRefsEmptyOutput(t *testing.T) {
 }
 
 func TestParseRefsClassification(t *testing.T) {
+	t.Parallel()
+
 	output := []byte(strings.Join([]string{
 		refLine("refs/heads/main", "aaaa", "", "refs/remotes/origin/main", ""),
 		refLine("refs/remotes/origin/main", "aaaa", "", "", ""),
@@ -65,6 +69,8 @@ func TestParseRefsClassification(t *testing.T) {
 // dereferenced field, its badge would attach to an object absent from the
 // graph.
 func TestParseRefsAnnotatedTagUsesDereferencedCommit(t *testing.T) {
+	t.Parallel()
+
 	output := []byte(refLine("refs/tags/v2.0", "tagobject", "targetcommit", "", ""))
 
 	refs, err := git.ParseRefs(output)
@@ -77,6 +83,8 @@ func TestParseRefsAnnotatedTagUsesDereferencedCommit(t *testing.T) {
 }
 
 func TestParseRefsUpstreamTracking(t *testing.T) {
+	t.Parallel()
+
 	cases := []struct {
 		track  string
 		ahead  int
@@ -121,6 +129,8 @@ func TestParseRefsUpstreamTracking(t *testing.T) {
 }
 
 func TestParseRefsWrongFieldCount(t *testing.T) {
+	t.Parallel()
+
 	_, err := git.ParseRefs([]byte("refs/heads/main\x00aaaa"))
 	if err == nil {
 		t.Fatal("a truncated line must produce an error")

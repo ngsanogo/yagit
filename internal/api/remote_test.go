@@ -101,6 +101,8 @@ type wirePushPlan struct {
 }
 
 func TestRemotesListsWhatTheRepositoryTalksTo(t *testing.T) {
+	t.Parallel()
+
 	handler, id, _, server := openClonedRepository(t)
 
 	response := get(t, handler, "/api/repos/"+id+"/remotes")
@@ -124,6 +126,8 @@ func TestRemotesListsWhatTheRepositoryTalksTo(t *testing.T) {
 // of a null gets an answer that is right for the wrong reason — until the day
 // it does `remotes.map(…)` and throws.
 func TestRemotesInARepositoryWithNoneIsAnEmptyArray(t *testing.T) {
+	t.Parallel()
+
 	handler, root := serverOnRoot(t)
 	path := filepath.Join(root, "solo")
 	if err := os.MkdirAll(path, 0o755); err != nil {
@@ -144,6 +148,8 @@ func TestRemotesInARepositoryWithNoneIsAnEmptyArray(t *testing.T) {
 // The answer is the sidebar's own payload, and that is the point: the route
 // that moved the remote-tracking branches sends back where they are now.
 func TestFetchAnswersWithTheReferencesItMoved(t *testing.T) {
+	t.Parallel()
+
 	handler, id, _, server := openClonedRepository(t)
 	root := filepath.Dir(server)
 
@@ -172,6 +178,8 @@ func TestFetchAnswersWithTheReferencesItMoved(t *testing.T) {
 }
 
 func TestPullFastForwardsTheCurrentBranch(t *testing.T) {
+	t.Parallel()
+
 	handler, id, _, server := openClonedRepository(t)
 	root := filepath.Dir(server)
 
@@ -199,6 +207,8 @@ func TestPullFastForwardsTheCurrentBranch(t *testing.T) {
 // command, the exit code and the raw stderr, so the interface can show what
 // actually happened instead of "something went wrong".
 func TestPullRefusesDivergedBranchesWithGitsOwnWords(t *testing.T) {
+	t.Parallel()
+
 	handler, id, project, server := openClonedRepository(t)
 	root := filepath.Dir(server)
 
@@ -230,6 +240,8 @@ func TestPullRefusesDivergedBranchesWithGitsOwnWords(t *testing.T) {
 // differ by a merge commit, and a client that misspelled one would otherwise
 // find out by reading the history a week later.
 func TestPullRefusesAStrategyItDoesNotKnow(t *testing.T) {
+	t.Parallel()
+
 	handler, id, _, _ := openClonedRepository(t)
 
 	for _, body := range []string{`{"strategy":"ours"}`, `{"strategy":""}`, `{}`} {
@@ -241,6 +253,8 @@ func TestPullRefusesAStrategyItDoesNotKnow(t *testing.T) {
 }
 
 func TestPullOnADetachedHEADIsAConflictRatherThanAFailure(t *testing.T) {
+	t.Parallel()
+
 	handler, id, project, _ := openClonedRepository(t)
 	runGitIn(t, project, "switch", "--detach", "HEAD")
 
@@ -257,6 +271,8 @@ func TestPullOnADetachedHEADIsAConflictRatherThanAFailure(t *testing.T) {
 }
 
 func TestPullOnABranchThatFollowsNothingSaysSo(t *testing.T) {
+	t.Parallel()
+
 	handler, id, project, _ := openClonedRepository(t)
 	runGitIn(t, project, "switch", "-c", "solo")
 
@@ -274,6 +290,8 @@ func TestPullOnABranchThatFollowsNothingSaysSo(t *testing.T) {
 // Telling somebody their HEAD is detached in a repository they created a minute
 // ago sends them looking for a checkout nobody made.
 func TestPushInAnEmptyRepositorySaysThereIsNoCommit(t *testing.T) {
+	t.Parallel()
+
 	handler, root := serverOnRoot(t)
 	path := filepath.Join(root, "fresh")
 	if err := os.MkdirAll(path, 0o755); err != nil {
@@ -298,6 +316,8 @@ func TestPushInAnEmptyRepositorySaysThereIsNoCommit(t *testing.T) {
 }
 
 func TestPushSendsTheCurrentBranchToItsUpstream(t *testing.T) {
+	t.Parallel()
+
 	handler, id, project, server := openClonedRepository(t)
 	commitEmpty(t, project, "B")
 
@@ -322,6 +342,8 @@ func TestPushSendsTheCurrentBranchToItsUpstream(t *testing.T) {
 // something. A push that took the suggestion would create a second branch on
 // the server for one line of work.
 func TestPushIgnoresASuggestedRemoteWhenTheBranchFollowsOne(t *testing.T) {
+	t.Parallel()
+
 	handler, id, project, server := openClonedRepository(t)
 	root := filepath.Dir(server)
 
@@ -341,6 +363,8 @@ func TestPushIgnoresASuggestedRemoteWhenTheBranchFollowsOne(t *testing.T) {
 }
 
 func TestPushPublishesABranchThatFollowsNothing(t *testing.T) {
+	t.Parallel()
+
 	handler, id, project, server := openClonedRepository(t)
 	runGitIn(t, project, "switch", "-c", "feature")
 	commitEmpty(t, project, "F")
@@ -373,6 +397,8 @@ func TestPushPublishesABranchThatFollowsNothing(t *testing.T) {
 }
 
 func TestPushRefusesToChooseARemoteForAnUnpublishedBranch(t *testing.T) {
+	t.Parallel()
+
 	handler, id, project, _ := openClonedRepository(t)
 	runGitIn(t, project, "switch", "-c", "feature")
 	commitEmpty(t, project, "F")
@@ -387,6 +413,8 @@ func TestPushRefusesToChooseARemoteForAnUnpublishedBranch(t *testing.T) {
 // line — assembled by the daemon, which is the only side that read the
 // upstream.
 func TestPushPlanAnswersTheLineThatWouldRun(t *testing.T) {
+	t.Parallel()
+
 	handler, id, project, _ := openClonedRepository(t)
 	runGitIn(t, project, "push", "--set-upstream", "origin", "main:refs/heads/trunk")
 
@@ -409,6 +437,8 @@ func TestPushPlanAnswersTheLineThatWouldRun(t *testing.T) {
 }
 
 func TestPushPlanNamesAPublishAsOne(t *testing.T) {
+	t.Parallel()
+
 	handler, id, project, _ := openClonedRepository(t)
 	runGitIn(t, project, "switch", "-c", "feature")
 	commitEmpty(t, project, "F")
@@ -431,6 +461,8 @@ func TestPushPlanNamesAPublishAsOne(t *testing.T) {
 // route that pushed on the way to describing a push would be the worst
 // possible confirmation.
 func TestPushPlanMovesNothing(t *testing.T) {
+	t.Parallel()
+
 	handler, id, project, server := openClonedRepository(t)
 	commitEmpty(t, project, "B")
 	before := revision(t, server, "refs/heads/main")
@@ -445,6 +477,8 @@ func TestPushPlanMovesNothing(t *testing.T) {
 }
 
 func TestNetworkRoutesRefuseAnUnknownField(t *testing.T) {
+	t.Parallel()
+
 	// The same rule the staging routes hold to: a client that sends "remotes"
 	// where "remote" was expected learns it now rather than by finding that
 	// nothing was fetched.
@@ -462,6 +496,8 @@ func TestNetworkRoutesRefuseAnUnknownField(t *testing.T) {
 }
 
 func TestAddRenameRemoveRemoteThroughTheAPI(t *testing.T) {
+	t.Parallel()
+
 	handler, id, project, server := openClonedRepository(t)
 	mirror := filepath.Join(filepath.Dir(server), "mirror.git")
 	runGitIn(t, filepath.Dir(server), "init", "--bare", "-b", "main", mirror)
@@ -515,6 +551,8 @@ func TestAddRenameRemoveRemoteThroughTheAPI(t *testing.T) {
 }
 
 func TestSetRemoteURLChangesTheFetchURL(t *testing.T) {
+	t.Parallel()
+
 	handler, id, _, server := openClonedRepository(t)
 	alternate := filepath.Join(filepath.Dir(server), "alternate.git")
 	runGitIn(t, filepath.Dir(server), "init", "--bare", "-b", "main", alternate)
@@ -539,6 +577,8 @@ func TestSetRemoteURLChangesTheFetchURL(t *testing.T) {
 }
 
 func TestPlanSetRemoteURLRedactsCredentials(t *testing.T) {
+	t.Parallel()
+
 	handler, id, _, _ := openClonedRepository(t)
 
 	response := postJSON(t, handler, "/api/repos/"+id+"/remotes/set-url/plan",
@@ -559,6 +599,8 @@ func TestPlanSetRemoteURLRedactsCredentials(t *testing.T) {
 }
 
 func TestSetUpstreamAndUnset(t *testing.T) {
+	t.Parallel()
+
 	handler, id, project, _ := openClonedRepository(t)
 	runGitIn(t, project, "branch", "solo")
 
@@ -585,6 +627,8 @@ func TestSetUpstreamAndUnset(t *testing.T) {
 }
 
 func TestAddRemoteRefusesEmptyFields(t *testing.T) {
+	t.Parallel()
+
 	handler, id, _, _ := openClonedRepository(t)
 
 	for name, body := range map[string]string{
@@ -624,6 +668,8 @@ func revision(t *testing.T, dir, name string) string {
 }
 
 func TestForcePushRequiresThePlannedDestination(t *testing.T) {
+	t.Parallel()
+
 	handler, id, project, _ := openClonedRepository(t)
 	runGitIn(t, project, "push", "--set-upstream", "origin", "main:refs/heads/trunk")
 	commitEmpty(t, project, "rewrite")
@@ -636,6 +682,8 @@ func TestForcePushRequiresThePlannedDestination(t *testing.T) {
 }
 
 func TestForcePushRefusesWhenTheBranchMovedSinceThePlan(t *testing.T) {
+	t.Parallel()
+
 	handler, id, project, _ := openClonedRepository(t)
 	runGitIn(t, project, "push", "--set-upstream", "origin", "main:refs/heads/trunk")
 	commitEmpty(t, project, "rewrite")
@@ -666,6 +714,8 @@ func TestForcePushRefusesWhenTheBranchMovedSinceThePlan(t *testing.T) {
 }
 
 func TestUpstreamPlanRoutesAnswerTheCommand(t *testing.T) {
+	t.Parallel()
+
 	handler, id, project, _ := openClonedRepository(t)
 	runGitIn(t, project, "branch", "solo")
 
@@ -698,6 +748,8 @@ func TestUpstreamPlanRoutesAnswerTheCommand(t *testing.T) {
 }
 
 func TestPullRefusesABusyRepository(t *testing.T) {
+	t.Parallel()
+
 	handler, id, _ := openStoppedMerge(t)
 
 	response := postJSON(t, handler, "/api/repos/"+id+"/pull", `{"strategy":"ff-only"}`)

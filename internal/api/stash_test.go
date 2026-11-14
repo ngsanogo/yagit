@@ -114,6 +114,8 @@ func stashesThrough(t *testing.T, handler http.Handler, id string) []wireStash {
 }
 
 func TestListingStashesIsAnEmptyArray(t *testing.T) {
+	t.Parallel()
+
 	// The same JSON detail TestListingNoRepositoriesIsAnEmptyArray guards: a
 	// nil slice marshals to null, and a client doing `stashes.map(…)` on null
 	// throws.
@@ -129,6 +131,8 @@ func TestListingStashesIsAnEmptyArray(t *testing.T) {
 }
 
 func TestPlanningAStashSaysWhatItWouldSave(t *testing.T) {
+	t.Parallel()
+
 	handler, id, path := openStashableRepository(t)
 
 	response := postJSON(t, handler, "/api/repos/"+id+"/stash/push/plan", `{"untracked":false}`)
@@ -160,6 +164,8 @@ func TestPlanningAStashSaysWhatItWouldSave(t *testing.T) {
 }
 
 func TestStashingSavesTheWorkTreeAndAnswersWithTheStack(t *testing.T) {
+	t.Parallel()
+
 	handler, id, path := openStashableRepository(t)
 
 	stashes := pushStashThrough(t, handler, id, "keep this", false)
@@ -186,6 +192,8 @@ func TestStashingSavesTheWorkTreeAndAnswersWithTheStack(t *testing.T) {
 }
 
 func TestPlanningAStashDescribesAWorkTreeItWouldSaveNothingFrom(t *testing.T) {
+	t.Parallel()
+
 	// The plan describes rather than refuses, and it has to: this is the work
 	// tree whose only route to being stashed is the box on the dialog, and a
 	// refusal here would mean the dialog never opens.
@@ -207,6 +215,8 @@ func TestPlanningAStashDescribesAWorkTreeItWouldSaveNothingFrom(t *testing.T) {
 }
 
 func TestStashingRefusesAWorkTreeItWouldSaveNothingFrom(t *testing.T) {
+	t.Parallel()
+
 	// git's own version of this exits 0 having done nothing, which is the one
 	// outcome an interface cannot tell from success. The guard is on the run,
 	// where the command is.
@@ -235,6 +245,8 @@ func TestStashingRefusesAWorkTreeItWouldSaveNothingFrom(t *testing.T) {
 }
 
 func TestStashingRefusesAMessageGitWouldRewrite(t *testing.T) {
+	t.Parallel()
+
 	handler, id, _ := openStashableRepository(t)
 
 	response := postJSON(t, handler, "/api/repos/"+id+"/stash/push",
@@ -248,6 +260,8 @@ func TestStashingRefusesAMessageGitWouldRewrite(t *testing.T) {
 }
 
 func TestStashingRefusesARepositoryInTheMiddleOfSomething(t *testing.T) {
+	t.Parallel()
+
 	// git refuses this too, with "notes.md: needs merge", which says nothing
 	// about the merge that is in the way.
 	handler, id, path := openStashableRepository(t)
@@ -272,6 +286,8 @@ func TestStashingRefusesARepositoryInTheMiddleOfSomething(t *testing.T) {
 }
 
 func TestPlanningAnApplyAnswersTheCommandItWouldRun(t *testing.T) {
+	t.Parallel()
+
 	handler, id, _ := openStashableRepository(t)
 	stash := pushStashThrough(t, handler, id, "put it back", false)[0]
 
@@ -304,6 +320,8 @@ func TestPlanningAnApplyAnswersTheCommandItWouldRun(t *testing.T) {
 }
 
 func TestApplyingKeepsTheStashAndPoppingRemovesIt(t *testing.T) {
+	t.Parallel()
+
 	handler, id, path := openStashableRepository(t)
 	stash := pushStashThrough(t, handler, id, "put it back", false)[0]
 
@@ -323,6 +341,8 @@ func TestApplyingKeepsTheStashAndPoppingRemovesIt(t *testing.T) {
 }
 
 func TestApplyingRefusesAPositionThatNowHoldsAnotherStash(t *testing.T) {
+	t.Parallel()
+
 	// The refusal this whole family is built around. The dialog read
 	// stash@{0}; something pushed another stash; the command it showed would
 	// still run, and it would put back the wrong work.
@@ -349,6 +369,8 @@ func TestApplyingRefusesAPositionThatNowHoldsAnotherStash(t *testing.T) {
 }
 
 func TestApplyingRefusesARequestThatNamesNoStash(t *testing.T) {
+	t.Parallel()
+
 	handler, id, _ := openStashableRepository(t)
 	pushStashThrough(t, handler, id, "only one", false)
 
@@ -360,6 +382,8 @@ func TestApplyingRefusesARequestThatNamesNoStash(t *testing.T) {
 }
 
 func TestApplyingRefusesAModeTheDaemonDoesNotKnow(t *testing.T) {
+	t.Parallel()
+
 	handler, id, _ := openStashableRepository(t)
 	stash := pushStashThrough(t, handler, id, "only one", false)[0]
 
@@ -373,6 +397,8 @@ func TestApplyingRefusesAModeTheDaemonDoesNotKnow(t *testing.T) {
 }
 
 func TestApplyingOverAConflictReportsWhatGitSaid(t *testing.T) {
+	t.Parallel()
+
 	// A conflicting pop exits non-zero, and everything worth reading is on
 	// stdout: which file conflicted, and that the entry was kept. The failure
 	// has to carry both.
@@ -400,6 +426,8 @@ func TestApplyingOverAConflictReportsWhatGitSaid(t *testing.T) {
 }
 
 func TestPlanningADropNamesWhatGoesWithIt(t *testing.T) {
+	t.Parallel()
+
 	handler, id, _ := openStashableRepository(t)
 	stash := pushStashThrough(t, handler, id, "throw away", false)[0]
 
@@ -414,6 +442,8 @@ func TestPlanningADropNamesWhatGoesWithIt(t *testing.T) {
 }
 
 func TestPlanningADropAnswersTheCommandItWouldRun(t *testing.T) {
+	t.Parallel()
+
 	handler, id, _ := openStashableRepository(t)
 	stash := pushStashThrough(t, handler, id, "throw away", false)[0]
 
@@ -441,6 +471,8 @@ func TestPlanningADropAnswersTheCommandItWouldRun(t *testing.T) {
 }
 
 func TestDroppingRefusesAPositionThatMoved(t *testing.T) {
+	t.Parallel()
+
 	handler, id, path := openStashableRepository(t)
 	approved := pushStashThrough(t, handler, id, "the one that was approved", false)[0]
 
@@ -458,6 +490,8 @@ func TestDroppingRefusesAPositionThatMoved(t *testing.T) {
 }
 
 func TestDroppingRefusesAPositionPastTheEnd(t *testing.T) {
+	t.Parallel()
+
 	handler, id, _ := openStashableRepository(t)
 	stash := pushStashThrough(t, handler, id, "only one", false)[0]
 
@@ -472,6 +506,8 @@ func TestDroppingRefusesAPositionPastTheEnd(t *testing.T) {
 }
 
 func TestReadingOneStashAnswersWhatItHolds(t *testing.T) {
+	t.Parallel()
+
 	handler, id, _ := openStashableRepository(t)
 	pushStashThrough(t, handler, id, "one file", false)
 
@@ -490,6 +526,8 @@ func TestReadingOneStashAnswersWhatItHolds(t *testing.T) {
 }
 
 func TestReadingAStashOfUntrackedFilesIsNotEmpty(t *testing.T) {
+	t.Parallel()
+
 	// Without --include-untracked, `git stash show` answers with nothing at
 	// all here and exits 0 — an empty screen for a stash that plainly holds a
 	// file.
@@ -512,6 +550,8 @@ func TestReadingAStashOfUntrackedFilesIsNotEmpty(t *testing.T) {
 }
 
 func TestReadingAStashThatIsNotThere(t *testing.T) {
+	t.Parallel()
+
 	handler, id, _ := openStashableRepository(t)
 
 	for name, target := range map[string]int{

@@ -28,8 +28,6 @@ import (
 //	side:  one SIDE three     ← being replayed onto main
 func stoppedRebase(t *testing.T) (string, *git.Runner) {
 	t.Helper()
-	isolateGitConfiguration(t)
-
 	dir := t.TempDir()
 	runner := git.NewRunner(nil)
 
@@ -85,6 +83,8 @@ func gitDirOf(t *testing.T, dir string) string {
 // rebase stayed exactly where it was — a Continue button that could not
 // continue.
 func TestContinuingARebaseCommitsTheResolutionWithoutAnEditor(t *testing.T) {
+	t.Parallel()
+
 	dir, runner := stoppedRebase(t)
 
 	if state := stateOf(t, dir); state.Operation != git.OperationRebase {
@@ -115,6 +115,8 @@ func TestContinuingARebaseCommitsTheResolutionWithoutAnEditor(t *testing.T) {
 // Aborting puts the branch back where it was, and says so rather than half
 // happening.
 func TestAbortingARebaseRestoresTheBranchItStartedFrom(t *testing.T) {
+	t.Parallel()
+
 	dir, runner := stoppedRebase(t)
 
 	// HEAD during a rebase is detached at what has been replayed so far,
@@ -143,6 +145,8 @@ func TestAbortingARebaseRestoresTheBranchItStartedFrom(t *testing.T) {
 // Skipping drops the commit being replayed. It is the way out git itself
 // recommends when a resolution leaves nothing to commit.
 func TestSkippingARebaseDropsTheCommitItStoppedOn(t *testing.T) {
+	t.Parallel()
+
 	dir, runner := stoppedRebase(t)
 
 	if err := runner.ActOnOperation(context.Background(), dir,
@@ -167,6 +171,8 @@ func TestSkippingARebaseDropsTheCommitItStoppedOn(t *testing.T) {
 // the one that reaches the screen. It names the file and says to add it, which
 // is better than anything this package could write.
 func TestContinuingWithAConflictStillOpenRefusesInGitsOwnWords(t *testing.T) {
+	t.Parallel()
+
 	dir, runner := stoppedRebase(t)
 
 	err := runner.ActOnOperation(context.Background(), dir, git.OperationRebase, git.ActionContinue)
@@ -211,6 +217,8 @@ func TestContinuingWithAConflictStillOpenRefusesInGitsOwnWords(t *testing.T) {
 // for the `squash` behind it, which would commit the two messages joined
 // without ever showing them.
 func TestARebaseWithASquashAheadOfItRefusesToBeContinued(t *testing.T) {
+	t.Parallel()
+
 	dir, _ := stoppedRebase(t)
 
 	// The rebase as git left it: an ordinary stop, and nothing refused.
@@ -247,6 +255,8 @@ func TestARebaseWithASquashAheadOfItRefusesToBeContinued(t *testing.T) {
 
 // Aborting a stopped merge throws the resolution away and restores both sides.
 func TestAbortingAMergeUndoesIt(t *testing.T) {
+	t.Parallel()
+
 	dir, runner := conflicted(t)
 
 	if state := stateOf(t, dir); state.Operation != git.OperationMerge {
@@ -278,6 +288,8 @@ func TestAbortingAMergeUndoesIt(t *testing.T) {
 // idle here: the banner disappeared with a commit still unapplied, taking the
 // Continue button with it.
 func TestASequenceCommittedByHandIsStillInProgressAndStillContinues(t *testing.T) {
+	t.Parallel()
+
 	dir, runner := cherryPicking(t)
 
 	if state := stateOf(t, dir); state.Operation != git.OperationCherryPick {
@@ -325,6 +337,8 @@ func TestASequenceCommittedByHandIsStillInProgressAndStillContinues(t *testing.T
 // a confirmation promising to discard the commits would be lying in exactly it.
 // What the dialog on screen promises is worded against this.
 func TestAbortingASequenceCommittedIntoLeavesTheCommitStanding(t *testing.T) {
+	t.Parallel()
+
 	dir, runner := cherryPicking(t)
 
 	writeWorkFile(t, dir, "f.txt", "one\nRESOLVED\nthree\n")
@@ -352,8 +366,6 @@ func TestAbortingASequenceCommittedIntoLeavesTheCommitStanding(t *testing.T) {
 //	side:  one FIRST three, then one SECOND three
 func cherryPicking(t *testing.T) (string, *git.Runner) {
 	t.Helper()
-	isolateGitConfiguration(t)
-
 	dir := t.TempDir()
 	runner := git.NewRunner(nil)
 

@@ -19,6 +19,8 @@ import (
 // with a string somebody typed.
 
 func TestParseRemotesPairsTheTwoDirections(t *testing.T) {
+	t.Parallel()
+
 	output := []byte("origin\thttps://example.test/ada/yagit.git (fetch)\n" +
 		"origin\thttps://example.test/ada/yagit.git (push)\n" +
 		"fork\thttps://example.test/bob/yagit.git (fetch)\n" +
@@ -49,6 +51,8 @@ func TestParseRemotesPairsTheTwoDirections(t *testing.T) {
 }
 
 func TestParseRemotesKeepsGitsOrder(t *testing.T) {
+	t.Parallel()
+
 	// git sorts remotes by name. Re-sorting here would be a second opinion
 	// about something already decided, and the sidebar would then disagree
 	// with the terminal about which remote comes first.
@@ -65,6 +69,8 @@ func TestParseRemotesKeepsGitsOrder(t *testing.T) {
 }
 
 func TestParseRemotesAnswersNothingForARepositoryWithNoRemote(t *testing.T) {
+	t.Parallel()
+
 	remotes, err := git.ParseRemotes(nil)
 	if err != nil {
 		t.Fatalf("ParseRemotes: %v", err)
@@ -75,6 +81,8 @@ func TestParseRemotesAnswersNothingForARepositoryWithNoRemote(t *testing.T) {
 }
 
 func TestParseRemotesRefusesALineItCannotRead(t *testing.T) {
+	t.Parallel()
+
 	// Refused rather than skipped. A line this function cannot read means the
 	// output is not what it thinks it is, and a remote silently missing from
 	// the list is a push destination missing from the screen.
@@ -93,6 +101,8 @@ func TestParseRemotesRefusesALineItCannotRead(t *testing.T) {
 
 // The whole point of the redaction: what reaches a screen, and what does not.
 func TestParseRemotesRedactsCredentials(t *testing.T) {
+	t.Parallel()
+
 	for name, testCase := range map[string]struct{ url, want string }{
 		"a token used as a password": {
 			url:  "https://ada:ghp_secret@example.test/ada/yagit.git",
@@ -146,6 +156,8 @@ func TestParseRemotesRedactsCredentials(t *testing.T) {
 }
 
 func TestFetchArgs(t *testing.T) {
+	t.Parallel()
+
 	// Every remote when none is named: a fetch button with no picker beside it
 	// cannot mean one of them. --progress rides the request.
 	if got, want := git.FetchArgs(""), []string{"fetch", "--all", "--prune", "--progress"}; !slices.Equal(got, want) {
@@ -159,6 +171,8 @@ func TestFetchArgs(t *testing.T) {
 }
 
 func TestRemoteManagementArgsPutNamesAfterTheSeparator(t *testing.T) {
+	t.Parallel()
+
 	if got, want := git.AddRemoteArgs("-f", "https://example.test/x.git"),
 		[]string{"remote", "add", "--", "-f", "https://example.test/x.git"}; !slices.Equal(got, want) {
 		t.Errorf("AddRemoteArgs = %v, want %v", got, want)
@@ -186,6 +200,8 @@ func TestRemoteManagementArgsPutNamesAfterTheSeparator(t *testing.T) {
 }
 
 func TestPullArgsAlwaysSaysWhichStrategyItIs(t *testing.T) {
+	t.Parallel()
+
 	// Including the one that matches git's default. Leaving it out would let
 	// pull.rebase in the user's configuration decide, and the button on screen
 	// said which of the three this was.
@@ -205,6 +221,8 @@ func TestPullArgsAlwaysSaysWhichStrategyItIs(t *testing.T) {
 }
 
 func TestParsePullStrategyRefusesWhatItDoesNotKnow(t *testing.T) {
+	t.Parallel()
+
 	for _, raw := range []string{"", "ours", "FF-ONLY", "true"} {
 		if _, err := git.ParsePullStrategy(raw); err == nil {
 			t.Errorf("ParsePullStrategy(%q) was accepted; an unknown strategy must not read as a default", raw)
@@ -219,6 +237,8 @@ func TestParsePullStrategyRefusesWhatItDoesNotKnow(t *testing.T) {
 }
 
 func TestPushArgsWritesTheRefspecOut(t *testing.T) {
+	t.Parallel()
+
 	// A branch called main that follows origin/trunk pushes to trunk.
 	// `git push origin main` would create a second branch on the server, and
 	// push there forever after.
@@ -235,6 +255,8 @@ func TestPushArgsWritesTheRefspecOut(t *testing.T) {
 }
 
 func TestPushArgsPublishesUnderTheBranchesOwnName(t *testing.T) {
+	t.Parallel()
+
 	args := git.PushArgs(git.PushDestination{
 		Remote:      "origin",
 		Branch:      "feature",
@@ -249,6 +271,8 @@ func TestPushArgsPublishesUnderTheBranchesOwnName(t *testing.T) {
 }
 
 func TestPushArgsNeverForcesBare(t *testing.T) {
+	t.Parallel()
+
 	args := git.PushArgs(git.PushDestination{
 		Remote: "origin",
 		Branch: "main",
@@ -270,6 +294,8 @@ func TestPushArgsNeverForcesBare(t *testing.T) {
 }
 
 func TestDestinationForFollowsTheUpstreamOverTheSuggestion(t *testing.T) {
+	t.Parallel()
+
 	// The remote the caller suggested is ignored when the branch already
 	// follows something. Second-guessing the follow is how a repository ends
 	// up with two branches for one line of work.
@@ -286,6 +312,8 @@ func TestDestinationForFollowsTheUpstreamOverTheSuggestion(t *testing.T) {
 }
 
 func TestDestinationForPublishesWhereItIsTold(t *testing.T) {
+	t.Parallel()
+
 	destination, err := git.DestinationFor("feature", git.Upstream{}, "fork")
 	if err != nil {
 		t.Fatalf("DestinationFor: %v", err)
@@ -303,6 +331,8 @@ func TestDestinationForPublishesWhereItIsTold(t *testing.T) {
 }
 
 func TestDestinationForRefusesToChooseARemote(t *testing.T) {
+	t.Parallel()
+
 	if _, err := git.DestinationFor("feature", git.Upstream{}, ""); !errors.Is(err, git.ErrNoRemote) {
 		t.Errorf("DestinationFor with no upstream and no remote: %v, want ErrNoRemote", err)
 	}
@@ -313,6 +343,8 @@ func TestDestinationForRefusesToChooseARemote(t *testing.T) {
 }
 
 func TestUpstreamBranchIsTheShortNameOnTheOtherSide(t *testing.T) {
+	t.Parallel()
+
 	upstream := git.Upstream{Remote: "origin", Ref: "refs/heads/feat/lanes"}
 	if got := upstream.Branch(); got != "feat/lanes" {
 		t.Errorf("Branch() = %q, want feat/lanes", got)

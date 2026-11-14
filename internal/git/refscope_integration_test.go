@@ -51,6 +51,8 @@ func walk(t *testing.T, runner *git.Runner, dir string, scope git.Scope, chosen 
 // when it is a different one, and two refs together are the divergence neither
 // of the other scopes can draw on its own.
 func TestLogScopeRefsWalksExactlyTheRefsItWasGiven(t *testing.T) {
+	t.Parallel()
+
 	dir, runner := topicAndMain(t)
 
 	only := namesOf(walk(t, runner, dir, git.ScopeRefs, "refs/heads/topic"))
@@ -75,6 +77,8 @@ func TestLogScopeRefsWalksExactlyTheRefsItWasGiven(t *testing.T) {
 // The check is in revisionsForScope rather than only at the route, so both
 // walks that take a chosen set run it. This is the walk half.
 func TestLogScopeRefsRefusesANameThatIsAnOption(t *testing.T) {
+	t.Parallel()
+
 	dir, runner := topicAndMain(t)
 	ctx := context.Background()
 
@@ -97,6 +101,8 @@ func TestLogScopeRefsRefusesANameThatIsAnOption(t *testing.T) {
 // And this is the search half. A check only one of them ran is a check the
 // other route is one refactor away from not having.
 func TestSearchUnderScopeRefsRunsTheSameCheck(t *testing.T) {
+	t.Parallel()
+
 	dir, runner := topicAndMain(t)
 	ctx := context.Background()
 
@@ -131,6 +137,8 @@ func TestSearchUnderScopeRefsRunsTheSameCheck(t *testing.T) {
 // exit code 128 for an unknown revision and for an empty repository alike, so
 // the emptiness is decided from the refs already read.
 func TestLogScopeRefsWithNoRefsWalksNothing(t *testing.T) {
+	t.Parallel()
+
 	dir, runner := topicAndMain(t)
 
 	if commits := walk(t, runner, dir, git.ScopeRefs); len(commits) != 0 {
@@ -139,6 +147,8 @@ func TestLogScopeRefsWithNoRefsWalksNothing(t *testing.T) {
 }
 
 func TestScopeDescribeNamesAllThree(t *testing.T) {
+	t.Parallel()
+
 	for scope, want := range map[git.Scope]string{
 		git.ScopeHead: "what is checked out",
 		git.ScopeAll:  "every reference",

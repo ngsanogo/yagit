@@ -29,6 +29,8 @@ func registryAt(t *testing.T, root string) *repo.Registry {
 }
 
 func TestDiscardRemovesWhatAFailedCloneWrote(t *testing.T) {
+	t.Parallel()
+
 	root := t.TempDir()
 	registry := registryAt(t, root)
 
@@ -49,6 +51,8 @@ func TestDiscardRemovesWhatAFailedCloneWrote(t *testing.T) {
 }
 
 func TestDiscardSaysNothingWhenThereIsNothing(t *testing.T) {
+	t.Parallel()
+
 	root := t.TempDir()
 	registry := registryAt(t, root)
 
@@ -61,6 +65,8 @@ func TestDiscardSaysNothingWhenThereIsNothing(t *testing.T) {
 }
 
 func TestDiscardAcceptsAPathWrittenThroughASymlinkedRoot(t *testing.T) {
+	t.Parallel()
+
 	// NewRegistry resolves the root, so a root reached through a symbolic link
 	// is stored resolved. A caller that names the destination the way the user
 	// wrote it hands over an unresolved path, and comparing the two as strings
@@ -89,6 +95,8 @@ func TestDiscardAcceptsAPathWrittenThroughASymlinkedRoot(t *testing.T) {
 }
 
 func TestDiscardRefusesASymlinkAtTheDestination(t *testing.T) {
+	t.Parallel()
+
 	// The leaf must not be resolved: following a link planted at the
 	// destination would take RemoveAll to whatever it points at.
 	root := t.TempDir()
@@ -113,6 +121,8 @@ func TestDiscardRefusesASymlinkAtTheDestination(t *testing.T) {
 }
 
 func TestDiscardRefusesAPathOutsideTheRoot(t *testing.T) {
+	t.Parallel()
+
 	root := t.TempDir()
 	outside := t.TempDir()
 	registry := registryAt(t, root)
@@ -131,6 +141,8 @@ func TestDiscardRefusesAPathOutsideTheRoot(t *testing.T) {
 }
 
 func TestDiscardRefusesSomethingThatIsNotADirectory(t *testing.T) {
+	t.Parallel()
+
 	root := t.TempDir()
 	registry := registryAt(t, root)
 
@@ -151,6 +163,8 @@ func TestDiscardRefusesSomethingThatIsNotADirectory(t *testing.T) {
 }
 
 func TestDiscardRefusesARelativePath(t *testing.T) {
+	t.Parallel()
+
 	registry := registryAt(t, t.TempDir())
 
 	if err := registry.DiscardIncompleteClone("half-cloned"); err == nil {

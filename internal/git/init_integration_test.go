@@ -12,7 +12,8 @@ import (
 )
 
 func TestInitMakesARepositoryOnTheNamedBranch(t *testing.T) {
-	isolateGitConfiguration(t)
+	t.Parallel()
+
 	runner := git.NewRunner(nil)
 	ctx := context.Background()
 	dir := filepath.Join(t.TempDir(), "made")
@@ -33,6 +34,8 @@ func TestInitMakesARepositoryOnTheNamedBranch(t *testing.T) {
 // The whole reason the flag is pinned: what a bare `git init` calls the first
 // branch is a config key, so the command on screen has to name it.
 func TestInitArgsPinTheBranch(t *testing.T) {
+	t.Parallel()
+
 	line := git.CommandLine(git.InitArgs("/tmp/made", "trunk"))
 	if !strings.Contains(line, "--initial-branch=trunk") {
 		t.Fatalf("command = %q", line)
@@ -45,7 +48,8 @@ func TestInitArgsPinTheBranch(t *testing.T) {
 // git checks the name too, and does it AFTER making the directory — leaving a
 // path that exists, so the next attempt fails for the wrong reason.
 func TestInitRefusesABadBranchWithoutMakingAnything(t *testing.T) {
-	isolateGitConfiguration(t)
+	t.Parallel()
+
 	runner := git.NewRunner(nil)
 	dir := filepath.Join(t.TempDir(), "unmade")
 
@@ -59,6 +63,8 @@ func TestInitRefusesABadBranchWithoutMakingAnything(t *testing.T) {
 }
 
 func TestCheckInitialBranch(t *testing.T) {
+	t.Parallel()
+
 	for _, name := range []string{"main", "release/2.0", "feature-1", "a"} {
 		if err := git.CheckInitialBranch(name); err != nil {
 			t.Errorf("CheckInitialBranch(%q) = %v, want nil", name, err)
@@ -79,7 +85,8 @@ func TestCheckInitialBranch(t *testing.T) {
 }
 
 func TestDefaultBranchNameFallsBackWhenUnset(t *testing.T) {
-	isolateGitConfiguration(t)
+	t.Parallel()
+
 	runner := git.NewRunner(nil)
 
 	if got := runner.DefaultBranchName(context.Background()); got != git.DefaultInitialBranch {

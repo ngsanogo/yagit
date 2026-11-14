@@ -22,6 +22,8 @@ func prepared(t *testing.T, runner *git.Runner, dir string, amend bool) (string,
 }
 
 func TestPreparedMessageIsNothingWhenNothingPreparedOne(t *testing.T) {
+	t.Parallel()
+
 	dir := initRepo(t)
 	runner := git.NewRunner(nil)
 
@@ -32,6 +34,8 @@ func TestPreparedMessageIsNothingWhenNothingPreparedOne(t *testing.T) {
 }
 
 func TestPreparedMessageReadsTheConfiguredTemplate(t *testing.T) {
+	t.Parallel()
+
 	dir := initRepo(t)
 	runner := git.NewRunner(nil)
 
@@ -57,6 +61,8 @@ func TestPreparedMessageReadsTheConfiguredTemplate(t *testing.T) {
 // it. A daemon that resolved it against its own working directory would fail
 // on the ordinary case and say the file does not exist.
 func TestPreparedMessageResolvesARelativeTemplateAgainstTheWorkTree(t *testing.T) {
+	t.Parallel()
+
 	dir := initRepo(t)
 	runner := git.NewRunner(nil)
 
@@ -73,6 +79,8 @@ func TestPreparedMessageResolvesARelativeTemplateAgainstTheWorkTree(t *testing.T
 // A template that is nothing but comments proposes nothing, and labelling an
 // empty box as git's words would be a sentence about text that is not there.
 func TestPreparedMessageIgnoresATemplateOfNothingButComments(t *testing.T) {
+	t.Parallel()
+
 	dir := initRepo(t)
 	runner := git.NewRunner(nil)
 
@@ -91,6 +99,8 @@ func TestPreparedMessageIgnoresATemplateOfNothingButComments(t *testing.T) {
 // what `git commit` itself does, and a box that opened empty would leave
 // somebody wondering where their template went.
 func TestPreparedMessageFailsOnATemplateThatIsNotThere(t *testing.T) {
+	t.Parallel()
+
 	dir := initRepo(t)
 	runner := git.NewRunner(nil)
 
@@ -106,6 +116,8 @@ func TestPreparedMessageFailsOnATemplateThatIsNotThere(t *testing.T) {
 // An amend is a different question: the message of the commit being replaced,
 // and never a skeleton offered over the top of it.
 func TestPreparedMessageOnAnAmendIsTheCommitBeingReplaced(t *testing.T) {
+	t.Parallel()
+
 	dir := initRepo(t)
 	runner := git.NewRunner(nil)
 
@@ -121,6 +133,8 @@ func TestPreparedMessageOnAnAmendIsTheCommitBeingReplaced(t *testing.T) {
 }
 
 func TestWillSignCommitsReadsTheConfiguration(t *testing.T) {
+	t.Parallel()
+
 	dir := initRepo(t)
 	runner := git.NewRunner(nil)
 	ctx := context.Background()

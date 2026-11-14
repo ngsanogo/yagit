@@ -21,8 +21,6 @@ import (
 // tree). Reverting a side-branch tip that main never held is the refusal.
 func revertable(t *testing.T) (string, *git.Runner) {
 	t.Helper()
-	isolateGitConfiguration(t)
-
 	dir := t.TempDir()
 	runner := git.NewRunner(nil)
 
@@ -44,6 +42,8 @@ func revertable(t *testing.T) (string, *git.Runner) {
 }
 
 func TestPreviewRevertReadsAnApply(t *testing.T) {
+	t.Parallel()
+
 	dir, runner := revertable(t)
 	one := commitOf(t, runner, dir, "main~1")
 
@@ -63,6 +63,8 @@ func TestPreviewRevertReadsAnApply(t *testing.T) {
 }
 
 func TestPreviewRevertAcceptsHEAD(t *testing.T) {
+	t.Parallel()
+
 	dir, runner := revertable(t)
 	head := commitOf(t, runner, dir, "HEAD")
 
@@ -76,6 +78,8 @@ func TestPreviewRevertAcceptsHEAD(t *testing.T) {
 }
 
 func TestPreviewRevertRefusesAMerge(t *testing.T) {
+	t.Parallel()
+
 	dir, runner := revertable(t)
 
 	runGit(t, runner, dir, "switch", "-c", "elsewhere")
@@ -93,6 +97,8 @@ func TestPreviewRevertRefusesAMerge(t *testing.T) {
 }
 
 func TestPreviewRevertRefusesARoot(t *testing.T) {
+	t.Parallel()
+
 	dir, runner := revertable(t)
 	root := commitOf(t, runner, dir, "main~2")
 
@@ -103,6 +109,8 @@ func TestPreviewRevertRefusesARoot(t *testing.T) {
 }
 
 func TestPreviewRevertRefusesACommitNotOnTheBranch(t *testing.T) {
+	t.Parallel()
+
 	dir, runner := revertable(t)
 
 	runGit(t, runner, dir, "switch", "-c", "side", "main~2")
@@ -119,6 +127,8 @@ func TestPreviewRevertRefusesACommitNotOnTheBranch(t *testing.T) {
 }
 
 func TestRevertRecordsANewCommit(t *testing.T) {
+	t.Parallel()
+
 	dir, runner := revertable(t)
 	one := commitOf(t, runner, dir, "main~1")
 	before := commitOf(t, runner, dir, "HEAD")
@@ -144,6 +154,8 @@ func TestRevertRecordsANewCommit(t *testing.T) {
 }
 
 func TestRevertStopsOnAConflict(t *testing.T) {
+	t.Parallel()
+
 	dir, runner := revertable(t)
 
 	// "one" changed notes.md to "one\n". Overwrite that file on top so the

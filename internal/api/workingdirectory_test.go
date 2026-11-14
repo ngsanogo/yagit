@@ -122,6 +122,8 @@ func readInRepo(t *testing.T, repoPath, name string) string {
 }
 
 func TestStatusReportsWhatDiffersOnEachSide(t *testing.T) {
+	t.Parallel()
+
 	handler, id, path := openWorkingRepository(t)
 	writeInRepo(t, path, "new.txt", "fresh\n")
 
@@ -152,6 +154,8 @@ func TestStatusReportsWhatDiffersOnEachSide(t *testing.T) {
 }
 
 func TestStatusOfACleanRepositoryIsAnEmptyArray(t *testing.T) {
+	t.Parallel()
+
 	handler, id, path := openWorkingRepository(t)
 	runGitIn(t, path, "restore", "--worktree", "--", "a.txt")
 
@@ -167,6 +171,8 @@ func TestStatusOfACleanRepositoryIsAnEmptyArray(t *testing.T) {
 }
 
 func TestTheWorkingDirectoryOfABareRepositoryIsRefusedRatherThanAttempted(t *testing.T) {
+	t.Parallel()
+
 	handler, root := serverOnRoot(t)
 	path := filepath.Join(root, "mirror.git")
 	if err := os.MkdirAll(path, 0o755); err != nil {
@@ -194,6 +200,8 @@ func TestTheWorkingDirectoryOfABareRepositoryIsRefusedRatherThanAttempted(t *tes
 }
 
 func TestDiffCarriesItsOwnFingerprint(t *testing.T) {
+	t.Parallel()
+
 	handler, id, _ := openWorkingRepository(t)
 
 	response := get(t, handler, "/api/repos/"+id+"/diff?path=a.txt&side=unstaged")
@@ -214,6 +222,8 @@ func TestDiffCarriesItsOwnFingerprint(t *testing.T) {
 }
 
 func TestDiffRefusesASideItDoesNotKnow(t *testing.T) {
+	t.Parallel()
+
 	handler, id, _ := openWorkingRepository(t)
 
 	for _, target := range []string{
@@ -229,6 +239,8 @@ func TestDiffRefusesASideItDoesNotKnow(t *testing.T) {
 }
 
 func TestDiffRefusesAContextItDoesNotAllow(t *testing.T) {
+	t.Parallel()
+
 	handler, id, _ := openWorkingRepository(t)
 
 	for _, context := range []string{"1", "7", "100", "three", "-3"} {
@@ -241,6 +253,8 @@ func TestDiffRefusesAContextItDoesNotAllow(t *testing.T) {
 }
 
 func TestDiffWidensContextWhenAsked(t *testing.T) {
+	t.Parallel()
+
 	handler, id, path := openWorkingRepository(t)
 
 	// Enough surrounding lines that -U3 and -U10 are different byte streams
@@ -274,6 +288,8 @@ func TestDiffWidensContextWhenAsked(t *testing.T) {
 }
 
 func TestDiffRefusesAPathThatLeavesTheRepository(t *testing.T) {
+	t.Parallel()
+
 	handler, id, _ := openWorkingRepository(t)
 
 	// git refuses these too. The check is here as well because the boundary
@@ -289,6 +305,8 @@ func TestDiffRefusesAPathThatLeavesTheRepository(t *testing.T) {
 }
 
 func TestStagingAWholePathAnswersWithTheStatusThatFollowed(t *testing.T) {
+	t.Parallel()
+
 	handler, id, _ := openWorkingRepository(t)
 
 	response := postJSON(t, handler, "/api/repos/"+id+"/stage", `{"paths":["a.txt"]}`)
@@ -306,6 +324,8 @@ func TestStagingAWholePathAnswersWithTheStatusThatFollowed(t *testing.T) {
 }
 
 func TestStagingSomeLinesPutsOnlyThoseInTheIndex(t *testing.T) {
+	t.Parallel()
+
 	handler, id, path := openWorkingRepository(t)
 
 	diff := decode[wireDiff](t, get(t, handler, "/api/repos/"+id+"/diff?path=a.txt&side=unstaged"))
@@ -331,6 +351,8 @@ func TestStagingSomeLinesPutsOnlyThoseInTheIndex(t *testing.T) {
 }
 
 func TestStagingEveryLineIsStagingTheFile(t *testing.T) {
+	t.Parallel()
+
 	handler, id, _ := openWorkingRepository(t)
 
 	diff := decode[wireDiff](t, get(t, handler, "/api/repos/"+id+"/diff?path=a.txt&side=unstaged"))
@@ -348,6 +370,8 @@ func TestStagingEveryLineIsStagingTheFile(t *testing.T) {
 }
 
 func TestStagingLinesOfADiffThatMovedIsRefused(t *testing.T) {
+	t.Parallel()
+
 	handler, id, path := openWorkingRepository(t)
 
 	diff := decode[wireDiff](t, get(t, handler, "/api/repos/"+id+"/diff?path=a.txt&side=unstaged"))
@@ -371,6 +395,8 @@ func TestStagingLinesOfADiffThatMovedIsRefused(t *testing.T) {
 }
 
 func TestStagingLinesRefusesWhatCannotMeanAnything(t *testing.T) {
+	t.Parallel()
+
 	handler, id, _ := openWorkingRepository(t)
 	diff := decode[wireDiff](t, get(t, handler, "/api/repos/"+id+"/diff?path=a.txt&side=unstaged"))
 
@@ -396,6 +422,8 @@ func TestStagingLinesRefusesWhatCannotMeanAnything(t *testing.T) {
 }
 
 func TestUnstagingPutsTheIndexBack(t *testing.T) {
+	t.Parallel()
+
 	handler, id, _ := openWorkingRepository(t)
 
 	if response := postJSON(t, handler, "/api/repos/"+id+"/stage", `{"paths":["a.txt"]}`); response.Code != http.StatusOK {
@@ -414,6 +442,8 @@ func TestUnstagingPutsTheIndexBack(t *testing.T) {
 }
 
 func TestUnstagingOnABranchWithNoCommitYet(t *testing.T) {
+	t.Parallel()
+
 	handler, root := serverOnRoot(t)
 	path := filepath.Join(root, "fresh")
 	if err := os.MkdirAll(path, 0o755); err != nil {
@@ -443,6 +473,8 @@ func TestUnstagingOnABranchWithNoCommitYet(t *testing.T) {
 }
 
 func TestDiscardingSortsTrackedFromUntracked(t *testing.T) {
+	t.Parallel()
+
 	handler, id, path := openWorkingRepository(t)
 	writeInRepo(t, path, "throwaway.txt", "nothing of value\n")
 
@@ -478,6 +510,8 @@ func TestDiscardingSortsTrackedFromUntracked(t *testing.T) {
 // knows that. Reading the plan is only worth anything if the plan is what runs,
 // so this asserts the two against the daemon's own log of what it executed.
 func TestTheDiscardPlanIsTheCommandThatRuns(t *testing.T) {
+	t.Parallel()
+
 	handler, id, path := openWorkingRepository(t)
 	writeInRepo(t, path, "throwaway.txt", "nothing of value\n")
 
@@ -534,6 +568,8 @@ func TestTheDiscardPlanIsTheCommandThatRuns(t *testing.T) {
 // takes no path at all: a patch names its own files, so discarding lines is one
 // `git apply` whatever was selected.
 func TestTheDiscardPlanOfALineSelectionIsTheApply(t *testing.T) {
+	t.Parallel()
+
 	handler, id, _ := openWorkingRepository(t)
 
 	diff := decode[wireDiff](t, get(t, handler, "/api/repos/"+id+"/diff?path=a.txt&side=unstaged"))
@@ -557,6 +593,8 @@ func TestTheDiscardPlanOfALineSelectionIsTheApply(t *testing.T) {
 // answer on the same terms. A dialog that opened for a selection the daemon
 // would reject asks the user to approve something that cannot happen.
 func TestTheDiscardPlanRefusesWhatTheDiscardRefuses(t *testing.T) {
+	t.Parallel()
+
 	handler, id, _ := openWorkingRepository(t)
 
 	response := postJSON(t, handler, "/api/repos/"+id+"/discard/plan",
@@ -567,6 +605,8 @@ func TestTheDiscardPlanRefusesWhatTheDiscardRefuses(t *testing.T) {
 }
 
 func TestCommitRecordsTheIndexAndReturnsItsSHA(t *testing.T) {
+	t.Parallel()
+
 	handler, id, path := openWorkingRepository(t)
 	// The identity has to come from somewhere: serverOnRoot points git at
 	// empty configuration on purpose.
@@ -600,6 +640,8 @@ func TestCommitRecordsTheIndexAndReturnsItsSHA(t *testing.T) {
 }
 
 func TestCommitWithNoMessageIsRefusedBeforeGitRuns(t *testing.T) {
+	t.Parallel()
+
 	handler, id, _ := openWorkingRepository(t)
 
 	response := postJSON(t, handler, "/api/repos/"+id+"/commit", `{"message":"   "}`)
@@ -609,6 +651,8 @@ func TestCommitWithNoMessageIsRefusedBeforeGitRuns(t *testing.T) {
 }
 
 func TestCommitWithNothingStagedCarriesGitsOwnRefusal(t *testing.T) {
+	t.Parallel()
+
 	handler, id, path := openWorkingRepository(t)
 	runGitIn(t, path, "config", "user.name", "Ada Lovelace")
 	runGitIn(t, path, "config", "user.email", "ada@example.com")
@@ -643,6 +687,8 @@ func TestCommitWithNothingStagedCarriesGitsOwnRefusal(t *testing.T) {
 }
 
 func TestTheCommandLogRemembersWhatRan(t *testing.T) {
+	t.Parallel()
+
 	handler, id, _ := openWorkingRepository(t)
 
 	if response := get(t, handler, "/api/repos/"+id+"/status"); response.Code != http.StatusOK {
@@ -681,6 +727,8 @@ func TestTheCommandLogRemembersWhatRan(t *testing.T) {
 }
 
 func TestTheCommandLogOfAnIdleDaemonIsAnEmptyArray(t *testing.T) {
+	t.Parallel()
+
 	handler, _ := serverOnRoot(t)
 
 	response := get(t, handler, "/api/log")
@@ -690,6 +738,8 @@ func TestTheCommandLogOfAnIdleDaemonIsAnEmptyArray(t *testing.T) {
 }
 
 func TestTheEventStreamAnnouncesWhatTheDaemonRuns(t *testing.T) {
+	t.Parallel()
+
 	handler, id, _ := openWorkingRepository(t)
 
 	// A real server rather than httptest.ResponseRecorder: the recorder has
@@ -780,6 +830,8 @@ func readEvent(t *testing.T, reader *bufio.Reader) (kind, data string) {
 }
 
 func TestReadingOneCommitWhole(t *testing.T) {
+	t.Parallel()
+
 	handler, id, _ := openWorkingRepository(t)
 
 	head := decode[wireStatus](t, get(t, handler, "/api/repos/"+id+"/status")).HeadSHA
@@ -825,6 +877,8 @@ func TestReadingOneCommitWhole(t *testing.T) {
 }
 
 func TestACommitNobodyHasIsNotFound(t *testing.T) {
+	t.Parallel()
+
 	handler, id, _ := openWorkingRepository(t)
 
 	// 404 rather than 500: a commit the walk does not hold is a request to
@@ -844,6 +898,8 @@ func TestACommitNobodyHasIsNotFound(t *testing.T) {
 }
 
 func TestARevisionGitWouldReadAsAnOptionIsRefused(t *testing.T) {
+	t.Parallel()
+
 	handler, id, _ := openWorkingRepository(t)
 
 	// git has no `--` for revisions, so a leading dash makes the argument an

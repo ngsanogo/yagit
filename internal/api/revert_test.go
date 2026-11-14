@@ -69,6 +69,8 @@ func openRevertableRepository(t *testing.T) (http.Handler, string, string) {
 }
 
 func TestPlanningARevertAnswersTheCommandItWouldRun(t *testing.T) {
+	t.Parallel()
+
 	handler, id, path := openRevertableRepository(t)
 	one := shaOf(t, path, "main~1")
 
@@ -97,6 +99,8 @@ func TestPlanningARevertAnswersTheCommandItWouldRun(t *testing.T) {
 }
 
 func TestRevertAppliesTheInverse(t *testing.T) {
+	t.Parallel()
+
 	handler, id, path := openRevertableRepository(t)
 	one := shaOf(t, path, "main~1")
 	before := shaOf(t, path, "HEAD")
@@ -119,6 +123,8 @@ func TestRevertAppliesTheInverse(t *testing.T) {
 }
 
 func TestARevertAimedAtABranchHEADHasLeftIsRefused(t *testing.T) {
+	t.Parallel()
+
 	handler, id, path := openRevertableRepository(t)
 	one := shaOf(t, path, "main~1")
 
@@ -138,6 +144,8 @@ func TestARevertAimedAtABranchHEADHasLeftIsRefused(t *testing.T) {
 }
 
 func TestPlanningARevertOfAMergeIsRefused(t *testing.T) {
+	t.Parallel()
+
 	handler, id, path := openRevertableRepository(t)
 
 	runGitIn(t, path, "switch", "-c", "elsewhere")
@@ -159,6 +167,8 @@ func TestPlanningARevertOfAMergeIsRefused(t *testing.T) {
 }
 
 func TestPlanningARevertOfARootIsRefused(t *testing.T) {
+	t.Parallel()
+
 	handler, id, path := openRevertableRepository(t)
 	root := shaOf(t, path, "main~2")
 
@@ -173,6 +183,8 @@ func TestPlanningARevertOfARootIsRefused(t *testing.T) {
 }
 
 func TestPlanningARevertOfACommitNotOnTheBranchIsRefused(t *testing.T) {
+	t.Parallel()
+
 	handler, id, path := openRevertableRepository(t)
 
 	runGitIn(t, path, "switch", "-c", "side", "main~2")
@@ -193,6 +205,8 @@ func TestPlanningARevertOfACommitNotOnTheBranchIsRefused(t *testing.T) {
 }
 
 func TestARevertNamingTheCommitDifferentlyFromThePlanIsRefused(t *testing.T) {
+	t.Parallel()
+
 	handler, id, path := openRevertableRepository(t)
 	one := shaOf(t, path, "main~1")
 
@@ -209,6 +223,8 @@ func TestARevertNamingTheCommitDifferentlyFromThePlanIsRefused(t *testing.T) {
 }
 
 func TestRevertingWithAnUnknownOutcomeIsRefused(t *testing.T) {
+	t.Parallel()
+
 	handler, id, path := openRevertableRepository(t)
 	one := shaOf(t, path, "main~1")
 
@@ -223,6 +239,8 @@ func TestRevertingWithAnUnknownOutcomeIsRefused(t *testing.T) {
 }
 
 func TestPlanningARevertOfARevisionGitWouldReadAsAnOptionIsRefused(t *testing.T) {
+	t.Parallel()
+
 	handler, id, _ := openRevertableRepository(t)
 
 	for _, revision := range []string{"", "--output=/tmp/yagit-escaped"} {

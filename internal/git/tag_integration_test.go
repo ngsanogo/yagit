@@ -11,6 +11,8 @@ import (
 )
 
 func TestCreateTagArgsPutsTheNameAfterTheDashDash(t *testing.T) {
+	t.Parallel()
+
 	args := git.CreateTagArgs("-d", "release", "HEAD", true)
 	joined := strings.Join(args, " ")
 	if !strings.Contains(joined, "-- -d") {
@@ -22,6 +24,8 @@ func TestCreateTagArgsPutsTheNameAfterTheDashDash(t *testing.T) {
 }
 
 func TestCreateTagArgsLightweightOmitsMessageFlags(t *testing.T) {
+	t.Parallel()
+
 	args := git.CreateTagArgs("v1", "ignored", "", false)
 	want := "tag --no-sign -- v1"
 	if strings.Join(args, " ") != want {
@@ -30,6 +34,8 @@ func TestCreateTagArgsLightweightOmitsMessageFlags(t *testing.T) {
 }
 
 func TestDeleteTagArgsPutsTheNameAfterTheDashDash(t *testing.T) {
+	t.Parallel()
+
 	args := git.DeleteTagArgs("-f")
 	if strings.Join(args, " ") != "tag -d -- -f" {
 		t.Fatalf("DeleteTagArgs = %v", args)
@@ -37,6 +43,8 @@ func TestDeleteTagArgsPutsTheNameAfterTheDashDash(t *testing.T) {
 }
 
 func TestCreateTagRecordsAnAnnotatedTag(t *testing.T) {
+	t.Parallel()
+
 	dir := initRepo(t)
 	runner := git.NewRunner(nil)
 	if err := runner.CreateTag(context.Background(), dir, "v1", "first release", "", true); err != nil {
@@ -60,6 +68,8 @@ func TestCreateTagRecordsAnAnnotatedTag(t *testing.T) {
 }
 
 func TestCreateTagRecordsALightweightTag(t *testing.T) {
+	t.Parallel()
+
 	dir := initRepo(t)
 	runner := git.NewRunner(nil)
 	if err := runner.CreateTag(context.Background(), dir, "v1", "", "", false); err != nil {
@@ -77,6 +87,8 @@ func TestCreateTagRecordsALightweightTag(t *testing.T) {
 }
 
 func TestCreateTagRefusesAnEmptyMessage(t *testing.T) {
+	t.Parallel()
+
 	dir := initRepo(t)
 	err := git.NewRunner(nil).CreateTag(context.Background(), dir, "v1", "  ", "", true)
 	if !errors.Is(err, git.ErrNoTagMessage) {
@@ -85,6 +97,8 @@ func TestCreateTagRefusesAnEmptyMessage(t *testing.T) {
 }
 
 func TestCreateTagLightweightStaysLightweightWhenSigningIsOn(t *testing.T) {
+	t.Parallel()
+
 	dir := initRepo(t)
 	runner := git.NewRunner(nil)
 	// The same setting that signs annotated tags. Without --no-sign, git
@@ -104,6 +118,8 @@ func TestCreateTagLightweightStaysLightweightWhenSigningIsOn(t *testing.T) {
 }
 
 func TestCreateTagLightweightAllowsAnEmptyMessage(t *testing.T) {
+	t.Parallel()
+
 	dir := initRepo(t)
 	if err := git.NewRunner(nil).CreateTag(context.Background(), dir, "v1", "", "", false); err != nil {
 		t.Fatalf("CreateTag: %v", err)
@@ -111,6 +127,8 @@ func TestCreateTagLightweightAllowsAnEmptyMessage(t *testing.T) {
 }
 
 func TestDeleteTagRemovesIt(t *testing.T) {
+	t.Parallel()
+
 	dir := initRepo(t)
 	runner := git.NewRunner(nil)
 	if err := runner.CreateTag(context.Background(), dir, "v1", "first", "", true); err != nil {
@@ -131,6 +149,8 @@ func TestDeleteTagRemovesIt(t *testing.T) {
 }
 
 func TestPushTagArgsWritesTheFullRefspec(t *testing.T) {
+	t.Parallel()
+
 	args := git.PushTagArgs("origin", "v1.0.0")
 	want := "push -- origin refs/tags/v1.0.0:refs/tags/v1.0.0"
 	if strings.Join(args, " ") != want {
@@ -139,6 +159,8 @@ func TestPushTagArgsWritesTheFullRefspec(t *testing.T) {
 }
 
 func TestPushTagSendsTheTagToTheRemote(t *testing.T) {
+	t.Parallel()
+
 	server, work, runner := clonedPair(t)
 	ctx := context.Background()
 
@@ -163,6 +185,8 @@ func TestPushTagSendsTheTagToTheRemote(t *testing.T) {
 }
 
 func TestPushTagRefusesEmptyFields(t *testing.T) {
+	t.Parallel()
+
 	_, work, runner := clonedPair(t)
 	ctx := context.Background()
 
@@ -183,7 +207,6 @@ func TestPushTagRefusesEmptyFields(t *testing.T) {
 
 func initRepo(t *testing.T) string {
 	t.Helper()
-	isolateGitConfiguration(t)
 	dir := filepath.Join(t.TempDir(), "repo")
 	runner := git.NewRunner(nil)
 	runGit(t, runner, filepath.Dir(dir), "init", "-b", "main", dir)

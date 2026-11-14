@@ -14,6 +14,8 @@ const pointer = "version https://git-lfs.github.com/spec/v1\n" +
 	"size 12345\n"
 
 func TestParseLFSPointerReadsWhatGitLFSWrites(t *testing.T) {
+	t.Parallel()
+
 	read, ok := git.ParseLFSPointer([]byte(pointer))
 	if !ok {
 		t.Fatal("a pointer git-lfs itself wrote was not recognised")
@@ -30,6 +32,8 @@ func TestParseLFSPointerReadsWhatGitLFSWrites(t *testing.T) {
 // crash: a text file described as three hundred megabytes, or a real pointer
 // read as an ordinary file. Both directions are here.
 func TestParseLFSPointerRefusesWhatIsNotOne(t *testing.T) {
+	t.Parallel()
+
 	cases := map[string]string{
 		"empty":           "",
 		"prose about LFS": "version https://example.invalid/spec/v1\noid sha256:x\nsize 1\n",
@@ -57,6 +61,8 @@ func TestParseLFSPointerRefusesWhatIsNotOne(t *testing.T) {
 // megabytes long: the cap exists so that answering "no" costs a comparison
 // rather than a copy of somebody's data.
 func TestParseLFSPointerRefusesAnythingPastThePointerSize(t *testing.T) {
+	t.Parallel()
+
 	padded := pointer
 	for len(padded) <= 1024 {
 		padded += "a line of something that is not a pointer\n"
@@ -67,6 +73,8 @@ func TestParseLFSPointerRefusesAnythingPastThePointerSize(t *testing.T) {
 }
 
 func TestParseLFSPatternsReadsTheFilterAttribute(t *testing.T) {
+	t.Parallel()
+
 	attributes := "# what this repository keeps outside itself\n" +
 		"*.psd filter=lfs diff=lfs merge=lfs -text\n" +
 		"\"design assets/*.png\" filter=lfs diff=lfs merge=lfs -text\n" +
@@ -90,12 +98,16 @@ func TestParseLFSPatternsReadsTheFilterAttribute(t *testing.T) {
 // decides where the bytes live. A line carrying only one of those is a line
 // this panel must not offer to untrack.
 func TestParseLFSPatternsIgnoresALineWithoutTheFilter(t *testing.T) {
+	t.Parallel()
+
 	if patterns := git.ParseLFSPatterns([]byte("*.bin diff=lfs merge=lfs\n")); len(patterns) != 0 {
 		t.Errorf("patterns = %v, want none", patterns)
 	}
 }
 
 func TestDetectLFSNamesEitherSideThatIsAPointer(t *testing.T) {
+	t.Parallel()
+
 	// A file moved into LFS: its content on the old side, a pointer on the
 	// new. The case that reads as a deletion unless it is named.
 	diff := git.FileDiff{
@@ -122,6 +134,8 @@ func TestDetectLFSNamesEitherSideThatIsAPointer(t *testing.T) {
 }
 
 func TestDetectLFSAnswersNothingForAnOrdinaryDiff(t *testing.T) {
+	t.Parallel()
+
 	diff := git.FileDiff{
 		Hunks: []git.Hunk{{
 			OldStart: 1, OldLines: 1, NewStart: 1, NewLines: 1,
@@ -141,6 +155,8 @@ func TestDetectLFSAnswersNothingForAnOrdinaryDiff(t *testing.T) {
 // those as content would describe a fragment as a pointer — or, worse, fail to
 // recognise a real one and say nothing.
 func TestDetectLFSRefusesASideItOnlyHasPartOf(t *testing.T) {
+	t.Parallel()
+
 	partial := git.FileDiff{
 		Hunks: []git.Hunk{{
 			OldStart: 40, OldLines: 3, NewStart: 40, NewLines: 3,
@@ -165,6 +181,8 @@ func TestDetectLFSRefusesASideItOnlyHasPartOf(t *testing.T) {
 // git decided there is nothing to show, so there are no lines to read. A
 // pointer is text and never lands here.
 func TestDetectLFSSaysNothingAboutABinaryDiff(t *testing.T) {
+	t.Parallel()
+
 	if found := git.DetectLFS(git.FileDiff{Binary: true}); found != nil {
 		t.Errorf("a binary diff answered %+v", found)
 	}
@@ -188,6 +206,8 @@ func pointerLines() []git.DiffLine {
 // a pointer key — and without that refusal the pane reports somebody's writing
 // as a file of three hundred megabytes kept elsewhere.
 func TestParseLFSPointerRefusesAPrefixOfALongerFile(t *testing.T) {
+	t.Parallel()
+
 	prefix := "version https://git-lfs.github.com/spec/v1\n" +
 		"oid sha256:" + strings.Repeat("a", 64) + "\n" +
 		"size 314572800\n" +
@@ -202,6 +222,8 @@ func TestParseLFSPointerRefusesAPrefixOfALongerFile(t *testing.T) {
 // And what strictness must not cost: the specification's own extension keys,
 // which git-lfs may write and which describe a pointer that is perfectly good.
 func TestParseLFSPointerKeepsTheExtensionKeys(t *testing.T) {
+	t.Parallel()
+
 	text := "version https://git-lfs.github.com/spec/v1\n" +
 		"ext-0-foo sha256:" + strings.Repeat("b", 64) + "\n" +
 		"oid sha256:" + strings.Repeat("a", 64) + "\n" +

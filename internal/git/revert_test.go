@@ -13,6 +13,8 @@ import (
 // that option's placeholder as the subject.
 
 func TestRevertArgsPinsWhatTheRevertWillBe(t *testing.T) {
+	t.Parallel()
+
 	want := []string{"revert", "--no-edit", "--no-reference", "--", "abc1234"}
 	if args := git.RevertArgs("abc1234"); !slices.Equal(args, want) {
 		t.Errorf("RevertArgs = %v, want %v", args, want)
@@ -20,6 +22,8 @@ func TestRevertArgsPinsWhatTheRevertWillBe(t *testing.T) {
 }
 
 func TestRevertArgsPutsTheRevisionWhereItCannotBeAnOption(t *testing.T) {
+	t.Parallel()
+
 	args := git.RevertArgs("abc1234")
 	want := []string{"--", "abc1234"}
 	if got := args[len(args)-2:]; !slices.Equal(got, want) {
@@ -28,6 +32,8 @@ func TestRevertArgsPutsTheRevisionWhereItCannotBeAnOption(t *testing.T) {
 }
 
 func TestParseRevertOutcomeTakesRevertAndNothingElse(t *testing.T) {
+	t.Parallel()
+
 	outcome, err := git.ParseRevertOutcome("revert")
 	if err != nil {
 		t.Fatalf("ParseRevertOutcome(revert): %v", err)

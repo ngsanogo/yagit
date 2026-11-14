@@ -9,6 +9,8 @@ import (
 // bound here, against maxLoggedValue, so a looser HTTP-level assertion cannot
 // quietly accept a multi-kilobyte truncation that still "passes".
 func TestOriginRejectedAppliesForLog(t *testing.T) {
+	t.Parallel()
+
 	padding := strings.Repeat("x", maxLoggedValue*4)
 	origin := "https://evil.example/" + padding
 

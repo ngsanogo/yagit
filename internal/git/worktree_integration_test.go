@@ -12,6 +12,8 @@ import (
 )
 
 func TestWorktreesAgainstGit(t *testing.T) {
+	t.Parallel()
+
 	dir := initRepo(t)
 	runner := git.NewRunner(nil)
 	ctx := context.Background()
@@ -47,6 +49,8 @@ func TestWorktreesAgainstGit(t *testing.T) {
 // One branch, one working tree — git's own rule, and the refusal names the
 // directory holding it, which is the fact the person needs.
 func TestAddWorktreeRefusesABranchAlreadyCheckedOut(t *testing.T) {
+	t.Parallel()
+
 	dir := initRepo(t)
 	runner := git.NewRunner(nil)
 	ctx := context.Background()
@@ -63,6 +67,8 @@ func TestAddWorktreeRefusesABranchAlreadyCheckedOut(t *testing.T) {
 // Without --force git refuses a checkout holding uncommitted work, and names
 // the files in the way. yagit passes both the refusal and the flag through.
 func TestRemoveWorktreeRefusesUncommittedWorkUntilForced(t *testing.T) {
+	t.Parallel()
+
 	dir := initRepo(t)
 	runner := git.NewRunner(nil)
 	ctx := context.Background()
@@ -83,6 +89,8 @@ func TestRemoveWorktreeRefusesUncommittedWorkUntilForced(t *testing.T) {
 }
 
 func TestPruneWorktreesAgainstGit(t *testing.T) {
+	t.Parallel()
+
 	dir := initRepo(t)
 	runner := git.NewRunner(nil)
 	ctx := context.Background()
@@ -117,6 +125,8 @@ func TestPruneWorktreesAgainstGit(t *testing.T) {
 }
 
 func TestAddWorktreeRefusesNoPath(t *testing.T) {
+	t.Parallel()
+
 	runner := git.NewRunner(nil)
 	if err := runner.AddWorktree(context.Background(), "", "  ", "main", "", false); !errors.Is(err, git.ErrNoWorktreePath) {
 		t.Fatalf("err = %v, want ErrNoWorktreePath", err)

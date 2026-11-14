@@ -67,6 +67,8 @@ func subjects(result git.SearchResult) []string {
 }
 
 func TestSearchByMessage(t *testing.T) {
+	t.Parallel()
+
 	dir, runner := searchable(t)
 
 	got := subjects(searchIn(t, runner, dir, git.SearchMessage, "parser"))
@@ -78,6 +80,8 @@ func TestSearchByMessage(t *testing.T) {
 // The whole reason --fixed-strings is on: `fix(api)` is an unbalanced-looking
 // pattern to a regex engine, and a search box is not a regex box.
 func TestSearchByMessageTakesTheQueryLiterally(t *testing.T) {
+	t.Parallel()
+
 	dir, runner := searchable(t)
 
 	got := subjects(searchIn(t, runner, dir, git.SearchMessage, "fix(api)"))
@@ -92,6 +96,8 @@ func TestSearchByMessageTakesTheQueryLiterally(t *testing.T) {
 }
 
 func TestSearchByMessageIgnoresCase(t *testing.T) {
+	t.Parallel()
+
 	dir, runner := searchable(t)
 
 	if got := subjects(searchIn(t, runner, dir, git.SearchMessage, "PARSER")); len(got) != 1 {
@@ -100,6 +106,8 @@ func TestSearchByMessageIgnoresCase(t *testing.T) {
 }
 
 func TestSearchByAuthor(t *testing.T) {
+	t.Parallel()
+
 	dir, runner := searchable(t)
 
 	got := subjects(searchIn(t, runner, dir, git.SearchAuthor, "grace"))
@@ -109,6 +117,8 @@ func TestSearchByAuthor(t *testing.T) {
 }
 
 func TestSearchByPath(t *testing.T) {
+	t.Parallel()
+
 	dir, runner := searchable(t)
 
 	got := subjects(searchIn(t, runner, dir, git.SearchPath, "parser.go"))
@@ -120,6 +130,8 @@ func TestSearchByPath(t *testing.T) {
 // The pickaxe: commits where the number of occurrences changed — the one that
 // added the word, and the one that took it away.
 func TestSearchByContent(t *testing.T) {
+	t.Parallel()
+
 	dir, runner := searchable(t)
 
 	got := subjects(searchIn(t, runner, dir, git.SearchContent, "tokenise"))
@@ -129,6 +141,8 @@ func TestSearchByContent(t *testing.T) {
 }
 
 func TestSearchAnswersWithTheCommandItRan(t *testing.T) {
+	t.Parallel()
+
 	dir, runner := searchable(t)
 
 	found := searchIn(t, runner, dir, git.SearchPath, "parser.go")
@@ -143,6 +157,8 @@ func TestSearchAnswersWithTheCommandItRan(t *testing.T) {
 }
 
 func TestSearchRefusesAnEmptyQuery(t *testing.T) {
+	t.Parallel()
+
 	dir, runner := searchable(t)
 	ctx := context.Background()
 
@@ -163,7 +179,8 @@ func TestSearchRefusesAnEmptyQuery(t *testing.T) {
 // rather than answering with nothing — so which state that is has to be
 // decided from the refs, never from git's error text.
 func TestSearchOnARepositoryWithNoCommits(t *testing.T) {
-	isolateGitConfiguration(t)
+	t.Parallel()
+
 	runner := git.NewRunner(nil)
 	ctx := context.Background()
 	dir := filepath.Join(t.TempDir(), "empty")
@@ -179,6 +196,8 @@ func TestSearchOnARepositoryWithNoCommits(t *testing.T) {
 }
 
 func TestParseSearchField(t *testing.T) {
+	t.Parallel()
+
 	for _, name := range []string{"message", "author", "path", "content"} {
 		if _, err := git.ParseSearchField(name); err != nil {
 			t.Errorf("ParseSearchField(%q) = %v", name, err)

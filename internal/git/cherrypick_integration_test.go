@@ -23,8 +23,6 @@ import (
 //	side   base ─── side edit
 func pickable(t *testing.T) (string, *git.Runner) {
 	t.Helper()
-	isolateGitConfiguration(t)
-
 	dir := t.TempDir()
 	runner := git.NewRunner(nil)
 
@@ -48,6 +46,8 @@ func pickable(t *testing.T) (string, *git.Runner) {
 }
 
 func TestPreviewCherryPickReadsAnApply(t *testing.T) {
+	t.Parallel()
+
 	dir, runner := pickable(t)
 	side := commitOf(t, runner, dir, "side")
 
@@ -67,6 +67,8 @@ func TestPreviewCherryPickReadsAnApply(t *testing.T) {
 }
 
 func TestPreviewCherryPickReadsAFastForward(t *testing.T) {
+	t.Parallel()
+
 	dir, runner := pickable(t)
 
 	runGit(t, runner, dir, "switch", "-c", "ahead")
@@ -86,6 +88,8 @@ func TestPreviewCherryPickReadsAFastForward(t *testing.T) {
 }
 
 func TestPreviewCherryPickReadsAnAncestorAsUpToDate(t *testing.T) {
+	t.Parallel()
+
 	dir, runner := pickable(t)
 	base := commitOf(t, runner, dir, "main~1")
 
@@ -108,6 +112,8 @@ func TestPreviewCherryPickReadsAnAncestorAsUpToDate(t *testing.T) {
 }
 
 func TestPreviewCherryPickRefusesAMerge(t *testing.T) {
+	t.Parallel()
+
 	dir, runner := pickable(t)
 
 	// A merge of a branch that only adds a file — clean, so HEAD is a merge
@@ -130,6 +136,8 @@ func TestPreviewCherryPickRefusesAMerge(t *testing.T) {
 }
 
 func TestCherryPickApplyRecordsANewCommit(t *testing.T) {
+	t.Parallel()
+
 	dir, runner := pickable(t)
 
 	// Side's edit conflicts with main's on the same file. Pick a commit that
@@ -163,6 +171,8 @@ func TestCherryPickApplyRecordsANewCommit(t *testing.T) {
 }
 
 func TestCherryPickFastForwardMovesHEADOntoTheCommit(t *testing.T) {
+	t.Parallel()
+
 	dir, runner := pickable(t)
 
 	runGit(t, runner, dir, "switch", "-c", "ahead")
@@ -188,6 +198,8 @@ func TestCherryPickFastForwardMovesHEADOntoTheCommit(t *testing.T) {
 // Up-to-date runs nothing: the route verifies and returns, because git would
 // refuse an empty cherry-pick and a confirmation must never offer that.
 func TestCherryPickUpToDateChangesNothing(t *testing.T) {
+	t.Parallel()
+
 	dir, runner := pickable(t)
 	before := commitOf(t, runner, dir, "HEAD")
 
@@ -200,6 +212,8 @@ func TestCherryPickUpToDateChangesNothing(t *testing.T) {
 }
 
 func TestCherryPickApplyStopsOnAConflict(t *testing.T) {
+	t.Parallel()
+
 	dir, runner := pickable(t)
 	side := commitOf(t, runner, dir, "side")
 

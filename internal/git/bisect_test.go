@@ -8,6 +8,8 @@ import (
 )
 
 func TestBisectStartArgsWithNoEnds(t *testing.T) {
+	t.Parallel()
+
 	args, err := git.BisectStartArgs("", nil)
 	if err != nil {
 		t.Fatal(err)
@@ -18,6 +20,8 @@ func TestBisectStartArgsWithNoEnds(t *testing.T) {
 }
 
 func TestBisectStartArgsWithBothEnds(t *testing.T) {
+	t.Parallel()
+
 	args, err := git.BisectStartArgs("badtip", []string{"goodbase"})
 	if err != nil {
 		t.Fatal(err)
@@ -28,12 +32,16 @@ func TestBisectStartArgsWithBothEnds(t *testing.T) {
 }
 
 func TestBisectStartArgsRefusesADashRevision(t *testing.T) {
+	t.Parallel()
+
 	if _, err := git.BisectStartArgs("--output=/tmp/x", nil); !errors.Is(err, git.ErrBadRevision) {
 		t.Fatalf("err = %v, want ErrBadRevision", err)
 	}
 }
 
 func TestBisectStartArgsNeedsBadWhenGoodIsNamed(t *testing.T) {
+	t.Parallel()
+
 	if _, err := git.BisectStartArgs("", []string{"goodbase"}); !errors.Is(err, git.ErrBadRevision) {
 		t.Fatalf("err = %v, want ErrBadRevision", err)
 	}

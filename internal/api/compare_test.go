@@ -14,6 +14,8 @@ type wireCompare struct {
 
 // main holds B, side holds S: one commit each since they parted.
 func TestCompareCountsBothSidesOfTheFork(t *testing.T) {
+	t.Parallel()
+
 	handler, id, _ := openSwitchableRepository(t)
 
 	response := postJSON(t, handler, "/api/repos/"+id+"/compare", `{"ref":"refs/heads/side"}`)
@@ -30,6 +32,8 @@ func TestCompareCountsBothSidesOfTheFork(t *testing.T) {
 // is still refused: git would resolve it through refs/tags before refs/heads,
 // and the answer would count against whichever it found first.
 func TestCompareRefusesAShortName(t *testing.T) {
+	t.Parallel()
+
 	handler, id, _ := openSwitchableRepository(t)
 
 	response := postJSON(t, handler, "/api/repos/"+id+"/compare", `{"ref":"side"}`)

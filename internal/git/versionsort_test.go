@@ -6,6 +6,8 @@ import (
 )
 
 func TestVersionRefnameCompareMatchesGitOrder(t *testing.T) {
+	t.Parallel()
+
 	// Copied from what `git for-each-ref --sort=version:refname` printed for
 	// these tags on git 2.43. Lexicographic order would put v0.10.0 before
 	// v0.9.0 and v10 before v2; reading digit runs as plain integers would
@@ -31,6 +33,8 @@ func TestVersionRefnameCompareMatchesGitOrder(t *testing.T) {
 // underneath is not stable, so a zero there is an order that can differ
 // between the sidebar and the badges on the same screen.
 func TestVersionRefnameCompareOnlyEqualForTheSameName(t *testing.T) {
+	t.Parallel()
+
 	names := []string{"v1", "v01", "v001", "v1.0", "v1.00", "v1.01", "v1.1", "beta"}
 	for _, a := range names {
 		for _, b := range names {
@@ -49,6 +53,8 @@ func TestVersionRefnameCompareOnlyEqualForTheSameName(t *testing.T) {
 // A digit run longer than an int can hold used to wrap around and answer with
 // the wrong sign. git compares the runs, not their arithmetic value.
 func TestVersionRefnameCompareHandlesHugeDigitRuns(t *testing.T) {
+	t.Parallel()
+
 	small := "build-99999999999999999999999998"
 	large := "build-99999999999999999999999999"
 	if got := versionRefnameCompare(small, large); got >= 0 {
@@ -60,6 +66,8 @@ func TestVersionRefnameCompareHandlesHugeDigitRuns(t *testing.T) {
 }
 
 func TestOrderDecorationTagsNewestFirst(t *testing.T) {
+	t.Parallel()
+
 	got := orderDecorationTags([]string{
 		"HEAD -> main",
 		"tag: v0.9.0",
@@ -82,6 +90,8 @@ func TestOrderDecorationTagsNewestFirst(t *testing.T) {
 }
 
 func TestWithTagsNewestFirst(t *testing.T) {
+	t.Parallel()
+
 	got := withTagsNewestFirst([]Ref{
 		{Kind: RefBranch, ShortName: "feature"},
 		{Kind: RefTag, ShortName: "v0.9.0"},

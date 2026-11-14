@@ -59,12 +59,6 @@ func (r *ranCommands) of(subcommand string) int {
 func fixture(t *testing.T) (*history.Store, *repo.Repo, *git.Runner, *ranCommands) {
 	t.Helper()
 
-	// git here reads whatever ~/.gitconfig the machine has, because the
-	// Runner passes HOME through on purpose. A global commit.gpgsign would
-	// make these commits depend on an unlocked signing key.
-	t.Setenv("GIT_CONFIG_GLOBAL", os.DevNull)
-	t.Setenv("GIT_CONFIG_SYSTEM", os.DevNull)
-
 	// On some systems /tmp is itself a symlink, and the registry compares
 	// resolved paths.
 	root, err := filepath.EvalSymlinks(t.TempDir())
@@ -141,6 +135,8 @@ func headDecoration(commits []git.Commit) string {
 }
 
 func TestWindowDescribesTheWholeHistory(t *testing.T) {
+	t.Parallel()
+
 	store, opened, _, _ := fixture(t)
 
 	window, err := store.Window(context.Background(), opened, 0, 100, git.ScopeHead, nil)
@@ -181,6 +177,8 @@ func TestWindowDescribesTheWholeHistory(t *testing.T) {
 }
 
 func TestWindowIsClampedToTheHistory(t *testing.T) {
+	t.Parallel()
+
 	store, opened, _, _ := fixture(t)
 	ctx := context.Background()
 
@@ -218,6 +216,8 @@ func TestWindowIsClampedToTheHistory(t *testing.T) {
 }
 
 func TestRefreshDoesNotAskForRefsTwice(t *testing.T) {
+	t.Parallel()
+
 	store, opened, _, ran := fixture(t)
 	ctx := context.Background()
 
@@ -230,6 +230,8 @@ func TestRefreshDoesNotAskForRefsTwice(t *testing.T) {
 }
 
 func TestASecondWindowReusesTheAssignment(t *testing.T) {
+	t.Parallel()
+
 	store, opened, _, ran := fixture(t)
 	ctx := context.Background()
 
@@ -252,6 +254,8 @@ func TestASecondWindowReusesTheAssignment(t *testing.T) {
 }
 
 func TestACommitInvalidatesTheAssignment(t *testing.T) {
+	t.Parallel()
+
 	store, opened, runner, ran := fixture(t)
 	ctx := context.Background()
 
@@ -280,6 +284,8 @@ func TestACommitInvalidatesTheAssignment(t *testing.T) {
 // TestABranchDeletionInvalidatesTheAssignment covers the case a fingerprint of
 // the tip alone would miss: nothing was added, and the history is smaller.
 func TestABranchDeletionInvalidatesTheAssignment(t *testing.T) {
+	t.Parallel()
+
 	store, opened, runner, _ := fixture(t)
 	ctx := context.Background()
 
@@ -307,6 +313,8 @@ func TestABranchDeletionInvalidatesTheAssignment(t *testing.T) {
 }
 
 func TestForgetReleasesTheHistory(t *testing.T) {
+	t.Parallel()
+
 	store, opened, _, ran := fixture(t)
 	ctx := context.Background()
 
@@ -324,8 +332,7 @@ func TestForgetReleasesTheHistory(t *testing.T) {
 }
 
 func TestARepositoryWithNoCommitYet(t *testing.T) {
-	t.Setenv("GIT_CONFIG_GLOBAL", os.DevNull)
-	t.Setenv("GIT_CONFIG_SYSTEM", os.DevNull)
+	t.Parallel()
 
 	root, err := filepath.EvalSymlinks(t.TempDir())
 	if err != nil {
@@ -370,6 +377,8 @@ func TestARepositoryWithNoCommitYet(t *testing.T) {
 // themselves change. Two tests because they fail for different reasons: this
 // one on a stale decoration, that one on a stale set of commits.
 func TestACheckoutRedrawsTheHeadDecoration(t *testing.T) {
+	t.Parallel()
+
 	store, opened, runner, ran := fixture(t)
 	ctx := context.Background()
 
@@ -399,6 +408,8 @@ func TestACheckoutRedrawsTheHeadDecoration(t *testing.T) {
 // fingerprint of refs cannot see at all: every ref points exactly where it
 // pointed, and the only thing that moved is the name HEAD is known by.
 func TestACheckoutOntoAnotherNameForTheSameCommitInvalidates(t *testing.T) {
+	t.Parallel()
+
 	store, opened, runner, ran := fixture(t)
 	ctx := context.Background()
 
@@ -424,6 +435,8 @@ func TestACheckoutOntoAnotherNameForTheSameCommitInvalidates(t *testing.T) {
 // TestDetachingHEADInvalidatesTheAssignment is the same case with nothing at
 // all left to compare: the same commit, under no branch name.
 func TestDetachingHEADInvalidatesTheAssignment(t *testing.T) {
+	t.Parallel()
+
 	store, opened, runner, ran := fixture(t)
 	ctx := context.Background()
 
@@ -453,6 +466,8 @@ func TestDetachingHEADInvalidatesTheAssignment(t *testing.T) {
 // new value on every refresh would walk the whole history again for every page
 // of rows the interface asks for.
 func TestAnUnbornHEADDoesNotThrashTheCache(t *testing.T) {
+	t.Parallel()
+
 	store, opened, runner, ran := fixture(t)
 	ctx := context.Background()
 
@@ -480,6 +495,8 @@ func TestAnUnbornHEADDoesNotThrashTheCache(t *testing.T) {
 // would scale with one of those, and two measurements taken under different
 // conditions would then disagree.
 func TestHEADIsReadWithTheRefs(t *testing.T) {
+	t.Parallel()
+
 	store, opened, runner, ran := fixture(t)
 	ctx := context.Background()
 
@@ -534,6 +551,8 @@ func TestHEADIsReadWithTheRefs(t *testing.T) {
 // the row is what the list scrolls to, and a location that ignored the order
 // would still pass on the tip alone.
 func TestLocateFindsACommitByItsSHA(t *testing.T) {
+	t.Parallel()
+
 	store, opened, _, _ := fixture(t)
 	ctx := context.Background()
 
@@ -566,6 +585,8 @@ func TestLocateFindsACommitByItsSHA(t *testing.T) {
 // at something the walk never reached. Not an error: the answer is that there
 // is no row to scroll to, and the interface has to be able to say so.
 func TestLocateOfACommitOutsideTheHistoryIsNotFound(t *testing.T) {
+	t.Parallel()
+
 	store, opened, _, _ := fixture(t)
 
 	located, found, err := store.Locate(context.Background(), opened,
@@ -584,6 +605,8 @@ func TestLocateOfACommitOutsideTheHistoryIsNotFound(t *testing.T) {
 // it. Answering from the other scope's assignment would scroll the list to a
 // row holding a different commit.
 func TestLocateIsAnsweredWithinTheScopeItWasAsked(t *testing.T) {
+	t.Parallel()
+
 	store, opened, runner, _ := fixture(t)
 	ctx := context.Background()
 
@@ -608,6 +631,8 @@ func TestLocateIsAnsweredWithinTheScopeItWasAsked(t *testing.T) {
 }
 
 func TestLaneOfOutsideTheHistoryLeavesThePicture(t *testing.T) {
+	t.Parallel()
+
 	store, opened, _, _ := fixture(t)
 
 	window, err := store.Window(context.Background(), opened, 0, 1, git.ScopeHead, nil)
@@ -630,6 +655,8 @@ func TestLaneOfOutsideTheHistoryLeavesThePicture(t *testing.T) {
 // TestTheDefaultScopeDrawsWhatIsCheckedOut: the picture is the current
 // branch unless somebody asks for every ref.
 func TestTheDefaultScopeDrawsWhatIsCheckedOut(t *testing.T) {
+	t.Parallel()
+
 	store, opened, runner, _ := fixture(t)
 	ctx := context.Background()
 
@@ -659,6 +686,8 @@ func TestTheDefaultScopeDrawsWhatIsCheckedOut(t *testing.T) {
 // changed — no ref moved, HEAD did not move — and answer the first scope's
 // walk to a caller that asked for the other one.
 func TestEachScopeKeepsItsOwnAssignment(t *testing.T) {
+	t.Parallel()
+
 	store, opened, runner, ran := fixture(t)
 	ctx := context.Background()
 
@@ -694,6 +723,8 @@ func TestEachScopeKeepsItsOwnAssignment(t *testing.T) {
 // the refs alone would miss: a checkout moves no ref, and the default scope
 // walks from HEAD, so the picture would stay on the branch you just left.
 func TestACheckoutChangesWhatTheDefaultScopeWalks(t *testing.T) {
+	t.Parallel()
+
 	store, opened, runner, _ := fixture(t)
 	ctx := context.Background()
 
@@ -724,6 +755,8 @@ func TestACheckoutChangesWhatTheDefaultScopeWalks(t *testing.T) {
 // TestADetachedHEADIsAHistory: nothing is checked out but a commit, which is
 // the state `git checkout <sha>` and every rebase in progress leave behind.
 func TestADetachedHEADIsAHistory(t *testing.T) {
+	t.Parallel()
+
 	store, opened, runner, _ := fixture(t)
 	ctx := context.Background()
 
@@ -743,6 +776,8 @@ func TestADetachedHEADIsAHistory(t *testing.T) {
 // answer the second from the first's assignment — every column wrong, and
 // wrong in a way that looks right.
 func TestTwoChoicesOfRefsAreTwoAssignments(t *testing.T) {
+	t.Parallel()
+
 	store, opened, runner, ran := fixture(t)
 	ctx := context.Background()
 
@@ -776,6 +811,8 @@ func TestTwoChoicesOfRefsAreTwoAssignments(t *testing.T) {
 // The order the boxes were ticked in is nobody's business, and keying on it
 // would pay for the whole log again to answer with identical rows.
 func TestTheOrderRefsWereChosenInIsNotPartOfTheKey(t *testing.T) {
+	t.Parallel()
+
 	store, opened, _, ran := fixture(t)
 	ctx := context.Background()
 
@@ -799,6 +836,8 @@ func TestTheOrderRefsWereChosenInIsNotPartOfTheKey(t *testing.T) {
 // reach a commit has to answer "not there" rather than the row it holds under
 // another set — which would scroll the list to a different commit.
 func TestLocateUnderAChosenSetAnswersForThatSetOnly(t *testing.T) {
+	t.Parallel()
+
 	store, opened, runner, _ := fixture(t)
 	ctx := context.Background()
 
@@ -840,6 +879,8 @@ func TestLocateUnderAChosenSetAnswersForThatSetOnly(t *testing.T) {
 // picker on a repository with twenty references holds every walk it produced
 // until the tab is closed.
 func TestPickedWalksAreBounded(t *testing.T) {
+	t.Parallel()
+
 	store, opened, runner, ran := fixture(t)
 	ctx := context.Background()
 
@@ -880,6 +921,8 @@ func TestPickedWalksAreBounded(t *testing.T) {
 // between. They are two keys, they cannot grow, and paying for either walk
 // again on every press is the thing this package exists to avoid.
 func TestTheUnpickedScopesAreNotEvicted(t *testing.T) {
+	t.Parallel()
+
 	store, opened, runner, ran := fixture(t)
 	ctx := context.Background()
 
@@ -919,6 +962,8 @@ func TestTheUnpickedScopesAreNotEvicted(t *testing.T) {
 
 // Closing a tab still drops everything, ceiling or no ceiling.
 func TestForgetDropsThePickedWalksToo(t *testing.T) {
+	t.Parallel()
+
 	store, opened, _, _ := fixture(t)
 	ctx := context.Background()
 

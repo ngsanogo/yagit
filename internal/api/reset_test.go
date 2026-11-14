@@ -69,6 +69,8 @@ func openResettableRepository(t *testing.T) (http.Handler, string, string) {
 }
 
 func TestPlanningAResetAnswersTheCommandItWouldRun(t *testing.T) {
+	t.Parallel()
+
 	handler, id, path := openResettableRepository(t)
 	one := shaOf(t, path, "main~1")
 
@@ -100,6 +102,8 @@ func TestPlanningAResetAnswersTheCommandItWouldRun(t *testing.T) {
 }
 
 func TestResetHardMovesTheBranch(t *testing.T) {
+	t.Parallel()
+
 	handler, id, path := openResettableRepository(t)
 	one := shaOf(t, path, "main~1")
 
@@ -123,6 +127,8 @@ func TestResetHardMovesTheBranch(t *testing.T) {
 }
 
 func TestAResetAimedAtABranchHEADHasLeftIsRefused(t *testing.T) {
+	t.Parallel()
+
 	handler, id, path := openResettableRepository(t)
 	one := shaOf(t, path, "main~1")
 
@@ -141,6 +147,8 @@ func TestAResetAimedAtABranchHEADHasLeftIsRefused(t *testing.T) {
 }
 
 func TestPlanningAResetOfACommitNotOnTheBranchIsRefused(t *testing.T) {
+	t.Parallel()
+
 	handler, id, path := openResettableRepository(t)
 
 	runGitIn(t, path, "switch", "-c", "side", "main~2")
@@ -161,6 +169,8 @@ func TestPlanningAResetOfACommitNotOnTheBranchIsRefused(t *testing.T) {
 }
 
 func TestAResetNamingTheCommitDifferentlyFromThePlanIsRefused(t *testing.T) {
+	t.Parallel()
+
 	handler, id, path := openResettableRepository(t)
 	one := shaOf(t, path, "main~1")
 
@@ -177,6 +187,8 @@ func TestAResetNamingTheCommitDifferentlyFromThePlanIsRefused(t *testing.T) {
 }
 
 func TestResettingWithAnUnknownModeIsRefused(t *testing.T) {
+	t.Parallel()
+
 	handler, id, path := openResettableRepository(t)
 	one := shaOf(t, path, "main~1")
 
@@ -191,6 +203,8 @@ func TestResettingWithAnUnknownModeIsRefused(t *testing.T) {
 }
 
 func TestPlanningAResetOfARevisionGitWouldReadAsAnOptionIsRefused(t *testing.T) {
+	t.Parallel()
+
 	handler, id, _ := openResettableRepository(t)
 
 	for _, revision := range []string{"", "--output=/tmp/yagit-escaped"} {

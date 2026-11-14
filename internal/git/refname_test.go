@@ -11,6 +11,8 @@ import (
 // query string. `git log` takes its revisions BEFORE any `--`, so there is no
 // separator to hide them behind: a name that is an option is an option.
 func TestCheckRefNameAcceptsWhatForEachRefLists(t *testing.T) {
+	t.Parallel()
+
 	for _, name := range []string{
 		"refs/heads/main",
 		"refs/heads/feature/a-topic",
@@ -28,6 +30,8 @@ func TestCheckRefNameAcceptsWhatForEachRefLists(t *testing.T) {
 }
 
 func TestCheckRefNameRefusesWhatGitWouldReadAsSomethingElse(t *testing.T) {
+	t.Parallel()
+
 	cases := map[string]string{
 		"nothing at all":       "",
 		"an option":            "--output=/tmp/written",

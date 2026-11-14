@@ -35,6 +35,8 @@ func rebasePlanFor(t *testing.T, handler http.Handler, id, onto string) wireReba
 // compared character for character — the six flags that stop configuration
 // deciding what a rebase means, and --no-ff, which is the lease on the replay.
 func TestPlanningARebaseAnswersTheCommandItWouldRun(t *testing.T) {
+	t.Parallel()
+
 	handler, id, path := openSwitchableRepository(t)
 
 	runGitIn(t, path, "switch", "side")
@@ -55,6 +57,8 @@ func TestPlanningARebaseAnswersTheCommandItWouldRun(t *testing.T) {
 }
 
 func TestPlanningARebaseAlreadyUpToDateSaysSo(t *testing.T) {
+	t.Parallel()
+
 	handler, id, path := openSwitchableRepository(t)
 
 	runGitIn(t, path, "switch", "-c", "at-main")
@@ -75,6 +79,8 @@ func TestPlanningARebaseAlreadyUpToDateSaysSo(t *testing.T) {
 // count read as commits to replay. git answers "Current branch is up to date"
 // and writes nothing, and so does the plan.
 func TestPlanningARebaseOntoAnAncestorSaysUpToDate(t *testing.T) {
+	t.Parallel()
+
 	handler, id, path := openSwitchableRepository(t)
 
 	runGitIn(t, path, "switch", "-c", "ahead")
@@ -104,6 +110,8 @@ func TestPlanningARebaseOntoAnAncestorSaysUpToDate(t *testing.T) {
 // The branch has nothing of its own, which the same count read as "changes
 // nothing" — while git moves the branch and rewrites the work tree under it.
 func TestPlanningARebaseOfABranchWithNothingOfItsOwnSaysFastForward(t *testing.T) {
+	t.Parallel()
+
 	handler, id, path := openSwitchableRepository(t)
 
 	runGitIn(t, path, "switch", "-c", "behind", "main~1")
@@ -130,6 +138,8 @@ func TestPlanningARebaseOfABranchWithNothingOfItsOwnSaysFastForward(t *testing.T
 }
 
 func TestRebasingOntoAnotherBranchAnswersWithHEADMoved(t *testing.T) {
+	t.Parallel()
+
 	handler, id, path := openSwitchableRepository(t)
 	configureIdentityIn(t, path)
 
@@ -155,6 +165,8 @@ func TestRebasingOntoAnotherBranchAnswersWithHEADMoved(t *testing.T) {
 // the button is pressed the branch has nothing left to replay, so the sentence
 // the user approved is false and the rebase is refused rather than run.
 func TestARebaseThatBecameADifferentOperationIsRefused(t *testing.T) {
+	t.Parallel()
+
 	handler, id, path := openSwitchableRepository(t)
 	configureIdentityIn(t, path)
 
@@ -180,6 +192,8 @@ func TestARebaseThatBecameADifferentOperationIsRefused(t *testing.T) {
 }
 
 func TestRebasingWithAnOutcomeTheDaemonCannotNameIsRefused(t *testing.T) {
+	t.Parallel()
+
 	handler, id, path := openSwitchableRepository(t)
 
 	runGitIn(t, path, "switch", "side")
@@ -194,6 +208,8 @@ func TestRebasingWithAnOutcomeTheDaemonCannotNameIsRefused(t *testing.T) {
 }
 
 func TestRebasingOntoSelfIsRefused(t *testing.T) {
+	t.Parallel()
+
 	handler, id, _ := openSwitchableRepository(t)
 
 	for _, route := range []string{"/rebase", "/rebase/plan"} {
@@ -213,6 +229,8 @@ func TestRebasingOntoSelfIsRefused(t *testing.T) {
 }
 
 func TestRebasingWhileDetachedIsRefused(t *testing.T) {
+	t.Parallel()
+
 	handler, id, path := openSwitchableRepository(t)
 
 	runGitIn(t, path, "switch", "--detach", "main")
@@ -224,6 +242,8 @@ func TestRebasingWhileDetachedIsRefused(t *testing.T) {
 }
 
 func TestRebasingFromABranchHEADHasLeftIsRefused(t *testing.T) {
+	t.Parallel()
+
 	handler, id, path := openSwitchableRepository(t)
 
 	runGitIn(t, path, "switch", "side")
@@ -242,6 +262,8 @@ func TestRebasingFromABranchHEADHasLeftIsRefused(t *testing.T) {
 }
 
 func TestRebasingOnTopOfAnUnfinishedOperationIsRefused(t *testing.T) {
+	t.Parallel()
+
 	handler, id, path := openSwitchableRepository(t)
 	configureIdentityIn(t, path)
 
@@ -276,6 +298,8 @@ func TestRebasingOnTopOfAnUnfinishedOperationIsRefused(t *testing.T) {
 // has no shortcut across a merge commit. If the route ever used merge's
 // outcomeOf, every other API test would still pass.
 func TestPlanningARebaseOfAnAheadBranchThatHoldsAMergeSaysReplay(t *testing.T) {
+	t.Parallel()
+
 	handler, id, path := openSwitchableRepository(t)
 	configureIdentityIn(t, path)
 
@@ -302,6 +326,8 @@ func TestPlanningARebaseOfAnAheadBranchThatHoldsAMergeSaysReplay(t *testing.T) {
 }
 
 func TestRebasingWithAConflictIsGitsRefusalAndLeavesTheRebaseOpen(t *testing.T) {
+	t.Parallel()
+
 	handler, id, path := openSwitchableRepository(t)
 	configureIdentityIn(t, path)
 

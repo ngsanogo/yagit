@@ -26,6 +26,8 @@ index 4cb29ea..6addb9b 100644
 `
 
 func TestParseDiffEmptyOutput(t *testing.T) {
+	t.Parallel()
+
 	files, err := git.ParseDiff(nil)
 	if err != nil {
 		t.Fatalf("empty output must not be an error: %v", err)
@@ -36,6 +38,8 @@ func TestParseDiffEmptyOutput(t *testing.T) {
 }
 
 func TestParseDiffModifiedFile(t *testing.T) {
+	t.Parallel()
+
 	files, err := git.ParseDiff([]byte(modifiedDiff))
 	if err != nil {
 		t.Fatalf("parse: %v", err)
@@ -94,6 +98,8 @@ func TestParseDiffModifiedFile(t *testing.T) {
 }
 
 func TestParseDiffNewFile(t *testing.T) {
+	t.Parallel()
+
 	files, err := git.ParseDiff(diffOutput(
 		"diff --git a/new.txt b/new.txt",
 		"new file mode 100644",
@@ -127,6 +133,8 @@ func TestParseDiffNewFile(t *testing.T) {
 }
 
 func TestParseDiffDeletedFile(t *testing.T) {
+	t.Parallel()
+
 	files, err := git.ParseDiff(diffOutput(
 		"diff --git a/gone.txt b/gone.txt",
 		"deleted file mode 100644",
@@ -151,6 +159,8 @@ func TestParseDiffDeletedFile(t *testing.T) {
 }
 
 func TestParseDiffRename(t *testing.T) {
+	t.Parallel()
+
 	files, err := git.ParseDiff(diffOutput(
 		"diff --git a/old name.txt b/new name.txt",
 		"similarity index 87%",
@@ -182,6 +192,8 @@ func TestParseDiffRename(t *testing.T) {
 }
 
 func TestParseDiffPathWithSpacesAndNoRename(t *testing.T) {
+	t.Parallel()
+
 	// The halves of the header are equal, so cutting in the middle is exact
 	// whatever the name holds. Cutting on " b/" would have split this one
 	// inside the filename.
@@ -206,6 +218,8 @@ func TestParseDiffPathWithSpacesAndNoRename(t *testing.T) {
 }
 
 func TestParseDiffBinaryFile(t *testing.T) {
+	t.Parallel()
+
 	files, err := git.ParseDiff(diffOutput(
 		"diff --git a/logo.png b/logo.png",
 		"index 4cb29ea..6addb9b 100644",
@@ -223,6 +237,8 @@ func TestParseDiffBinaryFile(t *testing.T) {
 }
 
 func TestParseDiffModeChangeWithNoContent(t *testing.T) {
+	t.Parallel()
+
 	files, err := git.ParseDiff(diffOutput(
 		"diff --git a/run.sh b/run.sh",
 		"old mode 100644",
@@ -244,6 +260,8 @@ func TestParseDiffModeChangeWithNoContent(t *testing.T) {
 }
 
 func TestParseDiffNoNewlineMarkerAttachesToTheLineBefore(t *testing.T) {
+	t.Parallel()
+
 	files, err := git.ParseDiff(diffOutput(
 		"diff --git a/a.txt b/a.txt",
 		"index 4cb29ea..6addb9b 100644",
@@ -269,6 +287,8 @@ func TestParseDiffNoNewlineMarkerAttachesToTheLineBefore(t *testing.T) {
 }
 
 func TestParseDiffSeveralHunksNumberLinesAcrossAllOfThem(t *testing.T) {
+	t.Parallel()
+
 	files, err := git.ParseDiff(diffOutput(
 		"diff --git a/a.txt b/a.txt",
 		"--- a/a.txt",
@@ -306,6 +326,8 @@ func TestParseDiffSeveralHunksNumberLinesAcrossAllOfThem(t *testing.T) {
 }
 
 func TestParseDiffSeveralFilesRestartTheirOwnNumbering(t *testing.T) {
+	t.Parallel()
+
 	files, err := git.ParseDiff(diffOutput(
 		"diff --git a/a.txt b/a.txt",
 		"--- a/a.txt",
@@ -334,6 +356,8 @@ func TestParseDiffSeveralFilesRestartTheirOwnNumbering(t *testing.T) {
 }
 
 func TestParseDiffHunkHeading(t *testing.T) {
+	t.Parallel()
+
 	files, err := git.ParseDiff(diffOutput(
 		"diff --git a/a.go b/a.go",
 		"--- a/a.go",
@@ -352,6 +376,8 @@ func TestParseDiffHunkHeading(t *testing.T) {
 }
 
 func TestParseDiffEmptyContextLine(t *testing.T) {
+	t.Parallel()
+
 	// git writes a blank context line as a single space. A diff that has been
 	// through something that strips trailing whitespace arrives with the
 	// space gone, and reading that as the end of the hunk would drop every
@@ -372,6 +398,8 @@ func TestParseDiffEmptyContextLine(t *testing.T) {
 }
 
 func TestParseDiffRefusesALineItCannotRead(t *testing.T) {
+	t.Parallel()
+
 	cases := map[string][]byte{
 		"body line with no marker": diffOutput(
 			"diff --git a/a.txt b/a.txt", "--- a/a.txt", "+++ b/a.txt",
@@ -393,6 +421,8 @@ func TestParseDiffRefusesALineItCannotRead(t *testing.T) {
 }
 
 func TestFingerprintChangesWithTheBytes(t *testing.T) {
+	t.Parallel()
+
 	first := git.Fingerprint([]byte(modifiedDiff))
 	again := git.Fingerprint([]byte(modifiedDiff))
 	other := git.Fingerprint([]byte(modifiedDiff + " "))
@@ -406,6 +436,8 @@ func TestFingerprintChangesWithTheBytes(t *testing.T) {
 }
 
 func TestParseDiffOfABinaryUnderADirectoryHoldingTheSeparator(t *testing.T) {
+	t.Parallel()
+
 	// A binary file has no `---`/`+++` pair to correct a bad guess, and a
 	// mode-only change has none either — which is exactly what the equal-
 	// halves check above exists for. Comparing the halves whole never matched,
@@ -432,6 +464,8 @@ func TestParseDiffOfABinaryUnderADirectoryHoldingTheSeparator(t *testing.T) {
 }
 
 func TestParseDiffUnquotesAPathGitCouldNotWritePlainly(t *testing.T) {
+	t.Parallel()
+
 	// core.quotePath defaults to true, so every byte above ASCII arrives as
 	// three octal digits behind a backslash, inside quotes. Without reading
 	// that back, one accented filename makes the whole diff unreadable — and
@@ -457,6 +491,8 @@ func TestParseDiffUnquotesAPathGitCouldNotWritePlainly(t *testing.T) {
 }
 
 func TestParseDiffUnquotesARenameWithOneQuotedHalf(t *testing.T) {
+	t.Parallel()
+
 	// git quotes each name on its own, so a rename from a plain name to an
 	// accented one has one quoted half and one that is not — and the space
 	// between them is the only separator.
@@ -476,6 +512,8 @@ func TestParseDiffUnquotesARenameWithOneQuotedHalf(t *testing.T) {
 }
 
 func TestParseDiffUnquotesTheEscapesGitWrites(t *testing.T) {
+	t.Parallel()
+
 	// A tab, a quote and a backslash are quoted whatever core.quotePath is
 	// set to, since none of them can be written plainly on a header line.
 	files, err := git.ParseDiff(diffOutput(
@@ -496,6 +534,8 @@ func TestParseDiffUnquotesTheEscapesGitWrites(t *testing.T) {
 }
 
 func TestParseDiffStripsTheTabGitAddsAfterASpacedName(t *testing.T) {
+	t.Parallel()
+
 	// git terminates the name on a `---`/`+++` line with a TAB when it holds
 	// a space, so a traditional patch reader can find where it ends. Kept, the
 	// payload names a path the status list never mentioned — and on a deletion
@@ -525,6 +565,8 @@ func TestParseDiffStripsTheTabGitAddsAfterASpacedName(t *testing.T) {
 }
 
 func TestParseDiffRefusesAPathItCannotUnquote(t *testing.T) {
+	t.Parallel()
+
 	// A name that cannot be read back is not a name to guess at: it would be
 	// shown as a path nothing on disk answers to, and refused by the patch
 	// builder with a sentence about a rename nobody performed.

@@ -219,6 +219,8 @@ func TestAddSubmodulePlanRedactsTheURL(t *testing.T) {
 }
 
 func TestSubmodulesOnARepositoryThatPinsNothing(t *testing.T) {
+	t.Parallel()
+
 	handler, id, _ := openNamedRepository(t, "sm-none")
 
 	if answer := submodulesOf(t, handler, id); len(answer.Submodules) != 0 {

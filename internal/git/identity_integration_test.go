@@ -15,7 +15,6 @@ import (
 // land somewhere they can be read back.
 func globalConfigIn(t *testing.T) string {
 	t.Helper()
-	isolateGitConfiguration(t)
 	home := t.TempDir()
 	t.Setenv("HOME", home)
 	global := filepath.Join(home, ".gitconfig")

@@ -12,6 +12,8 @@ import (
 // unknown field is a client asking for something the route does not do, and
 // the reply is what tells that client which field it got wrong.
 func TestRoutesRefuseABodyTheyCannotRead(t *testing.T) {
+	t.Parallel()
+
 	handler, id, _ := openWorkingRepository(t)
 
 	cases := []struct {

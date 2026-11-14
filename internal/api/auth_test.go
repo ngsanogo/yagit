@@ -92,6 +92,8 @@ func execute(handler http.Handler, request *http.Request) *httptest.ResponseReco
 }
 
 func TestRequestWithoutTokenIsRefused(t *testing.T) {
+	t.Parallel()
+
 	handler := testServer(t)
 
 	response := execute(handler, httptest.NewRequest(http.MethodGet, "/api/health", nil))
@@ -106,6 +108,8 @@ func TestRequestWithoutTokenIsRefused(t *testing.T) {
 }
 
 func TestInvalidTokenIsRefused(t *testing.T) {
+	t.Parallel()
+
 	handler := testServer(t)
 
 	request := httptest.NewRequest(http.MethodGet, "/api/health", nil)
@@ -117,6 +121,8 @@ func TestInvalidTokenIsRefused(t *testing.T) {
 }
 
 func TestTokenAcceptedFromHeaderAndBearer(t *testing.T) {
+	t.Parallel()
+
 	handler := testServer(t)
 
 	cases := []struct {
@@ -142,6 +148,8 @@ func TestTokenAcceptedFromHeaderAndBearer(t *testing.T) {
 // A ?token= on an API URL is refused: the secret must not linger in a request
 // line. The same query on GET / still exchanges for a cookie.
 func TestTokenQueryIsRefusedOnAPIRoutes(t *testing.T) {
+	t.Parallel()
+
 	handler := testServer(t)
 
 	request := httptest.NewRequest(http.MethodGet, "/api/health?token="+testToken, nil)
@@ -160,6 +168,8 @@ func TestTokenQueryIsRefusedOnAPIRoutes(t *testing.T) {
 // the redirect itself, so the check twenty lines away stops being the only
 // thing standing between a request line and somebody else's server.
 func TestRedirectAfterTheTokenExchangeStaysOnThisSite(t *testing.T) {
+	t.Parallel()
+
 	handler := testServer(t)
 
 	for _, target := range []string{
@@ -196,6 +206,8 @@ func TestRedirectAfterTheTokenExchangeStaysOnThisSite(t *testing.T) {
 // exchanged for a cookie and stripped from the address, so a token nobody
 // should have put there does not stay in browser history either.
 func TestTokenInURLIsExchangedForACookieThenStripped(t *testing.T) {
+	t.Parallel()
+
 	handler := testServer(t)
 
 	request := httptest.NewRequest(http.MethodGet, "/?token="+testToken, nil)
@@ -236,6 +248,8 @@ func TestTokenInURLIsExchangedForACookieThenStripped(t *testing.T) {
 // TLS is not the daemon's: the proxy speaks plain HTTP to the loopback and
 // says what the browser used in X-Forwarded-Proto.
 func TestTheSecureAttributeFollowsTheScheme(t *testing.T) {
+	t.Parallel()
+
 	cases := []struct {
 		name          string
 		secureCookies bool
@@ -292,6 +306,8 @@ func TestTheSecureAttributeFollowsTheScheme(t *testing.T) {
 // rule: a tool behind the proxy that opens that URL would otherwise plant a
 // cookie without Secure on an https host, beside the one the door page sets.
 func TestTheTokenInTheURLEarnsTheSameSecureAttribute(t *testing.T) {
+	t.Parallel()
+
 	handler := testServer(t)
 
 	request := httptest.NewRequest(http.MethodGet, "/?token="+testToken, nil)
@@ -316,6 +332,8 @@ func TestTheTokenInTheURLEarnsTheSameSecureAttribute(t *testing.T) {
 // it planted, both presenting the proxy's origin rather than the daemon's.
 // It is what failed with a 403 before the public URL reached the allowlist.
 func TestAProxysOriginIsAcceptedOnceAllowed(t *testing.T) {
+	t.Parallel()
+
 	const proxied = "https://yagit.example.com"
 	handler := testServerWithOrigins(t, []string{allowedOrigin, proxied})
 
@@ -349,6 +367,8 @@ func TestAProxysOriginIsAcceptedOnceAllowed(t *testing.T) {
 // cookie alone is the only one a third-party site can fire without the user
 // knowing, so the only one that demands a known origin.
 func TestMutatingCookieRequestDemandsAKnownOrigin(t *testing.T) {
+	t.Parallel()
+
 	handler := testServer(t)
 
 	cases := []struct {
@@ -397,6 +417,8 @@ func TestMutatingCookieRequestDemandsAKnownOrigin(t *testing.T) {
 // not grant. The origin check therefore does not apply to it, and curl stays
 // usable without ceremony.
 func TestMutatingHeaderRequestNeedsNoOrigin(t *testing.T) {
+	t.Parallel()
+
 	handler := testServer(t)
 
 	request := httptest.NewRequest(http.MethodPost, "/api/repos", strings.NewReader("{}"))
@@ -409,6 +431,8 @@ func TestMutatingHeaderRequestNeedsNoOrigin(t *testing.T) {
 }
 
 func TestUnknownRepoAnswers404(t *testing.T) {
+	t.Parallel()
+
 	handler := testServer(t)
 
 	request := httptest.NewRequest(http.MethodGet, "/api/repos/000000000000/commits", nil)
@@ -427,6 +451,8 @@ func TestUnknownRepoAnswers404(t *testing.T) {
 // frontend, which would render an HTML page in reply to an API call — the
 // worst possible clue for a typo in a URL.
 func TestUnknownAPIRouteAnswers404AsJSON(t *testing.T) {
+	t.Parallel()
+
 	handler := testServer(t)
 
 	request := httptest.NewRequest(http.MethodGet, "/api/doesnotexist", nil)
@@ -444,6 +470,8 @@ func TestUnknownAPIRouteAnswers404AsJSON(t *testing.T) {
 // Everything that is not under /api goes back to the frontend once the token
 // checks out: this is a single-page application, routing happens client-side.
 func TestNonAPIPathIsHandedToTheFrontend(t *testing.T) {
+	t.Parallel()
+
 	handler := testServer(t)
 
 	request := httptest.NewRequest(http.MethodGet, "/history/abc123", nil)
@@ -455,6 +483,8 @@ func TestNonAPIPathIsHandedToTheFrontend(t *testing.T) {
 }
 
 func TestSessionExchangeRefusesAForeignOrigin(t *testing.T) {
+	t.Parallel()
+
 	handler := testServer(t)
 
 	request := httptest.NewRequest(http.MethodPost, "/api/session",
@@ -472,6 +502,8 @@ func TestSessionExchangeRefusesAForeignOrigin(t *testing.T) {
 }
 
 func TestSessionExchangeRefusesANullOrigin(t *testing.T) {
+	t.Parallel()
+
 	handler := testServer(t)
 
 	request := httptest.NewRequest(http.MethodPost, "/api/session",
@@ -497,6 +529,8 @@ func TestSessionExchangeRefusesANullOrigin(t *testing.T) {
 // local process can drive this path without holding the secret. Without a
 // bound, one attempt writes as much as net/http will accept in a header.
 func TestARejectedOriginIsBoundedInTheRefusal(t *testing.T) {
+	t.Parallel()
+
 	var logBuf bytes.Buffer
 	logger := slog.New(slog.NewTextHandler(&logBuf, &slog.HandlerOptions{Level: slog.LevelWarn}))
 	handler := testServerWithLogger(t, logger)
@@ -541,6 +575,8 @@ func TestARejectedOriginIsBoundedInTheRefusal(t *testing.T) {
 }
 
 func TestSessionExchangeAllowsAToolWithNoOrigin(t *testing.T) {
+	t.Parallel()
+
 	handler := testServer(t)
 
 	request := httptest.NewRequest(http.MethodPost, "/api/session",
@@ -586,6 +622,8 @@ func exhaustTheCredentialBudget(t *testing.T, handler http.Handler) {
 // and a sentence telling them their token was not accepted would be a lie the
 // daemon has no way to take back.
 func TestABudgetedDoorSubmissionComesBackAsTheDoor(t *testing.T) {
+	t.Parallel()
+
 	handler := testServer(t)
 	exhaustTheCredentialBudget(t, handler)
 
@@ -620,6 +658,8 @@ func TestABudgetedDoorSubmissionComesBackAsTheDoor(t *testing.T) {
 // address is not submitting anything, so nothing about their request looks
 // like the form — only the navigation's Accept header says they are a person.
 func TestABudgetedNavigationComesBackAsTheDoor(t *testing.T) {
+	t.Parallel()
+
 	handler := testServer(t)
 	exhaustTheCredentialBudget(t, handler)
 
@@ -643,6 +683,8 @@ func TestABudgetedNavigationComesBackAsTheDoor(t *testing.T) {
 // caller a page is the mirror image of the bug being fixed, and the harder one
 // to notice: the status line still says 429 while the parse fails.
 func TestABudgetedClientIsStillAnsweredInJSON(t *testing.T) {
+	t.Parallel()
+
 	cases := []struct {
 		name    string
 		request func() *http.Request
@@ -693,6 +735,8 @@ func TestABudgetedClientIsStillAnsweredInJSON(t *testing.T) {
 // own — and it must carry no credential, because the value that trips this
 // refusal can be the correct one.
 func TestTheBudgetRefusalIsLoggedAndCarriesNoToken(t *testing.T) {
+	t.Parallel()
+
 	var logBuf bytes.Buffer
 	logger := slog.New(slog.NewTextHandler(&logBuf, &slog.HandlerOptions{Level: slog.LevelWarn}))
 	handler := testServerWithLogger(t, logger)

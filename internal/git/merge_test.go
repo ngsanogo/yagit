@@ -13,6 +13,8 @@ import (
 // and the flag that has to be there whatever else is.
 
 func TestMergeArgsNamesTheBranchWhereNothingElseCanAnswerTo(t *testing.T) {
+	t.Parallel()
+
 	for _, outcome := range []git.MergeOutcome{
 		git.MergeUpToDate, git.MergeFastForward, git.MergeCommit, git.MergeSquash,
 	} {
@@ -30,6 +32,8 @@ func TestMergeArgsNamesTheBranchWhereNothingElseCanAnswerTo(t *testing.T) {
 // The whole point of the outcome travelling with the request: the command must
 // say what it does rather than let merge.ff say it.
 func TestMergeArgsPinsWhatTheMergeWillBe(t *testing.T) {
+	t.Parallel()
+
 	cases := map[git.MergeOutcome][]string{
 		git.MergeFastForward: {"merge", "--ff-only", "--", "refs/heads/feature"},
 		git.MergeUpToDate:    {"merge", "--ff-only", "--", "refs/heads/feature"},
@@ -52,6 +56,8 @@ func TestMergeArgsPinsWhatTheMergeWillBe(t *testing.T) {
 // from the name as it was given — refs/heads/… , here — and from merge.log,
 // which is a setting that decides what a commit says.
 func TestMergeArgsWritesTheMessageItselfWhereACommitIsRecorded(t *testing.T) {
+	t.Parallel()
+
 	args := git.MergeArgs("main", "feature", git.MergeCommit)
 
 	message, found := messageIn(args)
@@ -84,6 +90,8 @@ func messageIn(args []string) (string, bool) {
 // A bare `git merge` is the one command this package must never produce: it
 // reads merge.ff, and the dialog that showed the line cannot read a setting.
 func TestMergeArgsNeverLeavesTheDecisionToConfiguration(t *testing.T) {
+	t.Parallel()
+
 	args := git.MergeArgs("main", "feature", git.MergeOutcome("something else entirely"))
 
 	if !slices.Contains(args, "--ff-only") && !slices.Contains(args, "--no-ff") {
@@ -92,6 +100,8 @@ func TestMergeArgsNeverLeavesTheDecisionToConfiguration(t *testing.T) {
 }
 
 func TestParseMergeOutcomeTakesTheFourAndNothingElse(t *testing.T) {
+	t.Parallel()
+
 	for _, raw := range []string{"up-to-date", "fast-forward", "merge-commit", "squash"} {
 		outcome, err := git.ParseMergeOutcome(raw)
 		if err != nil {
@@ -114,6 +124,8 @@ func TestParseMergeOutcomeTakesTheFourAndNothingElse(t *testing.T) {
 // A merge needs two names: the branch coming in, and the one it is going into
 // — which is what the commit will say it was merged into.
 func TestMergeRefusesAMissingName(t *testing.T) {
+	t.Parallel()
+
 	runner := git.NewRunner(nil)
 
 	for _, missing := range []struct{ into, branch string }{

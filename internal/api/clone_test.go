@@ -11,6 +11,8 @@ import (
 )
 
 func TestClonePlanShowsTheCommandWithoutRunningIt(t *testing.T) {
+	t.Parallel()
+
 	handler, root := serverOnRoot(t)
 	server := filepath.Join(root, "server.git")
 	runGitIn(t, root, "init", "--bare", "-b", "main", server)
@@ -41,6 +43,8 @@ func TestClonePlanShowsTheCommandWithoutRunningIt(t *testing.T) {
 }
 
 func TestCloneStreamsProgressAndOpensTheRepository(t *testing.T) {
+	t.Parallel()
+
 	handler, root := serverOnRoot(t)
 	server := filepath.Join(root, "server.git")
 	seed := filepath.Join(root, "seed")
@@ -112,6 +116,8 @@ func TestCloneStreamsProgressAndOpensTheRepository(t *testing.T) {
 }
 
 func TestCloneRefusesAPathOutsideTheRoot(t *testing.T) {
+	t.Parallel()
+
 	handler, _ := serverOnRoot(t)
 	outside := filepath.Join(t.TempDir(), "escape")
 	response := postJSON(t, handler, "/api/repos/clone/plan",
@@ -122,6 +128,8 @@ func TestCloneRefusesAPathOutsideTheRoot(t *testing.T) {
 }
 
 func TestCloneRefusesAnExistingDestination(t *testing.T) {
+	t.Parallel()
+
 	handler, root := serverOnRoot(t)
 	destination := filepath.Join(root, "taken")
 	if err := os.MkdirAll(destination, 0o755); err != nil {
@@ -135,6 +143,8 @@ func TestCloneRefusesAnExistingDestination(t *testing.T) {
 }
 
 func TestCloneSurfacesAGitFailureOnTheStream(t *testing.T) {
+	t.Parallel()
+
 	handler, root := serverOnRoot(t)
 	destination := filepath.Join(root, "fresh")
 	missing := filepath.Join(root, "missing.git")

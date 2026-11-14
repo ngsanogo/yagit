@@ -26,6 +26,8 @@ func lfsState(t *testing.T, handler http.Handler, id string) lfsAnswer {
 // A repository that has never heard of LFS is the ordinary case: no
 // .gitattributes at all. A missing file is an empty list and not a failure.
 func TestLFSOfARepositoryWithNoAttributesFile(t *testing.T) {
+	t.Parallel()
+
 	handler, id, _ := openNamedRepository(t, "no-attributes")
 
 	state := lfsState(t, handler, id)
@@ -41,6 +43,8 @@ func TestLFSOfARepositoryWithNoAttributesFile(t *testing.T) {
 // what lets this answer on a machine that has never had git-lfs installed —
 // and that machine is exactly the one whose user needs to be told.
 func TestLFSReadsThePatternsOutOfGitattributes(t *testing.T) {
+	t.Parallel()
+
 	handler, id, path := openNamedRepository(t, "tracked")
 	writeFile(t, path, ".gitattributes",
 		"*.psd filter=lfs diff=lfs merge=lfs -text\n"+
@@ -56,6 +60,8 @@ func TestLFSReadsThePatternsOutOfGitattributes(t *testing.T) {
 // or not git-lfs is installed: what a command IS does not depend on whether
 // this machine can run it.
 func TestPlanningAnLFSTrackNamesTheCommand(t *testing.T) {
+	t.Parallel()
+
 	handler, id, _ := openNamedRepository(t, "plan-lfs")
 
 	for _, action := range []string{"track", "untrack"} {
@@ -83,6 +89,8 @@ func TestPlanningAnLFSTrackNamesTheCommand(t *testing.T) {
 // argument LISTS the patterns, so sending one through would turn a write into
 // a read that answers nothing anybody asked for.
 func TestAnEmptyLFSPatternIsRefused(t *testing.T) {
+	t.Parallel()
+
 	handler, id, _ := openNamedRepository(t, "empty-pattern")
 
 	for _, target := range []string{"/lfs/track", "/lfs/track/plan", "/lfs/untrack"} {
@@ -97,6 +105,8 @@ func TestAnEmptyLFSPatternIsRefused(t *testing.T) {
 // .gitattributes a track would write. Refused with the sentence that says so
 // rather than by git failing halfway through.
 func TestLFSIsRefusedForABareRepository(t *testing.T) {
+	t.Parallel()
+
 	handler, root := serverOnRoot(t)
 	path := filepath.Join(root, "bare-lfs.git")
 	runGitIn(t, root, "init", "--bare", "-b", "main", path)

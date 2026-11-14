@@ -16,6 +16,8 @@ type wireMergetoolPlan struct {
 }
 
 func TestMergetoolPlanNamesTheExactCommandAndTheTool(t *testing.T) {
+	t.Parallel()
+
 	handler, id, path := conflictedRepository(t)
 	installFakeMergetool(t, path)
 
@@ -35,6 +37,8 @@ func TestMergetoolPlanNamesTheExactCommandAndTheTool(t *testing.T) {
 // Without merge.tool git guesses from its own list, and a terminal tool it
 // finds first would wait on a stdin nobody can type into.
 func TestMergetoolRefusesWhereNoToolIsConfigured(t *testing.T) {
+	t.Parallel()
+
 	handler, id, path := conflictedRepository(t)
 
 	for _, route := range []string{"/mergetool/plan", "/mergetool"} {
@@ -52,6 +56,8 @@ func TestMergetoolRefusesWhereNoToolIsConfigured(t *testing.T) {
 }
 
 func TestMergetoolRefusesAPathThatIsNotConflicted(t *testing.T) {
+	t.Parallel()
+
 	handler, id, _ := openWorkingRepository(t)
 
 	response := postJSON(t, handler, "/api/repos/"+id+"/mergetool", `{"path":"a.txt"}`)
@@ -64,6 +70,8 @@ func TestMergetoolRefusesAPathThatIsNotConflicted(t *testing.T) {
 }
 
 func TestMergetoolResolvesThroughAConfiguredTool(t *testing.T) {
+	t.Parallel()
+
 	handler, id, path := conflictedRepository(t)
 	installFakeMergetool(t, path)
 

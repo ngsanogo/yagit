@@ -26,8 +26,6 @@ import (
 // notes.md changed, and scratch.txt untracked.
 func stashable(t *testing.T) (string, *git.Runner) {
 	t.Helper()
-	isolateGitConfiguration(t)
-
 	dir := t.TempDir()
 	runner := git.NewRunner(nil)
 
@@ -53,6 +51,8 @@ func stashesOf(t *testing.T, runner *git.Runner, dir string) []git.Stash {
 }
 
 func TestStashesEmptyStack(t *testing.T) {
+	t.Parallel()
+
 	dir, runner := stashable(t)
 
 	stashes := stashesOf(t, runner, dir)
@@ -62,6 +62,8 @@ func TestStashesEmptyStack(t *testing.T) {
 }
 
 func TestPushStashSavesTrackedChangesAndAnswersWithTheStack(t *testing.T) {
+	t.Parallel()
+
 	dir, runner := stashable(t)
 
 	stashes, err := runner.PushStash(context.Background(), dir, "keep this", false)
@@ -99,6 +101,8 @@ func TestPushStashSavesTrackedChangesAndAnswersWithTheStack(t *testing.T) {
 }
 
 func TestPushStashTakesUntrackedFilesWhenAsked(t *testing.T) {
+	t.Parallel()
+
 	dir, runner := stashable(t)
 
 	if _, err := runner.PushStash(context.Background(), dir, "everything", true); err != nil {
@@ -114,6 +118,8 @@ func TestPushStashTakesUntrackedFilesWhenAsked(t *testing.T) {
 }
 
 func TestPreviewStashPushCountsTrackedAndUntrackedApart(t *testing.T) {
+	t.Parallel()
+
 	dir, runner := stashable(t)
 
 	preview, err := runner.PreviewStashPush(context.Background(), dir, false)
@@ -135,6 +141,8 @@ func TestPreviewStashPushCountsTrackedAndUntrackedApart(t *testing.T) {
 }
 
 func TestPreviewStashPushDescribesAWorkTreeItWouldSaveNothingFrom(t *testing.T) {
+	t.Parallel()
+
 	// A preview describes; it does not refuse. This work tree holds nothing but
 	// untracked files, which is a perfectly ordinary thing to be looking at
 	// with the box not yet ticked — and refusing to describe it would mean the
@@ -164,6 +172,8 @@ func TestPreviewStashPushDescribesAWorkTreeItWouldSaveNothingFrom(t *testing.T) 
 }
 
 func TestPushStashRefusesAWorkTreeGitWouldSaveNothingFrom(t *testing.T) {
+	t.Parallel()
+
 	// The behaviour this refusal exists for, guarded where the command is:
 	// `git stash push` with nothing tracked and changed prints "No local
 	// changes to save" and exits 0, leaving the untracked files exactly where
@@ -190,6 +200,8 @@ func TestPushStashRefusesAWorkTreeGitWouldSaveNothingFrom(t *testing.T) {
 }
 
 func TestPushStashRefusesACleanWorkTree(t *testing.T) {
+	t.Parallel()
+
 	dir, runner := stashable(t)
 	runGit(t, runner, dir, "checkout", "--", "notes.md")
 	if err := os.Remove(filepath.Join(dir, "scratch.txt")); err != nil {
@@ -206,7 +218,8 @@ func TestPushStashRefusesACleanWorkTree(t *testing.T) {
 }
 
 func TestPreviewStashPushRefusesARepositoryWithNoCommit(t *testing.T) {
-	isolateGitConfiguration(t)
+	t.Parallel()
+
 	dir := t.TempDir()
 	runner := git.NewRunner(nil)
 	runGit(t, runner, dir, "init", "-b", "main")
@@ -223,6 +236,8 @@ func TestPreviewStashPushRefusesARepositoryWithNoCommit(t *testing.T) {
 }
 
 func TestPushStashRefusesAMessageGitWouldRewrite(t *testing.T) {
+	t.Parallel()
+
 	// git takes this, stores both lines on the commit, and flattens them into
 	// one in the reflog — so the list would show something nobody typed.
 	dir, runner := stashable(t)
@@ -237,6 +252,8 @@ func TestPushStashRefusesAMessageGitWouldRewrite(t *testing.T) {
 }
 
 func TestPushStashKeepsAMessageGitWouldReadAsAnOption(t *testing.T) {
+	t.Parallel()
+
 	dir, runner := stashable(t)
 
 	stashes, err := runner.PushStash(context.Background(), dir, "-f --hard", false)
@@ -249,6 +266,8 @@ func TestPushStashKeepsAMessageGitWouldReadAsAnOption(t *testing.T) {
 }
 
 func TestPushStashOnADetachedHEADHasNoBranch(t *testing.T) {
+	t.Parallel()
+
 	dir, runner := stashable(t)
 	runGit(t, runner, dir, "checkout", "--detach", "HEAD")
 
@@ -267,6 +286,8 @@ func TestPushStashOnADetachedHEADHasNoBranch(t *testing.T) {
 }
 
 func TestStashesAreNumberedFromTheMostRecent(t *testing.T) {
+	t.Parallel()
+
 	dir, runner := stashable(t)
 	pushStash(t, runner, dir, "first")
 	writeWorkFile(t, dir, "notes.md", "again\n")
@@ -285,6 +306,8 @@ func TestStashesAreNumberedFromTheMostRecent(t *testing.T) {
 }
 
 func TestStashTargetRefusesAPositionThatMoved(t *testing.T) {
+	t.Parallel()
+
 	// The refusal this file exists for. A plan reads stash@{0}; another window
 	// pushes a stash; the run would have dropped somebody else's work under a
 	// command that was correct when it was drawn.
@@ -314,6 +337,8 @@ func TestStashTargetRefusesAPositionThatMoved(t *testing.T) {
 }
 
 func TestStashTargetRefusesAPositionTheStackDoesNotHave(t *testing.T) {
+	t.Parallel()
+
 	dir, runner := stashable(t)
 	pushStash(t, runner, dir, "only one")
 	only := stashesOf(t, runner, dir)[0]
@@ -329,6 +354,8 @@ func TestStashTargetRefusesAPositionTheStackDoesNotHave(t *testing.T) {
 }
 
 func TestStashTargetRefusesARequestThatNamesNoStash(t *testing.T) {
+	t.Parallel()
+
 	// The empty string is not a wildcard, for the reason agreesOnBranch
 	// refuses one: a client that names nothing is a client that did not look.
 	dir, runner := stashable(t)
@@ -341,6 +368,8 @@ func TestStashTargetRefusesARequestThatNamesNoStash(t *testing.T) {
 }
 
 func TestApplyStashKeepsTheEntryAndPopRemovesIt(t *testing.T) {
+	t.Parallel()
+
 	dir, runner := stashable(t)
 	pushStash(t, runner, dir, "put it back")
 
@@ -368,6 +397,8 @@ func TestApplyStashKeepsTheEntryAndPopRemovesIt(t *testing.T) {
 }
 
 func TestApplyStashReportsAConflictWithEverythingGitSaid(t *testing.T) {
+	t.Parallel()
+
 	// A conflicting pop exits 1, so it travels as the failure it is — the way
 	// a conflicting merge does. What makes it worth a test of its own is where
 	// git puts the words: "CONFLICT" and "The stash entry is kept in case you
@@ -408,6 +439,8 @@ func TestApplyStashReportsAConflictWithEverythingGitSaid(t *testing.T) {
 }
 
 func TestApplyStashRefusesToWriteOverAnOverlappingChange(t *testing.T) {
+	t.Parallel()
+
 	// git's own refusal, and it is a real failure rather than a silent one:
 	// "Your local changes to the following files would be overwritten by
 	// merge". Nothing is applied and the entry stays.
@@ -430,6 +463,8 @@ func TestApplyStashRefusesToWriteOverAnOverlappingChange(t *testing.T) {
 }
 
 func TestDropStashRemovesOneEntryAndLeavesTheRest(t *testing.T) {
+	t.Parallel()
+
 	dir, runner := stashable(t)
 	pushStash(t, runner, dir, "older")
 	writeWorkFile(t, dir, "notes.md", "again\n")
@@ -453,6 +488,8 @@ func TestDropStashRemovesOneEntryAndLeavesTheRest(t *testing.T) {
 }
 
 func TestShowStashReadsWhatTheStashHolds(t *testing.T) {
+	t.Parallel()
+
 	dir, runner := stashable(t)
 	pushStash(t, runner, dir, "one file")
 	stash := stashesOf(t, runner, dir)[0]
@@ -473,6 +510,8 @@ func TestShowStashReadsWhatTheStashHolds(t *testing.T) {
 }
 
 func TestShowStashReadsAStashWhoseOnlyContentIsUntracked(t *testing.T) {
+	t.Parallel()
+
 	// The third silent behaviour: without --include-untracked, `git stash
 	// show` prints nothing and exits 0 here, because untracked files hang off
 	// a third parent it does not look at. An empty screen for a stash that
@@ -502,6 +541,8 @@ func TestShowStashReadsAStashWhoseOnlyContentIsUntracked(t *testing.T) {
 }
 
 func TestShowStashKeepsGitsOwnPathPrefixes(t *testing.T) {
+	t.Parallel()
+
 	// The bug this reading exists to avoid, pinned at the level it broke.
 	// `git stash show` re-parses its arguments and does not carry
 	// --src-prefix/--dst-prefix through on every git: the header comes back as
@@ -526,6 +567,8 @@ func TestShowStashKeepsGitsOwnPathPrefixes(t *testing.T) {
 }
 
 func TestShowStashRefusesACommitThatIsNotAStash(t *testing.T) {
+	t.Parallel()
+
 	// These routes take an object name from a client. An ordinary commit would
 	// otherwise be drawn as "a stash" — its diff against its own parent, under
 	// a heading naming a stack it was never in.
@@ -541,6 +584,8 @@ func TestShowStashRefusesACommitThatIsNotAStash(t *testing.T) {
 }
 
 func TestCountStashFilesCountsBothHalves(t *testing.T) {
+	t.Parallel()
+
 	// One tracked and one untracked, which is the case a single read gets
 	// wrong: the untracked file hangs off a third parent, and a count that
 	// looked only at the commit would answer one for a stash holding two.
@@ -570,6 +615,8 @@ func TestCountStashFilesCountsBothHalves(t *testing.T) {
 }
 
 func TestShowStashRefusesARevisionGitWouldReadAsAnOption(t *testing.T) {
+	t.Parallel()
+
 	dir, runner := stashable(t)
 
 	_, err := runner.ShowStash(context.Background(), dir, "--output=/tmp/written")

@@ -27,6 +27,8 @@ func doorSubmission(body string) *http.Request {
 }
 
 func TestAWrongTokenFromTheDoorComesBackAsTheDoor(t *testing.T) {
+	t.Parallel()
+
 	handler := testServer(t)
 
 	response := execute(handler, doorSubmission("token=not-the-token"))
@@ -55,6 +57,8 @@ func TestAWrongTokenFromTheDoorComesBackAsTheDoor(t *testing.T) {
 // echoed it back would be a reflection point on the one route that answers
 // before any credential has been checked.
 func TestTheDoorRefusalReflectsNothingThatWasSubmitted(t *testing.T) {
+	t.Parallel()
+
 	handler := testServer(t)
 
 	guess := `<script>alert(1)</script>`
@@ -75,6 +79,8 @@ func TestTheDoorRefusalReflectsNothingThatWasSubmitted(t *testing.T) {
 // key on a page they have not typed into yet. It must not be mistaken for a
 // missing credential and answered somewhere else.
 func TestAnEmptyTokenFromTheDoorComesBackAsTheDoor(t *testing.T) {
+	t.Parallel()
+
 	handler := testServer(t)
 
 	response := execute(handler, doorSubmission("token="))
@@ -90,6 +96,8 @@ func TestAnEmptyTokenFromTheDoorComesBackAsTheDoor(t *testing.T) {
 // A body the daemon cannot decode is answered on the page too, and at its own
 // status. The reader is the same reader; only the reason changed.
 func TestAnUnreadableFormComesBackAsTheDoor(t *testing.T) {
+	t.Parallel()
+
 	handler := testServer(t)
 
 	// "%zz" is not a percent escape, so ParseForm refuses the body before any
@@ -115,6 +123,8 @@ func TestAnUnreadableFormComesBackAsTheDoor(t *testing.T) {
 // a page is the mirror image of the bug above, and the harder one to notice,
 // because the status line still says 401 while the parse fails.
 func TestAWrongTokenFromAClientIsStillJSON(t *testing.T) {
+	t.Parallel()
+
 	handler := testServer(t)
 
 	request := httptest.NewRequest(http.MethodPost, "/api/session",
@@ -140,6 +150,8 @@ func TestAWrongTokenFromAClientIsStillJSON(t *testing.T) {
 // step around it: a refusal that came back as a page and cost nothing would be
 // an unlimited oracle reachable from any browser on the network.
 func TestAFailedDoorAttemptIsStillCharged(t *testing.T) {
+	t.Parallel()
+
 	handler := testServer(t)
 
 	var refused *httptest.ResponseRecorder
@@ -163,6 +175,8 @@ func TestAFailedDoorAttemptIsStillCharged(t *testing.T) {
 // way it was answered. The HTML arm does not go through writeError, so the
 // line it writes is its own — and it has to be there.
 func TestTheDoorRefusalIsLogged(t *testing.T) {
+	t.Parallel()
+
 	var logBuf bytes.Buffer
 	logger := slog.New(slog.NewTextHandler(&logBuf, &slog.HandlerOptions{Level: slog.LevelWarn}))
 	handler := testServerWithLogger(t, logger)

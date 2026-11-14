@@ -9,6 +9,8 @@ import (
 )
 
 func TestCreateTagAppearsInTheRefs(t *testing.T) {
+	t.Parallel()
+
 	handler, id := openTestRepository(t)
 
 	response := postJSON(t, handler, "/api/repos/"+id+"/tags",
@@ -22,6 +24,8 @@ func TestCreateTagAppearsInTheRefs(t *testing.T) {
 }
 
 func TestCreateTagRefusesAnEmptyMessage(t *testing.T) {
+	t.Parallel()
+
 	handler, id := openTestRepository(t)
 	response := postJSON(t, handler, "/api/repos/"+id+"/tags",
 		`{"name":"v1.0","message":""}`)
@@ -31,6 +35,8 @@ func TestCreateTagRefusesAnEmptyMessage(t *testing.T) {
 }
 
 func TestCreateTagLightweightNeedsNoMessage(t *testing.T) {
+	t.Parallel()
+
 	handler, id := openTestRepository(t)
 	response := postJSON(t, handler, "/api/repos/"+id+"/tags",
 		`{"name":"v1.0","message":"","annotated":false}`)
@@ -43,6 +49,8 @@ func TestCreateTagLightweightNeedsNoMessage(t *testing.T) {
 }
 
 func TestCreateTagDefaultsToAnnotatedWhenTheFlagIsOmitted(t *testing.T) {
+	t.Parallel()
+
 	handler, id := openTestRepository(t)
 	// Empty message with no annotated field must still be the annotated
 	// refusal — not a silent lightweight create.
@@ -54,6 +62,8 @@ func TestCreateTagDefaultsToAnnotatedWhenTheFlagIsOmitted(t *testing.T) {
 }
 
 func TestDeleteTagPlanShowsTheCommand(t *testing.T) {
+	t.Parallel()
+
 	handler, id := openTestRepository(t)
 	if response := postJSON(t, handler, "/api/repos/"+id+"/tags",
 		`{"name":"v1.0","message":"first"}`); response.Code != http.StatusOK {
@@ -71,6 +81,8 @@ func TestDeleteTagPlanShowsTheCommand(t *testing.T) {
 }
 
 func TestDeleteTagRemovesItFromTheRefs(t *testing.T) {
+	t.Parallel()
+
 	handler, id := openTestRepository(t)
 	if response := postJSON(t, handler, "/api/repos/"+id+"/tags",
 		`{"name":"v1.0","message":"first"}`); response.Code != http.StatusOK {
@@ -88,6 +100,8 @@ func TestDeleteTagRemovesItFromTheRefs(t *testing.T) {
 }
 
 func TestDeleteTagSurfacesGitsRefusal(t *testing.T) {
+	t.Parallel()
+
 	handler, id := openTestRepository(t)
 	response := postJSON(t, handler, "/api/repos/"+id+"/tags/delete",
 		`{"name":"no-such-tag"}`)
@@ -100,6 +114,8 @@ func TestDeleteTagSurfacesGitsRefusal(t *testing.T) {
 }
 
 func TestPushTagPlanShowsTheCommand(t *testing.T) {
+	t.Parallel()
+
 	handler, id, _, _ := openClonedRepository(t)
 	if response := postJSON(t, handler, "/api/repos/"+id+"/tags",
 		`{"name":"v1.0","message":"first"}`); response.Code != http.StatusOK {
@@ -121,6 +137,8 @@ func TestPushTagPlanShowsTheCommand(t *testing.T) {
 }
 
 func TestPushTagSendsItToTheRemote(t *testing.T) {
+	t.Parallel()
+
 	handler, id, _, server := openClonedRepository(t)
 	if response := postJSON(t, handler, "/api/repos/"+id+"/tags",
 		`{"name":"v1.0","message":"first"}`); response.Code != http.StatusOK {
@@ -140,6 +158,8 @@ func TestPushTagSendsItToTheRemote(t *testing.T) {
 }
 
 func TestPushTagPlanRefusesEmptyFields(t *testing.T) {
+	t.Parallel()
+
 	handler, id, _, _ := openClonedRepository(t)
 
 	for name, body := range map[string]string{

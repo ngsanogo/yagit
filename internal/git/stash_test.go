@@ -40,6 +40,8 @@ func stashOutput(records ...string) []byte {
 }
 
 func TestParseStashListReadsEveryField(t *testing.T) {
+	t.Parallel()
+
 	output := stashOutput(
 		stashRecord(
 			"a1b2c3d4e5f60718293a4b5c6d7e8f9012345678",
@@ -95,6 +97,8 @@ func TestParseStashListReadsEveryField(t *testing.T) {
 }
 
 func TestParseStashListReadsRefFromEachEntry(t *testing.T) {
+	t.Parallel()
+
 	output := stashOutput(
 		stashRecord("aa", "stash@{0}", "On main: one", "2026-09-04T10:00:00Z"),
 		stashRecord("bb", "stash@{1}", "On main: two", "2026-09-04T09:00:00Z"),
@@ -112,6 +116,8 @@ func TestParseStashListReadsRefFromEachEntry(t *testing.T) {
 }
 
 func TestParseStashListEmptyStack(t *testing.T) {
+	t.Parallel()
+
 	// `git stash list` on a repository that never stashed prints nothing and
 	// exits 0. An empty slice rather than nil, because the payload goes to a
 	// browser and null is not a list.
@@ -128,6 +134,8 @@ func TestParseStashListEmptyStack(t *testing.T) {
 }
 
 func TestParseStashListKeepsAMessageThatLooksLikeARecord(t *testing.T) {
+	t.Parallel()
+
 	// The reason the format is NUL-separated. A person can call a stash
 	// anything, and "On main:" inside their own text must not be read as the
 	// start of another entry.
@@ -146,6 +154,8 @@ func TestParseStashListKeepsAMessageThatLooksLikeARecord(t *testing.T) {
 }
 
 func TestParseStashListDetachedHEADHasNoBranch(t *testing.T) {
+	t.Parallel()
+
 	// git records "(no branch)", which is not a name anything can be done
 	// with. Empty is what lets the interface draw nothing rather than offer a
 	// branch nobody can check out.
@@ -163,6 +173,8 @@ func TestParseStashListDetachedHEADHasNoBranch(t *testing.T) {
 }
 
 func TestParseStashListKeepsAnUnrecognisedSubjectWhole(t *testing.T) {
+	t.Parallel()
+
 	// A reflog can be written by anything. Showing exactly what git said beats
 	// refusing to draw the row, and it beats guessing a branch out of it.
 	stashes, err := git.ParseStashList(
@@ -179,6 +191,8 @@ func TestParseStashListKeepsAnUnrecognisedSubjectWhole(t *testing.T) {
 }
 
 func TestParseStashListRefusesAListOutOfOrder(t *testing.T) {
+	t.Parallel()
+
 	// The position is what every command in this file runs against, so a list
 	// whose selectors do not match their places is refused rather than read
 	// off the loop counter. An index that drifts by one is a drop of the wrong
@@ -194,6 +208,8 @@ func TestParseStashListRefusesAListOutOfOrder(t *testing.T) {
 }
 
 func TestParseStashListRefusesMalformedRecords(t *testing.T) {
+	t.Parallel()
+
 	for name, output := range map[string]string{
 		"too few fields":  "aa\x00stash@{0}\x00On main: one\x00\n",
 		"unreadable date": stashRecord("aa", "stash@{0}", "On main: one", "yesterday"),
@@ -210,6 +226,8 @@ func TestParseStashListRefusesMalformedRecords(t *testing.T) {
 }
 
 func TestStashPushArgs(t *testing.T) {
+	t.Parallel()
+
 	for name, testCase := range map[string]struct {
 		message   string
 		untracked bool
@@ -248,6 +266,8 @@ func TestStashPushArgs(t *testing.T) {
 }
 
 func TestStashApplyArgsPinTheSubcommand(t *testing.T) {
+	t.Parallel()
+
 	keep := git.StashApplyArgs(git.StashApplyKeep, 2)
 	if strings.Join(keep, " ") != "stash apply stash@{2}" {
 		t.Errorf("apply args = %q", keep)
@@ -260,6 +280,8 @@ func TestStashApplyArgsPinTheSubcommand(t *testing.T) {
 }
 
 func TestStashDropArgsNameThePosition(t *testing.T) {
+	t.Parallel()
+
 	// A position and not an object name: `git stash drop` refuses a raw SHA,
 	// which is the whole reason StashTarget checks one against the other.
 	got := git.StashDropArgs(3)
@@ -269,6 +291,8 @@ func TestStashDropArgsNameThePosition(t *testing.T) {
 }
 
 func TestParseStashApplyMode(t *testing.T) {
+	t.Parallel()
+
 	for _, mode := range []git.StashApplyMode{git.StashApplyKeep, git.StashApplyPop} {
 		got, err := git.ParseStashApplyMode(string(mode))
 		if err != nil {
@@ -294,6 +318,8 @@ func TestParseStashApplyMode(t *testing.T) {
 }
 
 func TestStashRefIsTheOnlyPositionFormat(t *testing.T) {
+	t.Parallel()
+
 	// One definition of "stash@{N}" behind every command, so a position shown
 	// on a confirmation is character for character the one that runs.
 	stash := git.Stash{Index: 7}
@@ -309,6 +335,8 @@ func TestStashRefIsTheOnlyPositionFormat(t *testing.T) {
 }
 
 func TestErrNoStashAndErrStashMovedAreDistinct(t *testing.T) {
+	t.Parallel()
+
 	// Two refusals with two answers: one means the stack is shorter than the
 	// request thought, the other means the stash is still there under a
 	// different number. A route that collapsed them would tell somebody their
