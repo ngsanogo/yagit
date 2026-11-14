@@ -648,7 +648,13 @@ export function ChangesView({
         ) : diff.isError ? (
           <DiffFailure error={diff.error} />
         ) : (
-          <DiffView diff={diff.data} side={side} busy={busy} onApply={applyToDiff} />
+          <DiffView
+            diff={diff.data}
+            side={side}
+            repositoryId={repository.id}
+            busy={busy}
+            onApply={applyToDiff}
+          />
         )}
       </Panel>
 

@@ -974,6 +974,7 @@ export function Showcase() {
             <DiffView
               diff={SAMPLE_DIFF}
               side="unstaged"
+              repositoryId="showcase"
               busy={false}
               // Nothing behind this page stages anything, and `false` is what
               // says so: the selection stays where the reader put it rather

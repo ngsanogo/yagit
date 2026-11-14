@@ -319,6 +319,10 @@ func (s *Server) Handler() http.Handler {
 	protected.HandleFunc("GET /api/repos/{id}/file", s.handleReadFile)
 	protected.HandleFunc("PUT /api/repos/{id}/file", s.handleSaveFile)
 
+	// Raw bytes of an image at worktree / index / HEAD / a revision, for the
+	// side-by-side preview a binary FileDiff draws instead of "Binary file".
+	protected.HandleFunc("GET /api/repos/{id}/blob", s.handleBlob)
+
 	// Taking one side of a conflict whole, which IS a git operation and shows
 	// up in the log panel as the two commands it runs.
 	protected.HandleFunc("POST /api/repos/{id}/resolve", s.handleResolve)

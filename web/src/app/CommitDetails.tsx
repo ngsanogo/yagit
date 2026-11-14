@@ -237,7 +237,12 @@ export function CommitDetails({
       {detail.isError && <Refusal error={detail.error} scope={scope} />}
 
       {detail.data !== undefined && (
-        <Body detail={detail.data} onFileHistory={onFileHistory} onBlame={onBlame} />
+        <Body
+          repositoryId={repositoryId}
+          detail={detail.data}
+          onFileHistory={onFileHistory}
+          onBlame={onBlame}
+        />
       )}
     </Panel>
   );
@@ -319,10 +324,12 @@ function Refusal({ error, scope }: { error: Error; scope: HistoryScope }) {
 }
 
 function Body({
+  repositoryId,
   detail,
   onFileHistory,
   onBlame,
 }: {
+  repositoryId: string;
   detail: LocatedCommit;
   onFileHistory?: (path: string) => void;
   onBlame?: (path: string) => void;
@@ -512,6 +519,8 @@ function Body({
           ) : (
             <ReadOnlyPatch
               files={detail.files}
+              repositoryId={repositoryId}
+              revision={detail.sha}
               {...(onFileHistory === undefined ? {} : { onFileHistory })}
               {...(onBlame === undefined ? {} : { onBlame })}
             />

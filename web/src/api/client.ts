@@ -1202,6 +1202,19 @@ export const api = {
     request<FileDiff>(`/api/repos/${id}/diff?path=${encodeURIComponent(path)}&side=${side}`),
 
   /**
+   * Why an image the interface drew with <img> did not load.
+   *
+   * An <img> reports failure and nothing else, and a preview that showed a
+   * broken icon would be an error passing silently. Asking the same URL again
+   * through request() turns a refusal into the daemon's own sentence; a
+   * success means the bytes arrived and the browser could not draw them.
+   */
+  blobFailure: async (url: string): Promise<never> => {
+    await request<unknown>(url);
+    throw new ApiError(0, 'the file arrived, and the browser could not draw it as an image');
+  },
+
+  /**
    * The four operations, all of the same shape.
    *
    * `lines` narrows one of them to part of a single file, and each answers

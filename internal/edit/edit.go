@@ -145,6 +145,41 @@ func Read(location Location, relPath string) (File, error) {
 	return readThrough(root, name, relPath)
 }
 
+// ReadBytes opens a work-tree file as raw bytes.
+//
+// For previews that are not text — an image beside its previous version —
+// where a text box would refuse the same path. maxBytes is the caller's
+// ceiling: checked before the read so a large file is never held.
+func ReadBytes(location Location, relPath string, maxBytes int64) ([]byte, error) {
+	if maxBytes <= 0 {
+		return nil, fmt.Errorf("%s: %w", relPath, ErrTooLarge)
+	}
+
+	root, name, err := location.open(relPath)
+	if err != nil {
+		return nil, err
+	}
+	defer release(root)
+
+	info, err := root.Stat(name)
+	if err != nil {
+		return nil, fmt.Errorf("cannot read %s: %w", relPath, err)
+	}
+	if !info.Mode().IsRegular() {
+		return nil, fmt.Errorf("%s: %w", relPath, ErrNotRegular)
+	}
+	if info.Size() > maxBytes {
+		return nil, fmt.Errorf("%s is %d bytes, over the %d this preview will open: %w",
+			relPath, info.Size(), maxBytes, ErrTooLarge)
+	}
+
+	raw, err := root.ReadFile(name)
+	if err != nil {
+		return nil, fmt.Errorf("cannot read %s: %w", relPath, err)
+	}
+	return raw, nil
+}
+
 // readThrough is the read itself, once the work tree is open and the path is
 // allowed.
 //

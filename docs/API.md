@@ -662,6 +662,7 @@ guess nobody read is not a commit message.
 | --- | --- |
 | `GET /api/repos/{id}/file` | One work-tree file as text. Takes `path`. |
 | `PUT /api/repos/{id}/file` | Writes it back. Body: `{"path": "…", "text": "…", "base": "…"}`. |
+| `GET /api/repos/{id}/blob` | Raw bytes of an image (`png`/`jpg`/`gif`/`webp`/`svg`) at `path` and `at=worktree\|index\|head\|<revision>`, capped at 5 MiB (413 past it). Served under a `sandbox` policy, so an SVG opened on its own runs nothing on this origin. The work-tree side needs a work tree; the others work in a bare repository. |
 | `POST /api/repos/{id}/resolve` | Takes one side of a conflict whole. Body: `{"paths": [...], "side": "ours\|theirs"}`. |
 | `POST /api/repos/{id}/mergetool/plan` | `{command, tool}`: the line that hands one unmerged path to the configured `merge.tool`. Body: `{"path": "…"}`. 409 when the path is not unmerged or no `merge.tool` is set. Changes nothing. |
 | `POST /api/repos/{id}/mergetool` | Runs `git mergetool -y` on that path and answers with the status once the tool has closed, within the ten-minute rewrite deadline. Same body, same refusals. |

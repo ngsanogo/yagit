@@ -1,4 +1,7 @@
+import { useQuery } from '@tanstack/react-query';
 import { useMemo, useState, type KeyboardEvent } from 'react';
+
+import { api } from '../api/client';
 
 import type { DiffHunk, DiffLine, DiffSide, FileDiff } from '../api/types';
 import { Badge } from '../components/Badge';
@@ -7,7 +10,15 @@ import { EmptyState } from '../components/EmptyState';
 import { FileIcon, MinusIcon, PlusIcon, TrashIcon } from '../components/Icons';
 import { Kbd } from '../components/Kbd';
 import { cx } from '../lib/cx';
+import { errorDescription } from '../lib/errorDisplay';
 import { Capped, MAX_DRAWN_LINES, Truncated } from './drawnLines';
+import {
+  blobURL,
+  imageSidesForRevision,
+  imageSidesForWorkingDiff,
+  isImageDiff,
+  type ImageSide,
+} from './imageDiff';
 import { pointerNote, type PointerNote as PointerNoteText } from './lfsDiff';
 
 /**
@@ -29,6 +40,8 @@ export type DiffAction = 'stage' | 'unstage' | 'discard';
 interface DiffViewProps {
   diff: FileDiff;
   side: DiffSide;
+  /** Open repository: needed to load image bytes for a binary image diff. */
+  repositoryId: string;
   /**
    * Runs an action over a set of line indices of this diff, and answers
    * whether it went.
@@ -60,7 +73,7 @@ function actionGlyph(action: DiffAction) {
   }
 }
 
-export function DiffView({ diff, side, onApply, busy }: DiffViewProps) {
+export function DiffView({ diff, side, repositoryId, onApply, busy }: DiffViewProps) {
   const [selected, setSelected] = useState<ReadonlySet<number>>(new Set());
   // Where the last click landed, so Shift+click has a range to close. It is
   // also where the pane's single tab stop sits: the line the keyboard last
@@ -115,6 +128,15 @@ export function DiffView({ diff, side, onApply, busy }: DiffViewProps) {
   }
 
   if (diff.binary) {
+    if (isImageDiff(diff)) {
+      return (
+        <ImageDiffPreview
+          sides={imageSidesForWorkingDiff(diff, side)}
+          repositoryId={repositoryId}
+          note="git shows no lines for this file. Stage or discard it whole from the list."
+        />
+      );
+    }
     return (
       <Notice
         title="Binary file"
@@ -900,6 +922,86 @@ function Notice({ title, description }: { title: string; description: string }) 
 }
 
 /**
+ * Before/after (or one side) of an image FileDiff.
+ *
+ * Drawn as <img> against the blob route, never as inline data: the session
+ * cookie already authorises same-origin GETs, and a five-mebibyte PNG does
+ * not belong in the React tree as a base64 string.
+ */
+function ImageDiffPreview({
+  sides,
+  repositoryId,
+  note,
+}: {
+  sides: readonly ImageSide[];
+  repositoryId: string;
+  note: string;
+}) {
+  if (sides.length === 0) {
+    return <Notice title="Binary file" description={note} />;
+  }
+
+  return (
+    <div className="flex flex-col gap-3 px-3 py-3">
+      <p className="text-2xs text-ink-subtle">{note}</p>
+      <div
+        className={cx(
+          'grid gap-3',
+          sides.length > 1 ? 'grid-cols-1 sm:grid-cols-2' : 'grid-cols-1',
+        )}
+      >
+        {sides.map((side) => (
+          <figure
+            key={`${side.at}:${side.path}`}
+            className="flex min-w-0 flex-col gap-1.5 rounded-md border border-line bg-sunken p-2"
+          >
+            <figcaption className="truncate font-mono text-2xs text-ink-subtle" title={side.path}>
+              {side.label}
+              <span className="text-ink-muted"> · {side.path}</span>
+            </figcaption>
+            <PreviewImage url={blobURL(repositoryId, side)} alt={`${side.label}: ${side.path}`} />
+          </figure>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/**
+ * One side of an image preview, or the reason it could not be drawn.
+ *
+ * An <img> that fails says nothing but "failed", so the same URL is asked
+ * again once, through the API client, for the daemon's sentence — a file
+ * over the preview's cap, a path that is gone — and that is what replaces
+ * the picture.
+ */
+function PreviewImage({ url, alt }: { url: string; alt: string }) {
+  const [failed, setFailed] = useState(false);
+  const why = useQuery({
+    queryKey: ['blob-failure', url],
+    queryFn: () => api.blobFailure(url),
+    enabled: failed,
+    retry: false,
+  });
+
+  if (failed) {
+    return (
+      <p className="py-6 text-center text-xs text-ink-muted">
+        {why.isError ? errorDescription(why.error) : 'Reading why this side did not load…'}
+      </p>
+    );
+  }
+  return (
+    <img
+      src={url}
+      alt={alt}
+      onError={() => setFailed(true)}
+      className="max-h-80 w-full object-contain"
+    />
+  );
+}
+
+/**
  * A commit's patch: every file it touched, drawn once and capped once.
  *
  * The cap is the patch's rather than each file's, which is the only version
@@ -909,10 +1011,15 @@ function Notice({ title, description }: { title: string; description: string }) 
  */
 export function ReadOnlyPatch({
   files,
+  repositoryId,
+  revision,
   onFileHistory,
   onBlame,
 }: {
   files: readonly FileDiff[];
+  repositoryId: string;
+  /** Object the new side of each file comes from — a commit or stash SHA. */
+  revision: string;
   /** Opens the history of a path, starting at the commit being shown. */
   onFileHistory?: (path: string) => void;
   /** Opens the blame of a path at the commit being shown. */
@@ -933,6 +1040,8 @@ export function ReadOnlyPatch({
         <ReadOnlyDiff
           key={file.path}
           diff={file}
+          repositoryId={repositoryId}
+          revision={revision}
           drawnBefore={starts[position] ?? 0}
           gutter={gutter}
           {...(onFileHistory === undefined ? {} : { onHistory: () => onFileHistory(file.path) })}
@@ -962,12 +1071,16 @@ export function ReadOnlyPatch({
  */
 function ReadOnlyDiff({
   diff,
+  repositoryId,
+  revision,
   drawnBefore,
   gutter,
   onHistory,
   onBlame,
 }: {
   diff: FileDiff;
+  repositoryId: string;
+  revision: string;
   drawnBefore: number;
   gutter: string;
   onHistory?: () => void;
@@ -1004,9 +1117,17 @@ function ReadOnlyDiff({
       </header>
 
       {diff.binary ? (
-        <p className="px-3 py-2 text-2xs text-ink-subtle">
-          git shows no content for this file, so there is nothing to read line by line.
-        </p>
+        isImageDiff(diff) ? (
+          <ImageDiffPreview
+            sides={imageSidesForRevision(diff, revision)}
+            repositoryId={repositoryId}
+            note="git shows no content for this file line by line."
+          />
+        ) : (
+          <p className="px-3 py-2 text-2xs text-ink-subtle">
+            git shows no content for this file, so there is nothing to read line by line.
+          </p>
+        )
       ) : (
         <div className="font-mono text-xs">
           {pointer !== undefined && <PointerNote note={pointer} />}
