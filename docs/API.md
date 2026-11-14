@@ -42,6 +42,8 @@ address, as is every request that arrives without a valid token.
 | --- | --- |
 | `POST /api/session` | Exchanges the token for the session cookie. The only unauthenticated route. |
 | `GET /api/health` | What this is and what it runs on: `status`, the daemon's `version`, the count of open `repos`, the `platform` as `GOOS/GOARCH`, the `git` version it drives — or `gitError` when that could not be read — and `unavailable`, the operations this git is too old for, written as sentences. It is the first thing to ask for on a report nobody can reproduce, and it names no path, repository or branch, so it can be pasted into a public issue unread. |
+| `GET /api/prefs/identity` | `user.name`, `user.email` and the raw `pull.rebase` from the global git configuration (`--global --includes`), each empty when unset. Never a repository's own value: this route has no repository. |
+| `PUT /api/prefs/identity` | Writes `user.name` and `user.email` with `git config --global`, and answers with the reading above. Body: `{"name":"…","email":"…"}`; a blank or multi-line value is refused with 400. Does not change `pull.rebase`. |
 
 ### Repositories
 

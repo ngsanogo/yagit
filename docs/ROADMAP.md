@@ -120,6 +120,10 @@ git's, and so are the credentials
 - **LFS**: the patterns a repository routes through the filter, tracking
   through the command shown first, and a committed pointer named wherever a
   diff would otherwise show three unreadable lines of metadata.
+- **Git preferences**: `user.name` and `user.email` in the global
+  configuration, read and written from the workbench header; `pull.rebase` is
+  shown and left alone, because the Pull button already names its three
+  strategies.
 - **Signatures** are read and never written. The commit box says a commit is
   about to be signed before the button is pressed, and a commit's pane carries
   git's own verdict on the signature it has.

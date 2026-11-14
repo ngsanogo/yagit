@@ -157,6 +157,8 @@ func (s *Server) Handler() http.Handler {
 
 	protected := http.NewServeMux()
 	protected.HandleFunc("GET /api/health", s.handleHealth)
+	protected.HandleFunc("GET /api/prefs/identity", s.handleGetIdentity)
+	protected.HandleFunc("PUT /api/prefs/identity", s.handleSetIdentity)
 	// Before the {id} route, and it has to be: ServeMux would otherwise have
 	// to decide whether "discover" is an identifier, and the more specific
 	// pattern is the one that must win.
