@@ -118,8 +118,15 @@ export function useBranches(repositoryId: string) {
    * sentence and chooses the flag.
    */
   const planMerge = useMutation({
-    mutationFn: ({ branch, mergeCommit = false }: { branch: string; mergeCommit?: boolean }) =>
-      api.planMerge(repositoryId, branch, mergeCommit),
+    mutationFn: ({
+      branch,
+      mergeCommit = false,
+      squash = false,
+    }: {
+      branch: string;
+      mergeCommit?: boolean;
+      squash?: boolean;
+    }) => api.planMerge(repositoryId, branch, { mergeCommit, squash }),
   });
 
   const merge = useMutation({
@@ -192,7 +199,7 @@ export function useBranches(repositoryId: string) {
 /**
  * What the toast says once the merge is done.
  *
- * The outcome the user approved rather than one word for all three: "Merged"
+ * The outcome the user approved rather than one word for all four: "Merged"
  * over a repository that did not move is a sentence somebody would go looking
  * for the commit of.
  *
@@ -200,7 +207,7 @@ export function useBranches(repositoryId: string) {
  * string from a daemon that can be newer than the page holding it — a reload
  * behind a release, a tab left open across an upgrade — and falling off the
  * end of this switch returns undefined, which is a toast with no title at all
- * where a merge just happened. So a fourth outcome says the plainest true
+ * where a merge just happened. So an unknown outcome says the plainest true
  * thing instead. git.MergeArgs has the same shape on the other side, and for
  * the same reason.
  */
@@ -212,6 +219,8 @@ function mergeReport(plan: MergePlan): string {
       return `Fast-forwarded ${plan.into} to ${plan.branch}`;
     case 'merge-commit':
       return `Merged ${plan.branch} into ${plan.into}`;
+    case 'squash':
+      return `Squashed ${plan.branch} onto ${plan.into} — commit to finish`;
     default:
       return `Ran ${plan.command}`;
   }

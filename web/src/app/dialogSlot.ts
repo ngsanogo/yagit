@@ -53,7 +53,7 @@ export type WorkbenchDialog =
   | { kind: 'delete'; pending: PendingDelete }
   | { kind: 'delete-tag'; pending: PendingTagDelete }
   | { kind: 'push-tag'; tag: string; remote: string; plan: TagPushPlan | undefined }
-  | { kind: 'merge'; plan: MergePlan; preferMergeCommit: boolean }
+  | { kind: 'merge'; plan: MergePlan; preferMergeCommit: boolean; preferSquash: boolean }
   | { kind: 'rebase'; plan: RebasePlan }
   // The one dialog whose answer is not a yes: the plan is written ON it, so
   // the rows live in the slot beside the range they were read from. Held here

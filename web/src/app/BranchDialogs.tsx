@@ -208,7 +208,9 @@ export function MergeBranchDialog({
   plan,
   busy,
   preferringMergeCommit,
+  preferringSquash,
   onPreferMergeCommit,
+  onPreferSquash,
   onCancel,
   onConfirm,
 }: {
@@ -219,14 +221,31 @@ export function MergeBranchDialog({
    * a fast-forward was possible; the dialog re-asks the daemon when it flips.
    */
   preferringMergeCommit: boolean;
+  /**
+   * Whether squash-and-merge is on. Available wherever commits would arrive;
+   * mutually exclusive with the merge-commit preference.
+   */
+  preferringSquash: boolean;
   onPreferMergeCommit: (prefer: boolean) => void;
+  onPreferSquash: (prefer: boolean) => void;
   onCancel: () => void;
   onConfirm: () => void;
 }) {
-  // The preference only applies where a fast-forward was the natural reading.
-  // Once the plan is already a merge commit because the branches diverged,
-  // the box would be a lie — there is no fast-forward to refuse.
-  const canPreferMergeCommit = plan.outcome === 'fast-forward' || preferringMergeCommit;
+  // The merge-commit preference only applies where a fast-forward was the
+  // natural reading. Once the plan is already a merge commit because the
+  // branches diverged, the box would be a lie — there is no fast-forward to
+  // refuse. Squash takes the slot instead when that preference is on.
+  const canPreferMergeCommit =
+    !preferringSquash && (plan.outcome === 'fast-forward' || preferringMergeCommit);
+
+  // Squash is offered wherever something would arrive — fast-forward,
+  // merge-commit, or an already-preferred squash. Up-to-date has nothing to
+  // fold into the index.
+  const canPreferSquash =
+    plan.outcome === 'squash' ||
+    plan.outcome === 'fast-forward' ||
+    plan.outcome === 'merge-commit' ||
+    preferringSquash;
 
   return (
     <ConfirmDialog
@@ -237,7 +256,7 @@ export function MergeBranchDialog({
       title={`Merge ${plan.branch} into ${plan.into}?`}
       description={mergeSummary(plan)}
       command={plan.command}
-      confirmLabel="Merge"
+      confirmLabel={preferringSquash ? 'Squash and merge' : 'Merge'}
     >
       {canPreferMergeCommit && (
         <label className="flex cursor-pointer items-start gap-2 text-sm text-ink">
@@ -253,6 +272,23 @@ export function MergeBranchDialog({
             <span className="mt-0.5 block text-2xs text-ink-subtle">
               Uses <span className="font-mono">--no-ff</span> even though a fast-forward is
               possible.
+            </span>
+          </span>
+        </label>
+      )}
+      {canPreferSquash && (
+        <label className="flex cursor-pointer items-start gap-2 text-sm text-ink">
+          <input
+            type="checkbox"
+            className="mt-0.5 size-3.5 shrink-0 accent-accent"
+            checked={preferringSquash}
+            disabled={busy}
+            onChange={(event) => onPreferSquash(event.target.checked)}
+          />
+          <span>
+            Squash into one commit
+            <span className="mt-0.5 block text-2xs text-ink-subtle">
+              Uses <span className="font-mono">--squash</span>: stages the result, then you commit.
             </span>
           </span>
         </label>

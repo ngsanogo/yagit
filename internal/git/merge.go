@@ -36,10 +36,13 @@ import (
 
 // MergeOutcome is what merging one branch into another would do.
 //
-// Three, because they are three different things to the person pressing the
-// button rather than three readings of one: one writes no object at all, one
-// records a commit under their hooks and their signature, and one does nothing
-// whatever.
+// Four, because they are four different things to the person pressing the
+// button rather than four readings of one: one writes no object at all, one
+// records a commit under their hooks and their signature, one stages the
+// combined tree for a later commit of their own, and one does nothing
+// whatever. Squash here is `git merge --squash`, not an interactive-rebase
+// `squash` line — that one asks for an editor the daemon has no terminal to
+// open, and is refused elsewhere on purpose.
 type MergeOutcome string
 
 const (
@@ -56,22 +59,28 @@ const (
 	// is finished by a commit — with the user's hooks and signing, and with a
 	// conflict as the ordinary way for it to stop halfway.
 	MergeCommit MergeOutcome = "merge-commit"
+
+	// MergeSquash: the tree of the other branch is folded into the index and
+	// the work tree as if a merge had landed, but HEAD does not move and no
+	// merge commit is recorded. The next ordinary commit is what finishes it,
+	// under the message git left in SQUASH_MSG.
+	MergeSquash MergeOutcome = "squash"
 )
 
-// errUnknownOutcome names the three, because every refusal here is somebody
+// errUnknownOutcome names the four, because every refusal here is somebody
 // being told which words the field takes.
 var errUnknownOutcome = errors.New(
-	"the merge outcome must be one of up-to-date, fast-forward, merge-commit")
+	"the merge outcome must be one of up-to-date, fast-forward, merge-commit, squash")
 
 // ParseMergeOutcome reads an outcome sent by a client.
 //
 // An unknown one is refused rather than read as a default, for the reason
-// ParsePullStrategy refuses one: the two commands differ by whether a commit is
-// recorded, and running the other would look entirely correct to a client that
-// asked for this one.
+// ParsePullStrategy refuses one: the commands differ by whether a commit is
+// recorded or the index alone is written, and running the other would look
+// entirely correct to a client that asked for this one.
 func ParseMergeOutcome(raw string) (MergeOutcome, error) {
 	switch MergeOutcome(raw) {
-	case MergeUpToDate, MergeFastForward, MergeCommit:
+	case MergeUpToDate, MergeFastForward, MergeCommit, MergeSquash:
 		return MergeOutcome(raw), nil
 	case "":
 		return "", fmt.Errorf("%w: none was given", errUnknownOutcome)
@@ -90,11 +99,12 @@ func ParseMergeOutcome(raw string) (MergeOutcome, error) {
 // is refused rather than quietly recorded as a merge commit nobody saw. A
 // merge commit runs --no-ff, which holds the other half of the same promise:
 // the dialog said a commit, so a commit is what happens even where a
-// fast-forward has become possible since. The flag is the LAST lease, though,
-// not the only one — it cannot speak for the sentence beside it, and
-// --ff-only says nothing at all about "this changes nothing". What the plan
-// promised is checked against the repository before this command is built; see
-// the merge route.
+// fast-forward has become possible since. A squash runs --squash, which pins
+// the third promise: the index is written and HEAD is not. The flag is the
+// LAST lease, though, not the only one — it cannot speak for the sentence
+// beside it, and --ff-only says nothing at all about "this changes nothing".
+// What the plan promised is checked against the repository before this
+// command is built; see the merge route.
 //
 // The name is spelled refs/heads/… for the reason LocalBranchRef exists: `git
 // merge dup` in a repository holding both a branch and a tag called `dup` is a
@@ -107,18 +117,25 @@ func ParseMergeOutcome(raw string) (MergeOutcome, error) {
 // commit arriving; both are the message deciding itself out of view of the
 // confirmation that showed the command. --no-edit stays beside it because
 // GIT_MERGE_AUTOEDIT can still send git looking for an editor the daemon has
-// no terminal to open.
+// no terminal to open. A squash writes no commit, so it carries no -m —
+// SQUASH_MSG is what the next commit reads — and it carries --ff, because
+// --squash reads merge.ff as well: false makes git refuse the pair as
+// "--squash and --no-ff", only makes it abort on branches that diverged.
+// --ff is the one value under which the squash is what the dialog said.
 func MergeArgs(into, branch string, outcome MergeOutcome) []string {
 	// An outcome this does not recognise is not a reason to hand git a bare
 	// `merge` and let merge.ff answer: --ff-only is the reading that can
 	// neither record a commit nobody asked for nor stop halfway on a conflict.
 	// It is unreachable — the route parses the value at the edge of the daemon
 	// and Merge is given the one PreviewMerge read — and it is written this
-	// way so that a fourth outcome added carelessly cannot reintroduce the
+	// way so that a fifth outcome added carelessly cannot reintroduce the
 	// setting.
 	args := []string{"merge", "--ff-only"}
-	if outcome == MergeCommit {
+	switch outcome {
+	case MergeCommit:
 		args = []string{"merge", "--no-ff", "--no-edit", "-m", MergeMessage(into, branch)}
+	case MergeSquash:
+		args = []string{"merge", "--ff", "--squash"}
 	}
 
 	return append(args, "--", LocalBranchRef(branch))

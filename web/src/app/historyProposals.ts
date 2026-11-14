@@ -188,12 +188,20 @@ export function useHistoryProposals(
    * from a reference list the browser may have been holding since before the
    * click — and the plan is what goes back when the button is pressed.
    */
-  function proposeBranchMerge(branch: string, mergeCommit = false) {
+  function proposeBranchMerge(
+    branch: string,
+    { mergeCommit = false, squash = false }: { mergeCommit?: boolean; squash?: boolean } = {},
+  ) {
     propose(
       ops.branches.planMerge,
-      { branch, mergeCommit },
+      { branch, mergeCommit, squash },
       `what merging ${branch} would do`,
-      (plan) => ({ kind: 'merge', plan, preferMergeCommit: mergeCommit }),
+      (plan) => ({
+        kind: 'merge',
+        plan,
+        preferMergeCommit: mergeCommit,
+        preferSquash: squash,
+      }),
     );
   }
 

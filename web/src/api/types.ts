@@ -309,18 +309,20 @@ export type PullStrategy = 'ff-only' | 'merge' | 'rebase';
  * What merging one branch into another would do.
  *
  * The same question as PullStrategy above and the opposite answer, because a
- * merge between two local branches has no question in it: which of the three
- * this is depends only on where the two branches stand, so the daemon reads it
- * and the browser is told. What the browser does with it is send it back —
- * it chooses the flag that pins the outcome, so the command in the dialog
- * cannot be turned into a different one by the merge.ff in somebody's
- * ~/.gitconfig.
+ * merge between two local branches has no question in it: which of the four
+ * this is depends only on where the two branches stand (and on a preference
+ * the dialog offers), so the daemon reads it and the browser is told. What
+ * the browser does with it is send it back — it chooses the flag that pins
+ * the outcome, so the command in the dialog cannot be turned into a different
+ * one by the merge.ff in somebody's ~/.gitconfig.
  *
  * `fast-forward` writes no object at all: no commit, no hook, no signature.
- * `merge-commit` records one, with all three. `up-to-date` is the branch
- * already being contained, which is not an error and not a merge either.
+ * `merge-commit` records one, with all three. `squash` folds the other branch
+ * into the index for a later commit (`git merge --squash`), distinct from an
+ * interactive-rebase squash line. `up-to-date` is the branch already being
+ * contained, which is not an error and not a merge either.
  */
-export type MergeOutcome = 'up-to-date' | 'fast-forward' | 'merge-commit';
+export type MergeOutcome = 'up-to-date' | 'fast-forward' | 'merge-commit' | 'squash';
 
 /**
  * What a merge would do, and the line it would run.

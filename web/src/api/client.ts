@@ -573,11 +573,11 @@ export const api = {
    * content is that command — and a command assembled in the browser is a
    * second definition of the line the daemon will actually hand to git.
    */
-  planMerge: (id: string, branch: string, mergeCommit = false) =>
+  planMerge: (id: string, branch: string, { mergeCommit = false, squash = false } = {}) =>
     request<MergePlan>(`/api/repos/${id}/merge/plan`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ branch, merge_commit: mergeCommit }),
+      body: JSON.stringify({ branch, merge_commit: mergeCommit, squash }),
     }),
 
   /**

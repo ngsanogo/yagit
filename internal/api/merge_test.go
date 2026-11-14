@@ -509,3 +509,61 @@ func TestMergePlanPrefersAMergeCommitOverAFastForward(t *testing.T) {
 		t.Fatalf("run status = %d: %s", run.Code, run.Body)
 	}
 }
+
+// Squash is a preference over either bringing-in reading: the plan pins
+// --squash, the run keeps the lease, and HEAD does not move.
+func TestMergePlanPrefersASquash(t *testing.T) {
+	handler, id, path := openSwitchableRepository(t)
+	configureIdentityIn(t, path)
+
+	before := commitIn(t, path, "main")
+
+	response := postJSON(t, handler, "/api/repos/"+id+"/merge/plan",
+		`{"branch":"side","squash":true}`)
+	if response.Code != http.StatusOK {
+		t.Fatalf("status = %d: %s", response.Code, response.Body)
+	}
+	planned := decode[wireMergePlan](t, response)
+	if planned.Outcome != "squash" {
+		t.Fatalf("outcome = %q, want squash", planned.Outcome)
+	}
+	if planned.Command != "git merge --ff --squash -- refs/heads/side" {
+		t.Errorf("command = %q, want the pinned squash line", planned.Command)
+	}
+
+	run := postJSON(t, handler, "/api/repos/"+id+"/merge",
+		mergeBody(planned.Branch, planned.Into, planned.Outcome))
+	if run.Code != http.StatusOK {
+		t.Fatalf("run status = %d: %s", run.Code, run.Body)
+	}
+
+	if now := commitIn(t, path, "main"); now != before {
+		t.Errorf("main moved to %s, want it still at %s after a squash", now, before)
+	}
+}
+
+// A squash approval over a reading that became up-to-date is refused: there is
+// nothing left to fold into the index, and --squash would still exit 0.
+func TestASquashThatBecameUpToDateIsRefused(t *testing.T) {
+	handler, id, path := openSwitchableRepository(t)
+
+	planned := decode[wireMergePlan](t,
+		postJSON(t, handler, "/api/repos/"+id+"/merge/plan",
+			`{"branch":"side","squash":true}`))
+	if planned.Outcome != "squash" {
+		t.Fatalf("outcome = %q, want squash to be what was approved", planned.Outcome)
+	}
+
+	// main catches up to side, so a fresh reading would be up-to-date.
+	runGitIn(t, path, "reset", "--hard", "side")
+	before := commitIn(t, path, "main")
+
+	response := postJSON(t, handler, "/api/repos/"+id+"/merge",
+		mergeBody(planned.Branch, planned.Into, planned.Outcome))
+	if response.Code != http.StatusConflict {
+		t.Fatalf("status = %d, want 409: %s", response.Code, response.Body)
+	}
+	if now := commitIn(t, path, "main"); now != before {
+		t.Errorf("main moved to %s, want the refusal to have squashed nothing", now)
+	}
+}

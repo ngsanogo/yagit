@@ -45,6 +45,22 @@ describe('what the merge confirmation says will happen', () => {
     expect(sentence).toContain('hooks');
   });
 
+  // Stages only: HEAD does not move, and the next ordinary commit finishes it.
+  it('says a squash leaves the commit to the user', () => {
+    const sentence = mergeSummary(
+      plan({
+        outcome: 'squash',
+        ahead: 1,
+        behind: 2,
+        command: 'git merge --squash -- pickup',
+      }),
+    );
+
+    expect(sentence).toContain('2 commits');
+    expect(sentence).toContain('index');
+    expect(sentence).toContain('commit afterwards');
+  });
+
   // Not an error and not a merge. The button is still there, so the sentence
   // is the only thing that can say pressing it changes nothing.
   it('says so when the branch is already in', () => {
@@ -54,7 +70,7 @@ describe('what the merge confirmation says will happen', () => {
   });
 
   it('names both branches, whichever way it turns out', () => {
-    for (const outcome of ['up-to-date', 'fast-forward', 'merge-commit'] as const) {
+    for (const outcome of ['up-to-date', 'fast-forward', 'merge-commit', 'squash'] as const) {
       const sentence = mergeSummary(plan({ outcome, branch: 'lanes', into: 'trunk' }));
 
       expect(sentence).toContain('lanes');
@@ -74,10 +90,13 @@ describe('what the merge confirmation says will happen', () => {
   // it, and nothing at all for a screen reader to announce.
   it('still says something about an outcome it has never heard of', () => {
     const sentence = mergeSummary(
-      plan({ outcome: 'squash' as MergePlan['outcome'], command: 'git merge --squash -- pickup' }),
+      plan({
+        outcome: 'octopus' as MergePlan['outcome'],
+        command: 'git merge --octopus -- pickup',
+      }),
     );
 
-    expect(sentence).toContain('git merge --squash -- pickup');
+    expect(sentence).toContain('git merge --octopus -- pickup');
     expect(sentence).toContain('Reload');
   });
 });

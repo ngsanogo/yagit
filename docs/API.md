@@ -92,7 +92,7 @@ stream — the destination is not an open repository yet
 | `POST /api/repos/{id}/tags/push/plan` | Answers the command a tag push would run. Body: `{"name": "…", "remote": "…"}`. Changes nothing. |
 | `POST /api/repos/{id}/tags/push` | Pushes a local tag to a remote under the same name. Same body. |
 | `POST /api/repos/{id}/merge/plan` | What merging a branch would do, and the line it would run. Changes nothing. |
-| `POST /api/repos/{id}/merge` | Merges one into the branch HEAD is on. Body: `{"branch": "…", "into": "…", "outcome": "up-to-date\|fast-forward\|merge-commit"}`. |
+| `POST /api/repos/{id}/merge` | Merges one into the branch HEAD is on. Body: `{"branch": "…", "into": "…", "outcome": "up-to-date\|fast-forward\|merge-commit\|squash"}`. |
 | `POST /api/repos/{id}/rebase/plan` | What rebasing the current branch onto another would do, and the line it would run. Changes nothing. |
 | `POST /api/repos/{id}/rebase` | Rebases the current branch onto another. Body: `{"onto": "…", "from": "…", "outcome": "up-to-date\|fast-forward\|rebase"}`. |
 | `POST /api/repos/{id}/cherry-pick/plan` | What cherry-picking a commit onto the current branch would do, and the line it would run. Changes nothing. |
@@ -201,9 +201,12 @@ merge *is*: `fast-forward`, `merge-commit`, or `up-to-date`, with the commits
 on each side and the exact command for that outcome. `merge_commit: true` on
 the plan asks for a merge commit even where a fast-forward is possible — the
 preference the shown-command rule left open — and the run accepts that approval over a
-fast-forward reading. `merge` then runs
-`--ff-only` or `--no-ff --no-edit`, never a bare merge, and answers with the
-reference list the branch routes answer with — a merge moves HEAD's branch.
+fast-forward reading. `squash: true` asks for `git merge --squash` wherever
+commits would arrive, staging the fold for a later commit without moving HEAD
+(distinct from an interactive-rebase `squash` line). `merge` then runs
+`--ff-only`, `--no-ff --no-edit`, or `--ff --squash`, never a bare merge, and
+answers with the reference list the branch routes answer with — a merge that
+records a commit or fast-forwards moves HEAD's branch; a squash leaves it.
 
 **The branch is named `refs/heads/…`, and the message of a merge commit is
 written out**. A

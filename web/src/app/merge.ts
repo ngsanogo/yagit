@@ -45,6 +45,16 @@ export function mergeSummary(plan: MergePlan): string {
         `git joins them with a merge commit, which runs your hooks and signing.`
       );
 
+    case 'squash':
+      // Stages the combined tree and stops. HEAD does not move; the next
+      // ordinary commit is what finishes it, under the message git left in
+      // SQUASH_MSG. Not an interactive-rebase squash — that one needs an
+      // editor this page does not open.
+      return (
+        `${plan.branch} brings ${arriving}. git folds them into the index on ` +
+        `${plan.into} without moving the branch — commit afterwards to finish.`
+      );
+
     default:
       // Not unreachable, whatever the type says: the outcome is a string from
       // a daemon that can be newer than the page holding it, and falling off
