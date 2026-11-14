@@ -14,13 +14,17 @@ Linux, macOS and Windows.
 ## What you get
 
 - The commit graph as the main object — searchable history, branches, remotes,
-  tags, and a choice of which refs the picture draws
-- Stage by file, hunk, or line; commit and amend; discard that names what it
-  destroys
-- Merge, rebase (including interactive), stash, cherry-pick, revert, reset,
-  undo
-- Conflict resolution in the interface, worktrees, submodules, LFS pointers
-  named in diffs
+  tags, a choice of which refs the picture draws, and how far the tip you are
+  on has drifted from any of them
+- Stage by file, hunk, or line, with as much context around a hunk as you ask
+  for; find in any diff; images drawn side by side; commit and amend; discard
+  that names what it destroys
+- Merge (squash included), rebase (including interactive), stash, cherry-pick,
+  revert, reset, undo, the HEAD reflog, and bisect through to the first bad
+  commit
+- Conflict resolution in the interface or in your own merge tool, worktrees,
+  submodules, LFS pointers named in diffs, and your committer identity set
+  from the app
 - Every destructive step shows the exact `git` command before it runs, and a
   log panel records what actually ran
 
