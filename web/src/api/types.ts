@@ -1165,6 +1165,12 @@ export interface LFSSupport {
 export interface LineSelection {
   diff: string;
   indices: number[];
+  /**
+   * The -U width that produced `diff`. Absent means the daemon default (3).
+   * It has to travel with the selection: the fingerprint hashes the expanded
+   * bytes, and a re-read at a different width never matches.
+   */
+  context?: number;
 }
 
 /**

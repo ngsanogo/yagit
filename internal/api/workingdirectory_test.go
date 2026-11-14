@@ -228,6 +228,51 @@ func TestDiffRefusesASideItDoesNotKnow(t *testing.T) {
 	}
 }
 
+func TestDiffRefusesAContextItDoesNotAllow(t *testing.T) {
+	handler, id, _ := openWorkingRepository(t)
+
+	for _, context := range []string{"1", "7", "100", "three", "-3"} {
+		target := "/api/repos/" + id + "/diff?path=a.txt&side=unstaged&context=" + context
+		response := get(t, handler, target)
+		if response.Code != http.StatusBadRequest {
+			t.Errorf("context=%s: status = %d, want 400: %s", context, response.Code, response.Body)
+		}
+	}
+}
+
+func TestDiffWidensContextWhenAsked(t *testing.T) {
+	handler, id, path := openWorkingRepository(t)
+
+	// Enough surrounding lines that -U3 and -U10 are different byte streams
+	// (and so different fingerprints), which is the lease the selection uses.
+	var body strings.Builder
+	for line := 1; line <= 20; line++ {
+		fmt.Fprintf(&body, "line-%d\n", line)
+	}
+	writeInRepo(t, path, "a.txt", body.String())
+	runGitIn(t, path, "add", "a.txt")
+	runGitIn(t, path, "commit", "-m", "base")
+	edited := body.String()
+	edited = strings.Replace(edited, "line-10\n", "LINE-10\n", 1)
+	writeInRepo(t, path, "a.txt", edited)
+
+	narrow := decode[wireDiff](t, get(t, handler, "/api/repos/"+id+"/diff?path=a.txt&side=unstaged"))
+	wide := decode[wireDiff](t, get(t, handler,
+		"/api/repos/"+id+"/diff?path=a.txt&side=unstaged&context=10"))
+	if narrow.ID == "" || wide.ID == "" {
+		t.Fatal("both widths must carry a fingerprint")
+	}
+	if narrow.ID == wide.ID {
+		t.Fatal("widening context must change the fingerprint the selection is leased to")
+	}
+	if len(wide.Hunks) != 1 {
+		t.Fatalf("expected one hunk, got %d", len(wide.Hunks))
+	}
+	if got := len(wide.Hunks[0].Lines); got <= len(narrow.Hunks[0].Lines) {
+		t.Fatalf("wider context should draw more lines: wide=%d narrow=%d", got, len(narrow.Hunks[0].Lines))
+	}
+}
+
 func TestDiffRefusesAPathThatLeavesTheRepository(t *testing.T) {
 	handler, id, _ := openWorkingRepository(t)
 

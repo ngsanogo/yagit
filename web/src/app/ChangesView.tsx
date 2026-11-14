@@ -23,7 +23,15 @@ import { ChangeList, type Selection } from './ChangeList';
 import { CommitBox } from './CommitBox';
 import { DiffView, type DiffAction } from './DiffView';
 import { FileEditor, KeepWholeFileDialog } from './FileEditor';
-import { isOnDisk, sideOf, useFileDiff, useWorktreeOperations } from './useWorkingDirectory';
+import {
+  fewerDiffContext,
+  isOnDisk,
+  moreDiffContext,
+  sideOf,
+  useFileDiff,
+  useWorktreeOperations,
+  type DiffContext,
+} from './useWorkingDirectory';
 
 /**
  * The work tree: what differs, what it looks like, and the message that will
@@ -121,6 +129,15 @@ export function ChangesView({
    * per keystroke to draw fewer rows.
    */
   const [filter, setFilter] = useState('');
+
+  /**
+   * How many unchanged lines surround each hunk in the open diff.
+   *
+   * A preference across rows, like the diff/edit pane: somebody who widened
+   * one file usually wants the same around the next. The default stays git's
+   * own 3 until they ask.
+   */
+  const [diffContext, setDiffContext] = useState<DiffContext>(3);
 
   const toast = useToast();
   const operations = useWorktreeOperations(repository.id);
@@ -251,7 +268,13 @@ export function ChangesView({
   // Only while a diff is what the pane is drawing. See the `enabled` note on
   // useFileDiff: a conflicted path has no diff to ask for, and asking anyway
   // buys a refusal every two seconds that nothing renders.
-  const diff = useFileDiff(repository.id, current?.file.path, side, showing === 'diff');
+  const diff = useFileDiff(
+    repository.id,
+    current?.file.path,
+    side,
+    showing === 'diff',
+    diffContext,
+  );
 
   function report(action: string, error: Error) {
     toast.push({
@@ -422,7 +445,13 @@ export function ChangesView({
     if (current === undefined || diff.data === undefined) {
       return false;
     }
-    const lines: LineSelection = { diff: diff.data.id, indices };
+    const lines: LineSelection = {
+      diff: diff.data.id,
+      indices,
+      // The fingerprint hashes the -U bytes; the lease re-read needs the same
+      // width or every expanded staging would look stale.
+      ...(diffContext === 3 ? {} : { context: diffContext }),
+    };
 
     if (action === 'discard') {
       proposeDiscard([current.file], lines);
@@ -653,6 +682,9 @@ export function ChangesView({
             side={side}
             repositoryId={repository.id}
             busy={busy}
+            context={diffContext}
+            onMoreContext={() => setDiffContext(moreDiffContext)}
+            onFewerContext={() => setDiffContext(fewerDiffContext)}
             onApply={applyToDiff}
           />
         )}

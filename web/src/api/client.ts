@@ -1225,9 +1225,17 @@ export const api = {
    * The side is never guessed here. A file can be staged and unstaged at
    * once, and the two diffs answer different questions; picking one for the
    * caller would show the wrong half of the file half the time.
+   *
+   * `context` widens unified-diff context (-U). Absent keeps the daemon
+   * default of 3; only 3, 10, 25 and 50 are accepted.
    */
-  diff: (id: string, path: string, side: DiffSide) =>
-    request<FileDiff>(`/api/repos/${id}/diff?path=${encodeURIComponent(path)}&side=${side}`),
+  diff: (id: string, path: string, side: DiffSide, context?: number) => {
+    const params = new URLSearchParams({ path, side });
+    if (context !== undefined) {
+      params.set('context', String(context));
+    }
+    return request<FileDiff>(`/api/repos/${id}/diff?${params}`);
+  },
 
   /**
    * Why an image the interface drew with <img> did not load.

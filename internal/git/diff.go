@@ -157,13 +157,23 @@ const (
 	DiffUntracked DiffSide = "untracked"
 )
 
-// contextLines is how many unchanged lines surround each hunk.
+// contextLines is how many unchanged lines surround each hunk when the caller
+// does not ask for more.
 //
-// git's own default is 3 and this keeps it. It is not only a display choice:
-// the patch built for partial staging carries the same context, and `git
-// apply` matches on it. Widening the context here makes patches more likely
-// to be refused, not less.
+// git's own default is 3 and this keeps it. DiffRequest.Context may widen it
+// to a fixed set of larger values; the -U width is part of the bytes
+// Fingerprint hashes, so a selection made against an expanded diff is leased
+// to that diff's ID. Staging from it is fine: resolveLines re-reads with the
+// same Context, and a mismatch (file moved, or a different width) is refused
+// as stale — the same lease the default width already uses.
 const contextLines = 3
+
+// AllowedContexts are the -U widths DiffRequest.Context may name. Zero on the
+// request still means the package default (the first entry).
+var AllowedContexts = []int{contextLines, 10, 25, 50}
+
+// ErrBadDiffContext: DiffRequest.Context named a width outside AllowedContexts.
+var ErrBadDiffContext = errors.New("diff context is not one of 3, 10, 25, 50")
 
 // maxDiffBytes caps how much unified diff one read may produce.
 //
@@ -198,7 +208,7 @@ var ErrDiffTooLarge = errors.New("this diff is too large to show")
 // what lets the route answer with that sentence instead.
 var ErrCombinedDiff = errors.New("this path is unmerged, so git shows a combined diff")
 
-// diffArgs are the switches every diff shares.
+// diffBaseArgs are the switches every diff shares, without -U.
 //
 // --no-color: the interface colors the lines itself, and ANSI escapes in the
 // middle of a line's text would be shown verbatim as the text.
@@ -214,11 +224,40 @@ var ErrCombinedDiff = errors.New("this path is unmerged, so git shows a combined
 // and `w/`, diff.noprefix writes none at all, and either one turns every diff
 // in the interface into an unreadable file header. Pinned by name rather than
 // with --default-prefix, which git only understands from 2.45.
-var diffArgs = []string{
+var diffBaseArgs = []string{
 	"--no-color", "--no-ext-diff", "--no-textconv",
 	"--src-prefix=a/", "--dst-prefix=b/",
 	"--find-renames",
-	"-U" + strconv.Itoa(contextLines),
+}
+
+// diffArgs is the shared set with the package-default context, for show and
+// stash. Working-tree Diff builds -U from DiffRequest.Context instead.
+var diffArgs = append(append([]string{}, diffBaseArgs...), "-U"+strconv.Itoa(contextLines))
+
+// unifiedContextFlag builds the -U switch for a DiffRequest.Context value.
+//
+// Zero means the package default. Anything outside AllowedContexts is refused
+// rather than passed through: an unbounded -U is how a one-line edit of a
+// generated file becomes a multi-megabyte patch on every poll of the open row.
+func unifiedContextFlag(lines int) (string, error) {
+	if lines == 0 {
+		lines = contextLines
+	}
+	for _, allowed := range AllowedContexts {
+		if lines == allowed {
+			return "-U" + strconv.Itoa(lines), nil
+		}
+	}
+	return "", fmt.Errorf("%w: %d", ErrBadDiffContext, lines)
+}
+
+// diffSwitches is diffBaseArgs plus -U for the requested context width.
+func diffSwitches(context int) ([]string, error) {
+	flag, err := unifiedContextFlag(context)
+	if err != nil {
+		return nil, err
+	}
+	return append(append([]string{}, diffBaseArgs...), flag), nil
 }
 
 // DiffRequest names the change to read.
@@ -244,6 +283,10 @@ type DiffRequest struct {
 	OldPath string
 
 	Side DiffSide
+
+	// Context is how many unchanged lines surround each hunk (-U). Zero means
+	// the package default. Only AllowedContexts values are accepted.
+	Context int
 }
 
 // Diff reads one path's diff on one side.
@@ -260,13 +303,13 @@ func (r *Runner) Diff(ctx context.Context, dir string, request DiffRequest) (Fil
 
 	switch request.Side {
 	case DiffStaged:
-		output, err = r.readDiff(ctx, dir, []string{"diff", "--cached"}, request.pathspecs())
+		output, err = r.readDiff(ctx, dir, []string{"diff", "--cached"}, request.pathspecs(), request.Context)
 
 	case DiffUnstaged:
-		output, err = r.readDiff(ctx, dir, []string{"diff"}, request.pathspecs())
+		output, err = r.readDiff(ctx, dir, []string{"diff"}, request.pathspecs(), request.Context)
 
 	case DiffUntracked:
-		output, err = r.diffUntracked(ctx, dir, request.Path)
+		output, err = r.diffUntracked(ctx, dir, request.Path, request.Context)
 
 	default:
 		return FileDiff{}, fmt.Errorf("unknown diff side %q", request.Side)
@@ -312,8 +355,12 @@ func (request DiffRequest) pathspecs() []string {
 	return literalPathspecs([]string{request.Path, request.OldPath})
 }
 
-func (r *Runner) readDiff(ctx context.Context, dir string, command, pathspecs []string) ([]byte, error) {
-	args := append(append(append([]string{}, command...), diffArgs...), "--")
+func (r *Runner) readDiff(ctx context.Context, dir string, command, pathspecs []string, contextLinesWanted int) ([]byte, error) {
+	switches, err := diffSwitches(contextLinesWanted)
+	if err != nil {
+		return nil, err
+	}
+	args := append(append(append([]string{}, command...), switches...), "--")
 	return r.Exec(ctx, Command{
 		Dir:       dir,
 		Args:      append(args, pathspecs...),
@@ -342,10 +389,14 @@ func (r *Runner) readDiff(ctx context.Context, dir string, command, pathspecs []
 // It then writes `error: Could not access …` to stderr and nothing to standard
 // output, and without this the interface would draw "no change here" over it.
 // Even an empty file answers with a header, so empty output is never an answer.
-func (r *Runner) diffUntracked(ctx context.Context, dir, path string) ([]byte, error) {
+func (r *Runner) diffUntracked(ctx context.Context, dir, path string, contextLinesWanted int) ([]byte, error) {
+	switches, err := diffSwitches(contextLinesWanted)
+	if err != nil {
+		return nil, err
+	}
 	return r.Exec(ctx, Command{
 		Dir:            dir,
-		Args:           append(append([]string{"diff", "--no-index"}, diffArgs...), "--", "/dev/null", path),
+		Args:           append(append([]string{"diff", "--no-index"}, switches...), "--", "/dev/null", path),
 		SuccessCodes:   []int{1},
 		OutputRequired: true,
 		MaxOutput:      maxDiffBytes,

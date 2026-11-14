@@ -55,6 +55,27 @@ export function useWorkingDirectory(repositoryId: string, enabled: boolean) {
 }
 
 /**
+ * How many unchanged lines surround each hunk. Matches the daemon's
+ * AllowedContexts; the default is the first entry.
+ */
+export const DIFF_CONTEXT_STEPS = [3, 10, 25, 50] as const;
+
+export type DiffContext = (typeof DIFF_CONTEXT_STEPS)[number];
+
+/** The next wider (or wrapped) context step. */
+export function moreDiffContext(current: DiffContext): DiffContext {
+  const at = DIFF_CONTEXT_STEPS.indexOf(current);
+  return DIFF_CONTEXT_STEPS[(at + 1) % DIFF_CONTEXT_STEPS.length] ?? 3;
+}
+
+/** The next narrower (or wrapped) context step. */
+export function fewerDiffContext(current: DiffContext): DiffContext {
+  const at = DIFF_CONTEXT_STEPS.indexOf(current);
+  const previous = at <= 0 ? DIFF_CONTEXT_STEPS.length - 1 : at - 1;
+  return DIFF_CONTEXT_STEPS[previous] ?? 3;
+}
+
+/**
  * One file's diff on one side.
  *
  * Kept fresh by the same two mechanisms as the status: the event stream
@@ -78,6 +99,9 @@ export function useWorkingDirectory(repositoryId: string, enabled: boolean) {
  * Bounding what crosses the wire means the daemon growing that parameter, and
  * the parser producing the hunks that fall inside it — which is where the next
  * reader of this comment should start.
+ *
+ * `context` is part of the key: widening it asks git for a different -U, and
+ * the fingerprint that leases a line selection changes with those bytes.
  */
 export function useFileDiff(
   repositoryId: string,
@@ -93,10 +117,11 @@ export function useFileDiff(
    * console, for as long as the row stays open.
    */
   enabled = true,
+  context: DiffContext = 3,
 ) {
   return useQuery({
-    queryKey: ['diff', repositoryId, path, side],
-    queryFn: () => api.diff(repositoryId, path ?? '', side),
+    queryKey: ['diff', repositoryId, path, side, context],
+    queryFn: () => api.diff(repositoryId, path ?? '', side, context),
     enabled: enabled && path !== undefined,
     refetchInterval: (query) => {
       if (!enabled) {
