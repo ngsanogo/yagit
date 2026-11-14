@@ -338,6 +338,11 @@ func (s *Server) Handler() http.Handler {
 	protected.HandleFunc("POST /api/repos/{id}/operation/plan", s.handleOperationPlan)
 	protected.HandleFunc("POST /api/repos/{id}/operation", s.handleOperation)
 
+	// Beginning a bisect. The good/bad/skip/reset buttons then ride the
+	// operation routes above once BISECT_LOG exists.
+	protected.HandleFunc("POST /api/repos/{id}/bisect/start/plan", s.handlePlanStartBisect)
+	protected.HandleFunc("POST /api/repos/{id}/bisect/start", s.handleStartBisect)
+
 	// The two halves of one promise, split the way HTTP splits things: the
 	// backlog is a collection, the stream is what happens next.
 	protected.HandleFunc("GET /api/log", s.handleLog)

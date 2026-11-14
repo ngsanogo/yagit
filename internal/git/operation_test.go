@@ -26,7 +26,9 @@ var everyOperation = []git.Operation{
 	git.OperationApply,
 }
 
-var everyAction = []git.Action{git.ActionAbort, git.ActionContinue, git.ActionSkip}
+var everyAction = []git.Action{
+	git.ActionAbort, git.ActionContinue, git.ActionSkip, git.ActionGood, git.ActionBad,
+}
 
 func TestEveryPairEitherRunsGitOrSaysWhyNot(t *testing.T) {
 	for _, operation := range everyOperation {
@@ -83,6 +85,9 @@ func TestTheCommandEachInstructionRuns(t *testing.T) {
 		// git has no `git bisect --abort`. Leaving a bisect is a reset, and
 		// the button that says Abort has to run the command that does it.
 		{git.OperationBisect, git.ActionAbort, "git bisect reset"},
+		{git.OperationBisect, git.ActionGood, "git bisect good"},
+		{git.OperationBisect, git.ActionBad, "git bisect bad"},
+		{git.OperationBisect, git.ActionSkip, "git bisect skip"},
 	} {
 		args, err := git.ActionArgs(testCase.operation, testCase.action)
 		if err != nil {
@@ -172,11 +177,17 @@ func TestAMergeIsAbortedButNotContinued(t *testing.T) {
 	}
 }
 
-// Continuing a bisect means saying whether this commit is good or bad. yagit
-// does not ask that, and a button that continued one would have to guess.
-func TestABisectIsOnlyLeft(t *testing.T) {
-	if offered := git.Actions(git.OperationBisect); !slices.Equal(offered, []git.Action{git.ActionAbort}) {
-		t.Errorf("a bisect offers %v, want abort alone", offered)
+// A bisect is driven by verdicts, not by continue. Continue would have to
+// guess whether the commit is good or bad.
+func TestABisectOffersVerdictsAndReset(t *testing.T) {
+	want := []git.Action{git.ActionGood, git.ActionBad, git.ActionSkip, git.ActionAbort}
+	if offered := git.Actions(git.OperationBisect); !slices.Equal(offered, want) {
+		t.Errorf("a bisect offers %v, want %v", offered, want)
+	}
+
+	_, err := git.ActionArgs(git.OperationBisect, git.ActionContinue)
+	if !errors.Is(err, git.ErrActionUnavailable) {
+		t.Fatalf("continuing a bisect gave %v, want ErrActionUnavailable", err)
 	}
 }
 
@@ -190,9 +201,11 @@ func TestNothingCanBeDoneToAnOperationThatIsNotHappening(t *testing.T) {
 
 // Which instructions need a confirmation, decided here rather than in a
 // dialog that could be refactored out of asking.
-func TestOnlyContinueKeepsWhatIsThere(t *testing.T) {
-	if git.Destroys(git.ActionContinue) {
-		t.Error("continue is marked destructive; it records the resolution and moves on")
+func TestOnlyContinueAndBisectVerdictsKeepWhatIsThere(t *testing.T) {
+	for _, action := range []git.Action{git.ActionContinue, git.ActionGood, git.ActionBad} {
+		if git.Destroys(action) {
+			t.Errorf("%s is marked destructive; it records a decision and moves on", action)
+		}
 	}
 	for _, action := range []git.Action{git.ActionAbort, git.ActionSkip} {
 		if !git.Destroys(action) {

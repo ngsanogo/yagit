@@ -105,7 +105,13 @@ function succeeded(action: OperationAction, operation: Operation): string {
     case 'continue':
       return `Continued the ${name}`;
     case 'skip':
-      return `Skipped a commit in the ${name}`;
+      return operation === 'bisect'
+        ? 'Skipped this commit in the bisect'
+        : `Skipped a commit in the ${name}`;
+    case 'good':
+      return 'Marked this commit good';
+    case 'bad':
+      return 'Marked this commit bad';
   }
 }
 
@@ -117,6 +123,10 @@ function failed(action: OperationAction): string {
       return 'Could not continue';
     case 'skip':
       return 'Could not skip this commit';
+    case 'good':
+      return 'Could not mark this commit good';
+    case 'bad':
+      return 'Could not mark this commit bad';
   }
 }
 

@@ -260,6 +260,22 @@ export function useHistoryProposals(
   }
 
   /**
+   * Puts the bisect-start question with this commit as the known-bad end.
+   *
+   * A bare start (no ends) is also possible from the API; naming the bad tip
+   * up front is what a click on a commit means, and the banner's Good button
+   * then marks a known-good commit once the search is under way.
+   */
+  function proposeStartBisect(bad: string) {
+    propose(
+      ops.bisect.plan,
+      { bad },
+      `what starting a bisect at ${shortenSha(bad)} would run`,
+      (plan) => ({ kind: 'bisect-start', plan }),
+    );
+  }
+
+  /**
    * Puts the revert question, once the daemon has said what it would do.
    *
    * Merges, roots and commits not on the branch are refused by the plan, and
@@ -438,6 +454,7 @@ export function useHistoryProposals(
     proposeTagDelete,
     proposeTagPush,
     proposeCherryPick,
+    proposeStartBisect,
     proposeRevert,
     proposeReset,
     proposeRewrite,

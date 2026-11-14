@@ -73,7 +73,9 @@ export function OperationBanner({ repositoryId, status }: OperationBannerProps) 
    * a line the daemon was never going to run.
    */
   const choose = (action: OperationAction) => {
-    if (action === 'continue') {
+    // Continue and the bisect verdicts destroy nothing: they record a decision
+    // and move on. The other instructions ask first, showing the exact line.
+    if (action === 'continue' || action === 'good' || action === 'bad') {
       act.mutate({
         action,
         operation: state.operation,
@@ -151,9 +153,14 @@ export function OperationBanner({ repositoryId, status }: OperationBannerProps) 
               >
                 <Button
                   size="sm"
-                  // Continuing is the way forward and carries the weight of
-                  // one. The other two are exits: present, and not inviting.
-                  variant={action === 'continue' ? 'secondary' : 'ghost'}
+                  // Continuing and the bisect verdicts are the way forward and
+                  // carry the weight of one. Abort and skip are exits: present,
+                  // and not inviting.
+                  variant={
+                    action === 'continue' || action === 'good' || action === 'bad'
+                      ? 'secondary'
+                      : 'ghost'
+                  }
                   loading={act.isPending && act.variables?.action === action}
                   disabled={busy || blocked !== undefined}
                   onClick={() => choose(action)}
@@ -251,11 +258,17 @@ function describe(action: OperationAction, operation: Operation): string {
     case 'continue':
       return `Carries the ${name} on, committing what is resolved under the message being replayed — never what is typed in the box below.`;
     case 'skip':
-      return `Drops the commit this ${name} stopped on and moves to the next.`;
+      return operation === 'bisect'
+        ? 'Skips this commit without a verdict and tries another.'
+        : `Drops the commit this ${name} stopped on and moves to the next.`;
     case 'abort':
       return operation === 'bisect'
         ? 'Checks the original branch back out and forgets every verdict.'
         : `Calls the ${name} off and puts the repository back where it started.`;
+    case 'good':
+      return 'Marks this commit good and checks out the next one to test.';
+    case 'bad':
+      return 'Marks this commit bad and checks out the next one to test.';
   }
 }
 
@@ -267,6 +280,10 @@ function label(action: OperationAction): string {
       return 'Continue';
     case 'skip':
       return 'Skip';
+    case 'good':
+      return 'Good';
+    case 'bad':
+      return 'Bad';
   }
 }
 
@@ -294,7 +311,9 @@ function whatIsLost(action: OperationAction, operation: Operation): [string, ...
   const name = operationName(operation);
 
   if (action === 'skip') {
-    return [`the commit this ${name} stopped on, and every change in it`];
+    return operation === 'bisect'
+      ? ['a chance to test this commit — it will not be marked good or bad']
+      : [`the commit this ${name} stopped on, and every change in it`];
   }
 
   switch (operation) {
@@ -358,7 +377,7 @@ function headline(operation: Operation, branch: string | undefined): string {
  */
 function whatIsLeft(state: RepositoryState, conflicted: number): string {
   if (state.operation === 'bisect') {
-    return 'Mark this commit good or bad in your terminal to carry on.';
+    return 'Mark this commit good or bad to carry on.';
   }
 
   const refused = state.blocked?.continue;

@@ -77,6 +77,9 @@ func writesTheIndex(args []string) bool {
 		// mergetool writes the resolved file and stages it; a concurrent
 		// commit on the same path would race the index the same way.
 		"mergetool",
+		// bisect checks out a commit on every good/bad/skip and takes the
+		// index lock while it does.
+		"bisect",
 		// pull integrates into the work tree and takes .git/index.lock the
 		// same way merge does. Leaving it out let a commit start on top of a
 		// pull and fail on the lock — or worse, interleave — which is the

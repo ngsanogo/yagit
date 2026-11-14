@@ -6,36 +6,45 @@ import (
 	"fmt"
 )
 
-// The three ways out of an operation that stopped.
+// The ways out of an operation that stopped.
 //
 // state.go reads what a repository is in the middle of; this file is what can
 // be done about it. Every one of these is a single git command, and the whole
 // of the knowledge is the table in ActionArgs — which pairs are real, and what
 // each of them runs.
 //
-// Two of the three destroy work and the interface asks first, showing the line
-// from ActionArgs rather than a sentence about it. Which of them destroys what
-// is in the comments on the table, because that is the sentence somebody
-// deciding needs and the wrong answer to it is unrecoverable.
+// Two of the three sequencer flags destroy work and the interface asks first,
+// showing the line from ActionArgs rather than a sentence about it. Which of
+// them destroys what is in the comments on the table, because that is the
+// sentence somebody deciding needs and the wrong answer to it is
+// unrecoverable.
 
 // Action is what to do about an operation in progress.
 //
-// Named for git's own three flags, and it is the whole vocabulary: there is no
-// fourth thing to do about a stopped rebase.
+// Named for git's own vocabulary. Sequencer operations take abort / continue /
+// skip; a bisect takes good / bad / skip / abort (reset). There is no fourth
+// thing to do about a stopped rebase.
 type Action string
 
 const (
 	// ActionAbort undoes the operation and puts the repository back where it
-	// started. It throws away every conflict resolved since it began.
+	// started. It throws away every conflict resolved since it began — or,
+	// for a bisect, every verdict given so far.
 	ActionAbort Action = "abort"
 
 	// ActionContinue records what has been resolved and moves to the next
-	// commit, or finishes. The one action here that destroys nothing.
+	// commit, or finishes. The one sequencer action that destroys nothing.
 	ActionContinue Action = "continue"
 
-	// ActionSkip drops the commit being applied and moves to the next one.
-	// The commit is not applied and its changes are not kept.
+	// ActionSkip drops the commit being applied and moves to the next one —
+	// or, during a bisect, skips the current commit without a verdict.
 	ActionSkip Action = "skip"
+
+	// ActionGood marks the current bisect commit as good.
+	ActionGood Action = "good"
+
+	// ActionBad marks the current bisect commit as bad.
+	ActionBad Action = "bad"
 )
 
 // ErrNoOperation: nothing is in progress, so there is nothing to act on.
@@ -79,36 +88,25 @@ var ErrActionUnavailable = errors.New("this operation cannot be given that instr
 //     commits is the replayed commit's own message, never a draft, and the
 //     button on screen says so instead of leaving it to be discovered.
 //
-//   - A bisect is ended with `git bisect reset`, which is what leaving one is
-//     called. It is not continued either: continuing a bisect means saying
-//     whether this commit is good or bad, and yagit does not ask that yet. A
-//     button offering to continue would have to guess the answer.
+//   - A bisect is driven by good / bad / skip, and ended with `git bisect
+//     reset`. It is not continued: continuing would have to guess the verdict.
 //
 //   - Everything that replays commits — a rebase, a cherry-pick, a revert, a
-//     mailbox — takes all three, because all three are things git will do to
-//     a half-finished sequence.
+//     mailbox — takes abort / continue / skip, because all three are things
+//     git will do to a half-finished sequence.
 func ActionArgs(operation Operation, action Action) ([]string, error) {
-	// The action is checked against the three before anything is built from
-	// it, and this is the line that makes the rest of the file safe. Every
-	// branch below spells its command as `--` and the action, so an
-	// unrecognised one would not be refused — it would become a flag. A
+	// The action is checked against the known vocabulary before anything is
+	// built from it, and this is the line that makes the rest of the file
+	// safe. Sequencer branches spell their command as `--` and the action, so
+	// an unrecognised one would not be refused — it would become a flag. A
 	// request naming `exec` would run `git rebase --exec`, which takes a
 	// shell command as its argument, from a route whose whole vocabulary is
-	// meant to be three words.
-	//
-	// Refusing by name is also the honest answer to a typo: `git rebase
-	// --contnue` fails with git explaining its own option parsing, about a
-	// request nobody made.
+	// meant to be a short list of words.
 	switch action {
-	case ActionAbort, ActionContinue, ActionSkip:
+	case ActionAbort, ActionContinue, ActionSkip, ActionGood, ActionBad:
 	default:
-		return nil, fmt.Errorf("%w: %q is not abort, continue or skip", ErrActionUnavailable, action)
+		return nil, fmt.Errorf("%w: %q is not a known instruction", ErrActionUnavailable, action)
 	}
-
-	// Named here rather than repeated in six cases below. The command is the
-	// subcommand plus the flag for all but the bisect, which spells its
-	// ending differently.
-	flag := "--" + string(action)
 
 	switch operation {
 	case OperationNone:
@@ -120,32 +118,34 @@ func ActionArgs(operation Operation, action Action) ([]string, error) {
 		}
 		// Throws away every conflict resolved since the merge began, and puts
 		// the work tree and the index back where they were.
-		return []string{"merge", flag}, nil
+		return []string{"merge", "--abort"}, nil
 
 	case OperationBisect:
-		if action != ActionAbort {
-			return nil, fmt.Errorf("%w: a bisect ends by marking a commit good or bad", ErrActionUnavailable)
+		switch action {
+		case ActionGood:
+			return []string{"bisect", "good"}, nil
+		case ActionBad:
+			return []string{"bisect", "bad"}, nil
+		case ActionSkip:
+			return []string{"bisect", "skip"}, nil
+		case ActionAbort:
+			// Not `--abort`, which git does not have here. `reset` checks the
+			// original branch back out and forgets every verdict given so far.
+			return []string{"bisect", "reset"}, nil
+		default:
+			return nil, fmt.Errorf("%w: a bisect is driven by good, bad or skip — not continued", ErrActionUnavailable)
 		}
-		// Not `--abort`, which git does not have here. `reset` checks the
-		// original branch back out and forgets every verdict given so far.
-		return []string{"bisect", "reset"}, nil
 
-	case OperationRebase:
-		// --abort returns to the branch the rebase started from, discarding
-		// every commit it has replayed. --skip drops the commit it stopped
-		// on entirely.
-		return []string{"rebase", flag}, nil
-
-	case OperationCherryPick:
-		return []string{"cherry-pick", flag}, nil
-
-	case OperationRevert:
-		return []string{"revert", flag}, nil
-
-	case OperationApply:
-		// `git am`, whose three flags are spelled exactly like the others'.
-		// --abort restores the branch the mailbox was being applied to.
-		return []string{"am", flag}, nil
+	case OperationRebase, OperationCherryPick, OperationRevert, OperationApply:
+		if action == ActionGood || action == ActionBad {
+			return nil, fmt.Errorf("%w: %q is a bisect verdict, not a %s instruction",
+				ErrActionUnavailable, action, operation)
+		}
+		subcommand := string(operation)
+		if operation == OperationApply {
+			subcommand = "am"
+		}
+		return []string{subcommand, "--" + string(action)}, nil
 	}
 
 	return nil, fmt.Errorf("%w: %q is not an operation yagit knows", ErrActionUnavailable, operation)
@@ -194,11 +194,16 @@ func (r *Runner) ActOnOperation(ctx context.Context, dir string, operation Opera
 // so a pair that is drawn is a pair that runs — and a pair that is not drawn
 // is refused rather than quietly doing something else.
 //
-// Continue first, because it is what somebody who resolved their conflict
-// wants and it is the only one of the three that destroys nothing.
+// For sequencer operations continue is first, because it is what somebody who
+// resolved their conflict wants and it is the only one of those three that
+// destroys nothing. For a bisect the verdicts come first for the same reason.
 func Actions(operation Operation) []Action {
+	order := []Action{ActionContinue, ActionSkip, ActionAbort}
+	if operation == OperationBisect {
+		order = []Action{ActionGood, ActionBad, ActionSkip, ActionAbort}
+	}
 	var available []Action
-	for _, action := range []Action{ActionContinue, ActionSkip, ActionAbort} {
+	for _, action := range order {
 		if _, err := ActionArgs(operation, action); err == nil {
 			available = append(available, action)
 		}
@@ -210,7 +215,15 @@ func Actions(operation Operation) []Action {
 // interface has to ask before running it.
 //
 // Here rather than in the browser because it is a fact about git, not about a
-// screen: continuing records what was resolved and moves on, while the other
-// two exist precisely to throw something away. A dialog that decided this for
-// itself could be talked out of asking by a refactor; this cannot.
-func Destroys(action Action) bool { return action != ActionContinue }
+// screen: continuing and the bisect verdicts record a decision and move on,
+// while abort and sequencer-skip exist precisely to throw something away. A
+// dialog that decided this for itself could be talked out of asking by a
+// refactor; this cannot.
+func Destroys(action Action) bool {
+	switch action {
+	case ActionContinue, ActionGood, ActionBad:
+		return false
+	default:
+		return true
+	}
+}

@@ -1,4 +1,5 @@
 import type { Head, HistoryScope, Ref, Remote, Repository } from '../api/types';
+import { ConfirmDialog } from '../components/ConfirmDialog';
 import { Dialog } from '../components/Dialog';
 import { shortenSha } from '../lib/format';
 import { parentDirectoryOf } from '../lib/path';
@@ -461,6 +462,29 @@ export function HistoryDialogs({
           onCancel={close}
           onUntrack={(pattern) =>
             ops.lfs.run.mutate({ action: 'untrack', pattern }, { onSuccess: close })
+          }
+        />
+      );
+
+    case 'bisect-start':
+      return (
+        <ConfirmDialog
+          open
+          title="Start a bisect?"
+          description={
+            dialog.plan.bad === ''
+              ? 'Begins a search for the commit that introduced a bug. Mark the current commit good or bad from the banner once it appears.'
+              : `Begins a search with ${shortenSha(dialog.plan.bad)} as the known-bad tip. Mark a known-good commit from the banner once the search is under way.`
+          }
+          command={dialog.plan.command}
+          confirmLabel="Start bisect"
+          busy={ops.bisect.run.isPending}
+          onCancel={close}
+          onConfirm={() =>
+            ops.bisect.run.mutate(
+              { bad: dialog.plan.bad, good: dialog.plan.good },
+              { onSettled: close },
+            )
           }
         />
       );

@@ -2,7 +2,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useRef, useState } from 'react';
 
 import { api } from '../api/client';
-import type { HistoryScope, Repository } from '../api/types';
+import type { HistoryScope, Operation, Repository } from '../api/types';
 import { Button } from '../components/Button';
 import { EmptyState } from '../components/EmptyState';
 import { HistoryIcon, SearchIcon } from '../components/Icons';
@@ -93,6 +93,7 @@ export function HistoryView({
   onInspect,
   onClearSelection,
   changed,
+  operation,
 }: {
   repository: Repository;
   inspected: Inspected | undefined;
@@ -100,6 +101,8 @@ export function HistoryView({
   onClearSelection: () => void;
   /** How many paths differ in the work tree right now. */
   changed: number;
+  /** What the work tree is in the middle of, empty when nothing. */
+  operation: Operation;
 }) {
   // The commit half of the selection, which is what the list highlights and
   // what the panel below reads. A stash is not in the walk, so a stash being
@@ -456,6 +459,13 @@ export function HistoryView({
               onRewrite={canCheckOut ? () => proposals.proposeRewrite(selected) : undefined}
               rewriting={ops.rewrite.plan.isPending && ops.rewrite.plan.variables === selected}
               rewriteRefusal={whileDetached('there is no branch whose commits could be rewritten')}
+              onStartBisect={canCheckOut ? () => proposals.proposeStartBisect(selected) : undefined}
+              startingBisect={
+                ops.bisect.plan.isPending && ops.bisect.plan.variables?.bad === selected
+              }
+              startBisectRefusal={
+                operation !== '' ? `A ${operation} is already in progress.` : undefined
+              }
               onFileHistory={(path) =>
                 onInspect({ kind: 'file-history', path, revision: selected })
               }

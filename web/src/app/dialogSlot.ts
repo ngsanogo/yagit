@@ -16,6 +16,7 @@ import type {
   TagPushPlan,
   UpstreamPlan,
 } from '../api/types';
+import type { BisectStartPlan } from './useBisect';
 import type { PendingDelete, PendingUnsetUpstream } from './BranchDialogs';
 import type { PendingTagDelete } from './TagDialogs';
 import type { PendingSubmoduleRemove } from './SubmoduleDialogs';
@@ -79,7 +80,8 @@ export type WorkbenchDialog =
   // pattern is typed, the daemon answers with the line, and the box then shows
   // it rather than a second dialog over the first.
   | { kind: 'track-lfs'; plan: string | undefined }
-  | { kind: 'untrack-lfs'; pattern: string; command: string };
+  | { kind: 'untrack-lfs'; pattern: string; command: string }
+  | { kind: 'bisect-start'; plan: BisectStartPlan };
 
 /**
  * A request for a plan, in the shape this module needs it: something that

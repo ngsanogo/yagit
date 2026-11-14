@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 
+import { useBisect } from './useBisect';
 import { useBranches } from './useBranches';
 import { useCheckOut } from './useCheckOut';
 import { useCherryPick } from './useCherryPick';
@@ -39,6 +40,7 @@ export function useHistoryOperations(repositoryId: string, bare: boolean) {
     cherryPick: useCherryPick(repositoryId),
     revert: useRevert(repositoryId),
     reset: useReset(repositoryId),
+    bisect: useBisect(repositoryId),
     rewrite: useInteractiveRebase(repositoryId),
     stash: useStash(repositoryId, !bare),
     worktrees: useWorktrees(repositoryId),
