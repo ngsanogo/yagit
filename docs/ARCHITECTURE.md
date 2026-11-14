@@ -103,12 +103,9 @@ else.
 
 ## Stack
 
-Each line links the record that argues it.
-
 - **Backend**: Go. One binary, frontend embedded through `embed.FS`.
 - **Frontend**: React, TypeScript, Vite, Tailwind — the utilities generated
-  from `tokens.css`, which stays the single source of every visual value
-.
+  from `tokens.css`, which stays the single source of every visual value.
 - **Graph**: assigned in Go, drawn in SVG for the visible window only, one
   `<path>` per column. Not canvas: the list is virtualised, so the graph never
   holds more nodes than the rows beside it, and SVG takes
@@ -116,14 +113,11 @@ Each line links the record that argues it.
 - **Diffs**: no editor component. The daemon parses the patch into hunks and
   lines, and the browser draws that list and lets lines be chosen out of it.
   Not Monaco, which parses theme colours as hex and silently renders anything
-  else red — including this project's OKLCH tokens
-; and not CodeMirror either, whose
+  else red — including this project's OKLCH tokens; and not CodeMirror either, whose
   merge view accepts changes into a *document* while every action here carries
-  the patch's own fingerprint back
-.
+  the patch's own fingerprint back.
 - **Server state**: TanStack Query, one key per page of commits, invalidated by
-  the event stream. TanStack Virtual for the rows
-.
+  the event stream. TanStack Virtual for the rows.
 - **Routing**: none. Two paths, read once from `window.location.pathname`: the
   workbench and the design system showcase. What survives a reload is
   `localStorage`, not a URL.
@@ -132,8 +126,7 @@ Each line links the record that argues it.
 - **git**: the `git` binary in a subprocess. No go-git, no libgit2. yagit shows
   the commands it runs, and those commands have to be ones a user can paste into
   their own terminal.
-- **File watching**: fsnotify, over a bounded set of paths per repository
-.
+- **File watching**: fsnotify, over a bounded set of paths per repository.
 
 ## The git layer
 
@@ -143,8 +136,7 @@ Machine-readable formats throughout:
 - History:
   `git log HEAD --topo-order --decorate=short --pretty=format:'%H%x00%P%x00%an%x00%aI%x00%s%x00%D%x00%x0a' --`
   `HEAD` is the revision the interface asks for first — what is checked out —
-  and `--all` takes its place when every ref is chosen instead
-.
+  and `--all` takes its place when every ref is chosen instead.
   The NUL separators and the NUL-then-newline terminator are not optional:
   without them, multi-line commit messages break the parser. NUL is the byte
   git refuses in every field — 0x01, which this format used at first, it does
@@ -195,8 +187,7 @@ Machine-readable formats throughout:
   The todo list is the input that is not in the argument list. git obtains it
   by running `GIT_SEQUENCE_EDITOR` over a file it has written, so yagit writes
   the list itself and points that variable at its own executable with a private
-  flag — the one program certain to exist wherever the daemon runs
-. `GIT_EDITOR` is
+  flag — the one program certain to exist wherever the daemon runs. `GIT_EDITOR` is
   pointed at the same executable under a flag whose whole behaviour is to
   refuse and exit non-zero, so a step that asked for a commit message fails at
   once instead of committing one nobody read. Leaving it unset was the first
@@ -217,9 +208,8 @@ Machine-readable formats throughout:
   refs/heads/x` where a commit is recorded. Never a bare `git merge`, which
   reads `merge.ff`; never a short name, which git resolves through `refs/tags`
   before `refs/heads`; never git's own message, which is composed from the name
-  as it was given and from `merge.log`. All three are one rule —
-   and
-   — and the last one is
+  as it was given and from `merge.log`. All three are one rule — what runs is
+  what the confirmation showed — and the last one is
   why `shellQuote` has a second quoting style: a message with `'x'` inside it
   has to stay a sentence on the confirmation that shows it.
 
@@ -244,8 +234,7 @@ with what actually ran.
 
 An isolated, pure, tested module — `internal/graph`. In the daemon rather than
 in the browser, and that is forced: a commit's column follows from every commit
-above it, and the browser only ever holds a window
-.
+above it, and the browser only ever holds a window.
 
 Commits are walked in topological order against an array of active columns,
 each holding the SHA it is waiting for:
@@ -274,15 +263,13 @@ records those once, for the top of every 256 rows, and a window is the two
 searches plus that list. On git's own history the last page costs 2.4 µs
 against the 57 µs of reading every edge.
 
-Links are drawn as Bézier curves, in SVG, for the visible window only
-. The per-column palette is stable
+Links are drawn as Bézier curves, in SVG, for the visible window only. The per-column palette is stable
 over time: a branch does not change colour as you scroll.
 
 Some histories cannot be drawn at all. git's own needs 280 columns with every
 ref drawn — git's own `--graph` needs 67 over the identical order — and no
 picture that wide is readable. Which refs are drawn is therefore a choice on
-screen, defaulting to what is checked out
-; past a bound the
+screen, defaulting to what is checked out; past a bound the
 interface still says so, with the number, rather than drawing one that leaves
 branches out.
 
@@ -401,8 +388,7 @@ The threat model, the guarantees and the known limitations are in
 - Origin checking on cookie-authenticated mutating requests.
 - git never invoked through a shell. The one string git itself runs through one
   — the sequence editor of an interactive rebase — is quoted by yagit and
-  holds nothing a client supplied
-.
+  holds nothing a client supplied.
 - The one route that writes a user's file works through an `os.Root` on the
   work tree, and refuses `.git` at any depth.
 
@@ -424,8 +410,7 @@ to Vite with everything else outside `/api` — so it works whether the browser
 came straight to the daemon or through a reverse proxy serving yagit under a
 name of its own. A reverse proxy is one more hop in front of that origin, not a
 second origin: the browser still talks to one address, which is the proxy's,
-and `YAGIT_PUBLIC_URL` is how the daemon learns what that address is
-.
+and `YAGIT_PUBLIC_URL` is how the daemon learns what that address is.
 
 ## Contributor documentation
 
@@ -441,8 +426,7 @@ shellcheck, actionlint, zizmor and govulncheck, and defines the project's
 tasks; `mise` is the only prerequisite. `./do` (and `do.cmd` on Windows) is a
 short shortcut for `mise run`.
 
-Every platform yagit ships a binary for runs a gate in CI
-.
+Every platform yagit ships a binary for runs a gate in CI.
 
 Three points deserve care, because each replaced an earlier constraint that no
 longer holds:
@@ -480,8 +464,7 @@ longer holds:
    and never what changed inside one, so a second save of an already-modified
    file moves the diff and leaves the status identical. The diff's poll stops
    past the two thousand lines the pane draws, where a re-read costs up to the
-   daemon's whole diff cap and changes nothing on screen. That half is
-   .
+   daemon's whole diff cap and changes nothing on screen.
 
 3. **Credentials.** The daemon runs as the user, with their `~/.gitconfig`,
    their SSH agent and their GPG agent already present. There is nothing to
@@ -509,7 +492,7 @@ longer holds:
    problem — a dropped proxy hangs until the deadline and blames a network that
    works. yagit still authenticates nothing and never asks for a password:
    `GIT_TERMINAL_PROMPT=0` is what turns a missing credential into an error in
-   the same second rather than a request that hangs. See
-   , which
-   also has the reasoning behind the ten-minute deadline those three commands
-   carry in place of the Runner's thirty seconds.
+   the same second rather than a request that hangs. Those commands carry a
+   ten-minute deadline in place of the Runner's thirty seconds: cloning or
+   fetching a repository of any size is minutes of legitimate work, and the
+   deadline only has to end a connection that died without closing.

@@ -69,8 +69,7 @@ after resolving symlinks. Afterwards a client only ever handles the opaque
 `id`, so a hostile web page cannot designate a file.
 
 Clone progress rides the request as NDJSON rather than the session event
-stream — the destination is not an open repository yet
-.
+stream — the destination is not an open repository yet.
 
 ### History
 
@@ -197,8 +196,7 @@ the user approves and the line git receives have one definition, on the daemon.
 It runs nothing. The discard plan of the working directory is the same idea.
 
 The two `merge` routes join one local branch into the branch HEAD is on, and
-the plan is not decoration. **A merge is never left to configuration**
-. A bare
+the plan is not decoration. **A merge is never left to configuration**. A bare
 `git merge` reads `merge.ff`, so the same button is a pointer moving on one
 machine, a merge commit on the next and a refusal on the third — while the
 dialog shows one line and promises it means one thing. So `merge/plan` reads
@@ -312,8 +310,7 @@ and HEAD-lease refusals as merge apply. A reset never leaves an in-progress
 operation: it either succeeds or git refuses with its own account at 422.
 
 The two `rebase/interactive` routes are the one pair here whose plan is not an
-outcome the daemon reads but a **list the client writes**
-. So the plan
+outcome the daemon reads but a **list the client writes**. So the plan
 route answers with material rather than a prediction: the base it resolved, its
 subject, the branch HEAD is on, the commits after it **oldest first** — the
 order a todo list is executed in — and the one command that will run whatever
@@ -492,8 +489,7 @@ Every route that writes answers with the stack as it stands afterwards, the way
 the branch routes answer with the reference list: the operation changed the
 list, so the list is what comes back.
 
-**A stash is named twice, and both names are read again**
-. Everywhere else in
+**A stash is named twice, and both names are read again**. Everywhere else in
 this API a plan resolves a revision to an object name and the run sends that
 name straight to git, so the name *is* the agreement. A stash has no such name
 to send: it is addressed as `stash@{0}`, `stash@{1}` — a **position** in a
@@ -653,8 +649,7 @@ Comment lines are removed by `git stripspace --strip-comments`, which honours
 left in would be committed verbatim.
 
 `signing` is `commit.gpgsign` read, never written: whose key a commit carries
-stays the person's own decision, made in git's configuration
-. It rides on this
+stays the person's own decision, made in git's configuration. It rides on this
 route because it answers the same question the message does — what the next
 commit is going to be — and because signing is the step that fails once
 everything else has succeeded, which a box that never mentioned it turns into

@@ -5,9 +5,8 @@ yagit aims at parity with the established graphical git clients — in features
 has failed.
 
 This page says **what is built**. *Why* it is built that way is in
-[ARCHITECTURE.md](ARCHITECTURE.md) and in the records under
-[adr/](adr/README.md); a second copy here would be a second copy to keep in
-step.
+[ARCHITECTURE.md](ARCHITECTURE.md); a second copy here would be a second copy
+to keep in step.
 
 ## The graph and the history
 
@@ -16,8 +15,7 @@ step.
   only ever holds a window.
   Drawn in SVG, for the visible rows only.
 - **Which refs the picture draws is a choice**: what is checked out (the
-  default), every ref, or a set you tick
-. Past 24 columns yagit
+  default), every ref, or a set you tick. Past 24 columns yagit
   says the history is too wide, with the number, rather than drawing a picture
   that leaves branches out.
 - **Search** over message, author, path and content. Every field matches
@@ -38,13 +36,16 @@ step.
   rather than letting `init.defaultBranch` decide a name the log panel would
   then misreport.
 - **Staging by file, by hunk and by line**, and discard at the same three
-  granularities. The context around each hunk widens from git's three lines
-  to fifty on request, and a selection made on the wider diff stages the same. Anything finer than a path is a patch handed to `git apply`,
+  granularities. Anything finer than a path is a patch handed to `git apply`,
   built once for both directions and fuzzed, because a patch with a miscounted
-  range applies cleanly and stages a file nobody asked for.
+  range applies cleanly and stages a file nobody asked for. The context around
+  each hunk widens from git's three lines to fifty on request, and a selection
+  made on the wider diff stages the same.
 - **Images** in a diff are drawn rather than called binary: the two sides of a
   PNG, JPEG, GIF, WebP or SVG change beside each other, in the changes panel
   and in a commit or a stash, up to five mebibytes a side.
+- **Find** in any drawn diff, literal and case-insensitive like the history
+  search, with the current match and every other one marked on its line.
 - **Commit and amend**, with the user's hooks and signing configuration. The
   box starts from the message git would open an editor on, in git's own order:
   `MERGE_MSG` or `SQUASH_MSG`, the commit an amend replaces, then
@@ -57,8 +58,7 @@ step.
   `git checkout --ours`. Editing by hand is the third way, and the pane refuses
   to stage a file with a marker still in it. Where `merge.tool` is set, the
   path can be handed to it instead through `git mergetool`, and the request
-  waits for the tool to close
-.
+  waits for the tool to close.
 
 ## Moving history
 
@@ -74,13 +74,11 @@ what will be lost.
   things will happen, because `merge.ff` is a setting and a button that reads a
   setting cannot say what it does. Merge also offers squash-and-merge
   (`git merge --squash`), which stages the fold for a later commit — distinct
-  from an interactive-rebase `squash` line
-.
+  from an interactive-rebase `squash` line.
 - **Interactive rebase**: reorder, `fixup`, `fixup -C`, `edit`, `drop`. yagit
   writes the todo list itself and points git's sequence editor at its own
   binary, because `git rebase -i` takes that list from an editor and a daemon
-  has no terminal to open one in
-.
+  has no terminal to open one in.
 - **Bisect**, started from a commit's menu with that commit as the one that
   worked and HEAD as the one that does not, driven from the banner by good,
   bad and skip, and named when it ends: the first bad commit git found, read
@@ -92,14 +90,11 @@ what will be lost.
 - **Stash**: push, apply, pop, drop, inspect. A push counts tracked and
   untracked files apart, because `git stash push` leaves the second kind where
   they are while exiting 0. Every write names a stash by both its position and
-  the object at it
-.
-- **Undo**, on the HEAD reflog, leased by object names
-: the tip commit or amend, a
+  the object at it.
+- **Undo**, on the HEAD reflog, leased by object names: the tip commit or amend, a
   checkout, a reset. Undoing a branch deletion is the one kind the reflog
   cannot answer, so the tip is read before the delete and remembered while the
-  repository is open
-.
+  repository is open.
 - **The reflog**: HEAD's last fifty moves, beside the stash, and any of them
   restored through a reset in one of its three modes. The entry is named by
   its selector and its object together, since every move renumbers the
@@ -108,8 +103,7 @@ what will be lost.
 ## Talking to a remote
 
 yagit authenticates nothing and never asks for a password: the network is
-git's, and so are the credentials
-.
+git's, and so are the credentials.
 
 - **Fetch, pull and push.** Fetching always prunes. Pulling is three named
   operations rather than one — fast-forward, merge, rebase. Pushing writes the
@@ -135,7 +129,8 @@ git's, and so are the credentials
 - **Git preferences**: `user.name` and `user.email` in the global
   configuration, read and written from the workbench header; `pull.rebase` is
   shown and left alone, because the Pull button already names its three
-  strategies.
+  strategies. A first session is greeted with the allowed root and, where the
+  global configuration has no identity, asked for one with the same form.
 - **Signatures** are read and never written. The commit box says a commit is
   about to be signed before the button is pressed, and a commit's pane carries
   git's own verdict on the signature it has.
