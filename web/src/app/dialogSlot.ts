@@ -8,6 +8,7 @@ import type {
   MergePlan,
   RebaseStep,
   RebasePlan,
+  ReflogRestorePlan,
   ResetPlan,
   RevertPlan,
   StashApplyPlan,
@@ -66,6 +67,7 @@ export type WorkbenchDialog =
   | { kind: 'cherry-pick'; plan: CherryPickPlan }
   | { kind: 'revert'; plan: RevertPlan }
   | { kind: 'reset'; plan: ResetPlan }
+  | { kind: 'reflog-restore'; plan: ReflogRestorePlan }
   | { kind: 'stash-push'; plan: StashPushPlan }
   | { kind: 'stash-apply'; plan: StashApplyPlan }
   | { kind: 'stash-drop'; plan: StashDropPlan }

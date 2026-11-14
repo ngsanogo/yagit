@@ -22,6 +22,7 @@ import type { HistoryProposals } from './historyProposals';
 import { TrackLFSDialog, UntrackLFSDialog } from './LFSDialogs';
 import { RebasePlanDialog } from './RebasePlanDialog';
 import { CompareDialog } from './CompareDialog';
+import { ReflogRestoreDialog } from './ReflogRestoreDialog';
 import { SearchHistory } from './SearchHistory';
 import { StashApplyDialog, StashDropDialog, StashPushDialog } from './StashDialogs';
 import { AddSubmoduleDialog, RemoveSubmoduleDialog } from './SubmoduleDialogs';
@@ -336,6 +337,30 @@ export function HistoryDialogs({
           onModeChange={(mode) => {
             if (mode !== dialog.plan.mode) {
               proposals.proposeReset(dialog.plan.commit, mode);
+            }
+          }}
+        />
+      );
+
+    case 'reflog-restore':
+      return (
+        <ReflogRestoreDialog
+          plan={dialog.plan}
+          busy={ops.reflog.restore.isPending}
+          planning={ops.reflog.planRestore.isPending}
+          onCancel={close}
+          onConfirm={() => ops.reflog.restore.mutate(dialog.plan, { onSettled: close })}
+          onModeChange={(mode) => {
+            if (mode !== dialog.plan.mode) {
+              proposals.proposeReflogRestore(
+                {
+                  sha: dialog.plan.sha,
+                  selector: dialog.plan.selector,
+                  subject: dialog.plan.subject,
+                  date: '',
+                },
+                mode,
+              );
             }
           }}
         />

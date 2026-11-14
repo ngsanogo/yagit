@@ -639,6 +639,31 @@ export interface UndoPlan {
   subject: string;
 }
 
+/** One line of HEAD's reflog, newest first. */
+export interface ReflogEntry {
+  sha: string;
+  /** git's own name for the entry — "HEAD@{0}". */
+  selector: string;
+  subject: string;
+  date: string;
+}
+
+/**
+ * What restoring HEAD to a reflog entry would run.
+ *
+ * A reset leased by object names. Ancestry is not required: the entry is a
+ * moment HEAD already lived through, not a commit the branch must still hold.
+ */
+export interface ReflogRestorePlan {
+  command: string;
+  selector: string;
+  sha: string;
+  subject: string;
+  head: string;
+  into: string;
+  mode: ResetMode;
+}
+
 /**
  * Where a push would go, and the line it would run.
  *

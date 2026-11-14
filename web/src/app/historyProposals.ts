@@ -3,6 +3,7 @@ import { useRef } from 'react';
 import type {
   Ref,
   Remote,
+  ReflogEntry,
   ResetMode,
   Stash,
   StashApplyMode,
@@ -299,6 +300,15 @@ export function useHistoryProposals(
    * the segments on the dialog come back through here, so the command on
    * screen is never a mode other than the one selected.
    */
+  function proposeReflogRestore(entry: ReflogEntry, mode: ResetMode = 'mixed') {
+    propose(
+      ops.reflog.planRestore,
+      { selector: entry.selector, mode },
+      `what restoring ${entry.selector} would run`,
+      (plan) => ({ kind: 'reflog-restore', plan }),
+    );
+  }
+
   function proposeReset(commit: string, mode: ResetMode = 'mixed') {
     propose(
       ops.reset.plan,
@@ -460,6 +470,7 @@ export function useHistoryProposals(
     proposeStartBisect,
     proposeRevert,
     proposeReset,
+    proposeReflogRestore,
     proposeRewrite,
     proposeStash,
     proposeStashApply,
