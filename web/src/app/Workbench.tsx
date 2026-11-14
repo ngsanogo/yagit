@@ -352,28 +352,34 @@ export function Workbench() {
       />
 
       {active === undefined ? (
-        <Centered>
-          <EmptyState
-            icon={<RepositoryIcon size={20} />}
-            title={onboardingDone ? 'No repository open' : 'Welcome to yagit'}
-            description={
-              onboardingDone
-                ? 'Pick a repository from the scan, clone one, or open one by path. The daemon only reads inside the allowed root it was started with.'
-                : 'Two things are worth knowing before the first repository opens.'
-            }
-            action={
-              // A surface of its own for the form, because it is the whole
-              // screen: three tabs and a list drawn straight on the canvas
-              // read as a page that has not finished loading.
-              <div className="flex w-full max-w-xl flex-col gap-4">
-                {!onboardingDone && <Onboarding onContinue={() => setOnboardingDone(true)} />}
-                <div className="rounded-lg border border-line bg-surface p-4 text-left shadow-panel">
-                  <AddRepository />
+        // A scrolling column around the centred block: the shell clips its
+        // overflow, and the welcome above the repository form is taller than
+        // a short window — its Got it and the form below it would otherwise
+        // sit out of reach. Short content still centres; tall content scrolls.
+        <div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
+          <Centered>
+            <EmptyState
+              icon={<RepositoryIcon size={20} />}
+              title={onboardingDone ? 'No repository open' : 'Welcome to yagit'}
+              description={
+                onboardingDone
+                  ? 'Pick a repository from the scan, clone one, or open one by path. The daemon only reads inside the allowed root it was started with.'
+                  : 'Two things are worth knowing before the first repository opens.'
+              }
+              action={
+                // A surface of its own for the form, because it is the whole
+                // screen: three tabs and a list drawn straight on the canvas
+                // read as a page that has not finished loading.
+                <div className="flex w-full max-w-xl flex-col gap-4">
+                  {!onboardingDone && <Onboarding onContinue={() => setOnboardingDone(true)} />}
+                  <div className="rounded-lg border border-line bg-surface p-4 text-left shadow-panel">
+                    <AddRepository />
+                  </div>
                 </div>
-              </div>
-            }
-          />
-        </Centered>
+              }
+            />
+          </Centered>
+        </div>
       ) : (
         <RepositoryView
           // A tab switch remounts this, deliberately. The selected sha lives
