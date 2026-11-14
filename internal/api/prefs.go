@@ -30,7 +30,7 @@ func (s *Server) handleSetIdentity(writer http.ResponseWriter, request *http.Req
 		return
 	}
 	if err := s.runner.SetIdentity(request.Context(), body.Name, body.Email); err != nil {
-		if errors.Is(err, git.ErrEmptyIdentity) {
+		if errors.Is(err, git.ErrBadIdentity) {
 			writeError(writer, s.logger, http.StatusBadRequest, err)
 			return
 		}

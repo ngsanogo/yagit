@@ -7,13 +7,14 @@ import (
 	"strings"
 )
 
-// The committer identity git will use, and the pull.rebase setting — read for
-// the preferences screen. user.name and user.email are written globally;
-// pull.rebase is shown only, because changing how pull behaves from a quiet
-// preferences pane would surprise a pull button that already names three
-// strategies.
+// The committer identity in the user's global git configuration, and the
+// pull.rebase setting beside it — read and written for the preferences
+// screen. pull.rebase is shown only, because changing how pull behaves from a
+// quiet preferences pane would surprise a pull button that already names
+// three strategies.
 
-// Identity is what git would put on the next commit, and how pull.rebase is set.
+// Identity is what the global configuration says about who commits, and how
+// pull.rebase is set there.
 type Identity struct {
 	Name  string `json:"name"`
 	Email string `json:"email"`
@@ -23,69 +24,80 @@ type Identity struct {
 	PullRebase string `json:"pull_rebase"`
 }
 
-// ErrEmptyIdentity: name or email was blank or held a newline.
-var ErrEmptyIdentity = errors.New("identity is incomplete")
+// ErrBadIdentity: a name or an email that was blank or spanned lines.
+var ErrBadIdentity = errors.New("user.name and user.email must each be one non-empty line")
 
-// ReadIdentity reads user.name, user.email and pull.rebase for this machine.
+// globalScope is where these keys are read and written, spelled once so the
+// two directions cannot disagree.
+//
+// Global, because the screen is about who THIS machine commits as rather than
+// one repository's override — and read from the same place it writes, because
+// the daemon has no repository to stand in here: a plain `git config --get`
+// resolves against the daemon's working directory, which under `./do up` is a
+// checkout with configuration of its own, and the form would show one value
+// and save another. --includes, because --global alone stops following
+// include.path, and an identity kept in an included file is common.
+var globalScope = []string{"config", "--global", "--includes"}
+
+// ReadIdentity reads user.name, user.email and pull.rebase from the global
+// configuration.
 //
 // Unset keys are empty strings rather than errors: `git config --get` exits 1
 // with an empty stderr for a key nobody set, which is the ordinary case on a
 // fresh profile and what the preferences form has to show as blank.
 func (r *Runner) ReadIdentity(ctx context.Context) (Identity, error) {
-	name, err := r.configGet(ctx, "user.name")
+	name, err := r.globalValue(ctx, "user.name")
 	if err != nil {
 		return Identity{}, err
 	}
-	email, err := r.configGet(ctx, "user.email")
+	email, err := r.globalValue(ctx, "user.email")
 	if err != nil {
 		return Identity{}, err
 	}
-	pullRebase, err := r.configGet(ctx, "pull.rebase")
+	pullRebase, err := r.globalValue(ctx, "pull.rebase")
 	if err != nil {
 		return Identity{}, err
 	}
 	return Identity{Name: name, Email: email, PullRebase: pullRebase}, nil
 }
 
-// SetIdentity writes user.name and user.email into the global config.
+// setIdentityArgs are the two commands a save runs.
+func setIdentityArgs(name, email string) [][]string {
+	return [][]string{
+		append(append([]string{}, globalScope[:2]...), "user.name", name),
+		append(append([]string{}, globalScope[:2]...), "user.email", email),
+	}
+}
+
+// SetIdentity writes user.name and user.email into the global configuration.
 //
-// Global rather than local: the preferences screen is about who THIS machine
-// commits as, not about one repository's override. Empty values are refused —
-// unsetting identity is a different operation and not what the form offers.
+// Empty values are refused — unsetting identity is a different operation and
+// not what the form offers — and so is a newline, which git would store and
+// then write into the header of every commit.
 func (r *Runner) SetIdentity(ctx context.Context, name, email string) error {
 	name = strings.TrimSpace(name)
 	email = strings.TrimSpace(email)
-	if name == "" {
-		return fmt.Errorf("%w: user.name is empty", ErrEmptyIdentity)
-	}
-	if email == "" {
-		return fmt.Errorf("%w: user.email is empty", ErrEmptyIdentity)
-	}
-	if strings.ContainsAny(name, "\n\r") || strings.ContainsAny(email, "\n\r") {
-		return fmt.Errorf("%w: name and email must be a single line", ErrEmptyIdentity)
+	if name == "" || email == "" || strings.ContainsAny(name+email, "\n\r") {
+		return ErrBadIdentity
 	}
 
-	if _, err := r.Exec(ctx, Command{
-		Args: []string{"config", "--global", "user.name", name},
-	}); err != nil {
-		return err
-	}
-	if _, err := r.Exec(ctx, Command{
-		Args: []string{"config", "--global", "user.email", email},
-	}); err != nil {
-		return err
+	for _, args := range setIdentityArgs(name, email) {
+		if _, err := r.Exec(ctx, Command{Args: args}); err != nil {
+			return err
+		}
 	}
 	return nil
 }
 
-func (r *Runner) configGet(ctx context.Context, key string) (string, error) {
-	output, err := r.Exec(ctx, Command{Args: []string{"config", "--get", key}})
+func (r *Runner) globalValue(ctx context.Context, key string) (string, error) {
+	args := append(append([]string{}, globalScope...), "--get", key)
+	output, err := r.Exec(ctx, Command{Args: args})
 	if err != nil {
 		var failure *Error
 		if errors.As(err, &failure) && failure.ExitCode == 1 && strings.TrimSpace(failure.Stderr) == "" {
 			return "", nil
 		}
-		return "", err
+		return "", fmt.Errorf("reading %s: %w", key, err)
 	}
 	return strings.TrimSpace(string(output)), nil
 }
