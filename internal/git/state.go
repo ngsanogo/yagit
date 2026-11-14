@@ -87,6 +87,20 @@ type State struct {
 	// a rebase that takes --continue, and continuing it from here would commit
 	// a message nobody was shown. See blockedActions.
 	Blocked map[Action]string `json:"blocked,omitempty"`
+
+	// FirstBad is what a bisect found, once it has. git appends
+	// `# first bad commit: [<sha>] <subject>` to BISECT_LOG at the verdict
+	// that ends the search, and prints the same thing once to a terminal this
+	// daemon does not have; without reading it here the banner would go on
+	// asking for verdicts over a search that is over. Nil until then, and for
+	// every other operation.
+	FirstBad *BisectResult `json:"first_bad,omitempty"`
+}
+
+// BisectResult is the commit a finished bisect names as the first bad one.
+type BisectResult struct {
+	SHA     string `json:"sha"`
+	Subject string `json:"subject"`
 }
 
 // ErrActionBlocked: git would take the instruction and yagit will not give
@@ -131,6 +145,13 @@ func ReadState(stateDir string) (State, error) {
 	// remembering to add them.
 	state.Actions = Actions(state.Operation)
 	state.Blocked = blockedActions(stateDir, state.Operation)
+	if state.FirstBad != nil {
+		// Every verdict past the answer is refused by git with a message
+		// about the bisect state; the sentence here says what is true.
+		reason := fmt.Sprintf("The search is over: %s is the first bad commit. Abort to leave the bisect.",
+			ShortSHA(state.FirstBad.SHA))
+		state.Blocked = map[Action]string{ActionGood: reason, ActionBad: reason, ActionSkip: reason}
+	}
 	return state, nil
 }
 
@@ -228,6 +249,7 @@ func readMarkers(stateDir string) (State, error) {
 		return State{
 			Operation: OperationBisect,
 			Identity:  fileIdentity(filepath.Join(stateDir, "BISECT_LOG")),
+			FirstBad:  bisectResult(filepath.Join(stateDir, "BISECT_LOG")),
 		}, nil
 	}
 
@@ -489,4 +511,39 @@ func writesAMessage(instruction string) (string, bool) {
 func editsTheMessage(arguments string) bool {
 	field, _, _ := strings.Cut(strings.TrimSpace(arguments), " ")
 	return field == "-c"
+}
+
+// bisectResult reads the first bad commit a finished bisect wrote to its log.
+//
+// The last such line wins: a `git bisect replay` of an old log can carry an
+// earlier answer above a later one. Anything that does not parse is no answer
+// rather than an error, because the log is git's to change and an unreadable
+// line must not take the whole status down with it.
+func bisectResult(logPath string) *BisectResult {
+	content, err := os.ReadFile(logPath)
+	if err != nil {
+		// Unreadable is the same as unfinished for the banner: the operation
+		// itself was already established from the file existing.
+		return nil
+	}
+	const marker = "# first bad commit: ["
+	var found *BisectResult
+	for _, line := range strings.Split(string(content), "\n") {
+		rest, ok := strings.CutPrefix(line, marker)
+		if !ok {
+			continue
+		}
+		sha, subject, ok := strings.Cut(rest, "] ")
+		if !ok {
+			sha, ok = strings.CutSuffix(rest, "]")
+			if !ok {
+				continue
+			}
+		}
+		if checkRevision(sha) != nil || sha == "" {
+			continue
+		}
+		found = &BisectResult{SHA: sha, Subject: subject}
+	}
+	return found
 }

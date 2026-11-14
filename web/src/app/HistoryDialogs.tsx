@@ -470,12 +470,8 @@ export function HistoryDialogs({
       return (
         <ConfirmDialog
           open
-          title="Start a bisect?"
-          description={
-            dialog.plan.bad === ''
-              ? 'Begins a search for the commit that introduced a bug. Mark the current commit good or bad from the banner once it appears.'
-              : `Begins a search with ${shortenSha(dialog.plan.bad)} as the known-bad tip. Mark a known-good commit from the banner once the search is under way.`
-          }
+          title="Bisect from here to HEAD?"
+          description={`Searches the commits after ${shortenSha(dialog.plan.good[0] ?? '')}, which worked, up to HEAD, which does not. git checks out a commit halfway; test it and mark it good or bad from the banner until git names the first bad commit. Abort on the banner returns to where you are now.`}
           command={dialog.plan.command}
           confirmLabel="Start bisect"
           busy={ops.bisect.run.isPending}

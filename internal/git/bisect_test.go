@@ -22,7 +22,7 @@ func TestBisectStartArgsWithBothEnds(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if line := git.CommandLine(args); line != "git bisect start badtip goodbase" {
+	if line := git.CommandLine(args); line != "git bisect start badtip goodbase --" {
 		t.Fatalf("command = %q", line)
 	}
 }

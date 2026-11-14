@@ -577,7 +577,9 @@ clicked. A position past the end is a 404: there is no such thing to look at.
 | `POST /api/repos/{id}/commit` | Commits what is staged. Body: `{"message": "…", "amend": false}`. |
 | `GET /api/repos/{id}/prepared-message` | The message git would open an editor on. Takes `amend=true\|false`. |
 | `POST /api/repos/{id}/operation/plan` | The command finishing or calling off the operation in progress would run. |
-| `POST /api/repos/{id}/operation` | Runs it. Body: `{"action": "abort\|continue\|skip", "operation": "rebase"}`. |
+| `POST /api/repos/{id}/operation` | Runs it. Body: `{"action": "abort\|continue\|skip\|good\|bad", "operation": "rebase"}`. |
+| `POST /api/repos/{id}/bisect/start/plan` | The line that starts a bisect. Body: `{"bad": "<revision>", "good": ["<revision>", …]}`, both optional, `good` only beside `bad`. Changes nothing. |
+| `POST /api/repos/{id}/bisect/start` | Starts it, refused with 409 while another operation is in progress. Same body; answers with the status, whose `state` is then `bisect`. |
 
 The three staging routes take `{"paths": [...]}` for whole files, or
 `{"paths": [...], "lines": {...}}` to stage part of one. Line selections are
@@ -600,7 +602,7 @@ rebase's branch and its progress beside it. `git status --porcelain` reports
 none of that, so the daemon reads the same marker files git itself reads.
 
 The two `operation` routes finish, or call off, what `state` reports. The client
-never says WHAT to abort — only which of the three things to do — and the
+never says WHAT to abort — only which of the things in `actions` to do — and the
 daemon builds the command from its own reading. `operation` in the body is what
 the interface was looking at, and it is there to be disagreed with: the status
 is polled every two seconds, so a rebase can end and a merge begin while an
@@ -610,8 +612,14 @@ other than the one in progress is a 409, and so is naming none: an empty string
 is not a wildcard. An action an operation does not take — `git merge --skip`
 does not exist — is a 400.
 
+A bisect takes its own two, `good` and `bad`, beside `skip` and `abort` (which
+runs `git bisect reset`), and once the search has converged `state.first_bad`
+names the commit git found, `{sha, subject}`, read from the line git appends to
+`BISECT_LOG`; the three verdicts are then `blocked` with that answer as the
+reason.
+
 `state` also carries `actions`, the instructions that operation takes, and
-`blocked`, why one of them is refused HERE. The one case today is a rebase with
+`blocked`, why one of them is refused HERE. The first case is a rebase with
 a `squash`, `reword` or `fixup -c` in its plan: continuing commits under a
 message git prepares in an editor, and a daemon has no terminal to show one in.
 That message is the replayed commit's own for a `pick`, which is why continuing

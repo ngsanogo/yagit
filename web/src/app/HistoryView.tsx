@@ -461,10 +461,14 @@ export function HistoryView({
               rewriteRefusal={whileDetached('there is no branch whose commits could be rewritten')}
               onStartBisect={canCheckOut ? () => proposals.proposeStartBisect(selected) : undefined}
               startingBisect={
-                ops.bisect.plan.isPending && ops.bisect.plan.variables?.bad === selected
+                ops.bisect.plan.isPending && ops.bisect.plan.variables?.good?.[0] === selected
               }
               startBisectRefusal={
-                operation !== '' ? `A ${operation} is already in progress.` : undefined
+                operation !== ''
+                  ? `A ${operation} is already in progress.`
+                  : selected === refs.data?.head?.sha
+                    ? 'This is HEAD, the end that is broken. Pick an older commit where it still worked.'
+                    : undefined
               }
               onFileHistory={(path) =>
                 onInspect({ kind: 'file-history', path, revision: selected })

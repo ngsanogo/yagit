@@ -133,9 +133,9 @@ interface CommitDetailsProps {
   /** Why rewriting is refused right now, or undefined when it is offered. */
   rewriteRefusal?: string;
   /**
-   * Starts a bisect with this commit as the known-bad tip, or undefined where
-   * no repository of this shape could ever do it — same bare-repository rule
-   * as onCherryPick.
+   * Starts a bisect between this commit, as the one that still worked, and
+   * HEAD, or undefined where no repository of this shape could ever do it —
+   * same bare-repository rule as onCherryPick.
    */
   onStartBisect?: () => void;
   /** Whether that bisect-start plan is being read. */
@@ -713,7 +713,7 @@ export function commitMenuItems({
       menuItem(
         {
           id: 'bisect-start',
-          label: 'Start a bisect here as bad…',
+          label: 'Bisect from here to HEAD…',
           onSelect: onStartBisect,
         },
         startBisectRefusal ??

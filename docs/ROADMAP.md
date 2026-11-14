@@ -80,6 +80,10 @@ what will be lost.
   binary, because `git rebase -i` takes that list from an editor and a daemon
   has no terminal to open one in
 .
+- **Bisect**, started from a commit's menu with that commit as the one that
+  worked and HEAD as the one that does not, driven from the banner by good,
+  bad and skip, and named when it ends: the first bad commit git found, read
+  back from its log, until a reset.
 - **Cherry-pick, revert, reset.** Reset's mode is a choice on the confirmation
   and is always pinned on the command; hard names the commits and the
   uncommitted work it discards. A commit that is not on the branch is refused

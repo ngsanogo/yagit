@@ -91,8 +91,22 @@ func TestBisectGoodAdvancesFromTheBanner(t *testing.T) {
 		t.Fatalf("good: %d: %s", response.Code, response.Body)
 	}
 
-	// The path is only here so a reader of the failure can find the fixture.
-	_ = path
+	// Three commits, bad at the tip, good two below: the midpoint was checked
+	// out at the start, and marking it good leaves the tip as the only
+	// candidate, so the search ends there and names it.
+	var after struct {
+		State struct {
+			FirstBad *struct {
+				SHA string `json:"sha"`
+			} `json:"first_bad"`
+		} `json:"state"`
+	}
+	if err := json.Unmarshal(response.Body.Bytes(), &after); err != nil {
+		t.Fatalf("decode: %v", err)
+	}
+	if tip := commitIn(t, path, "main"); after.State.FirstBad == nil || after.State.FirstBad.SHA != tip {
+		t.Fatalf("first_bad = %+v, want the tip %s", after.State.FirstBad, tip)
+	}
 }
 
 // openBisectableRepository is three commits deep so a start with bad=HEAD and

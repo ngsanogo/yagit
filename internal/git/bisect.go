@@ -44,6 +44,10 @@ func BisectStartArgs(bad string, goods []string) ([]string, error) {
 	if bad != "" {
 		args = append(args, bad)
 		args = append(args, cleaned...)
+		// The end of the revisions, said: git reads what follows them as
+		// paths to restrict the search to, and a revision that is also the
+		// name of a file is otherwise a guess git makes on its own.
+		args = append(args, "--")
 	}
 	return args, nil
 }

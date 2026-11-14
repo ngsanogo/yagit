@@ -260,17 +260,20 @@ export function useHistoryProposals(
   }
 
   /**
-   * Puts the bisect-start question with this commit as the known-bad end.
+   * Puts the bisect-start question: this commit good, HEAD bad.
    *
-   * A bare start (no ends) is also possible from the API; naming the bad tip
-   * up front is what a click on a commit means, and the banner's Good button
-   * then marks a known-good commit once the search is under way.
+   * The question a bisect answers is "it worked here, and it is broken now",
+   * and a click on an older commit says the first half of it. Naming both ends
+   * makes git check out the commit halfway at once, so the banner's verdicts
+   * are always about a commit git chose for testing. Naming only the clicked
+   * commit as bad left HEAD on that same commit, and the first Good on the
+   * banner marked it both.
    */
-  function proposeStartBisect(bad: string) {
+  function proposeStartBisect(good: string) {
     propose(
       ops.bisect.plan,
-      { bad },
-      `what starting a bisect at ${shortenSha(bad)} would run`,
+      { bad: 'HEAD', good: [good] },
+      `what bisecting from ${shortenSha(good)} to HEAD would run`,
       (plan) => ({ kind: 'bisect-start', plan }),
     );
   }

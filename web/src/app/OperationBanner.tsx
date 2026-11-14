@@ -14,7 +14,7 @@ import { WarningIcon } from '../components/Icons';
 import { useToast } from '../components/ToastHost';
 import { Tooltip } from '../components/Tooltip';
 import { errorDescription } from '../lib/errorDisplay';
-import { pluralize } from '../lib/format';
+import { pluralize, shortenSha } from '../lib/format';
 import { operationName, useOperation } from './useOperation';
 
 /**
@@ -377,7 +377,11 @@ function headline(operation: Operation, branch: string | undefined): string {
  */
 function whatIsLeft(state: RepositoryState, conflicted: number): string {
   if (state.operation === 'bisect') {
-    return 'Mark this commit good or bad to carry on.';
+    // The answer is the point of a bisect, and git says it once, to a
+    // terminal; the daemon reads it back from the log so it is said here too.
+    return state.first_bad === undefined
+      ? 'Mark this commit good or bad to carry on.'
+      : `${shortenSha(state.first_bad.sha)} (${state.first_bad.subject}) is the first bad commit. Abort to go back to where the bisect started.`;
   }
 
   const refused = state.blocked?.continue;

@@ -971,6 +971,12 @@ export interface RepositoryState {
    * explanation and the route's refusal cannot drift apart.
    */
   blocked?: Partial<Record<OperationAction, string>>;
+
+  /**
+   * What a bisect found, once it has: the first bad commit, which git wrote
+   * to its log at the verdict that ended the search. Absent while searching.
+   */
+  first_bad?: { sha: string; subject: string };
 }
 
 /** Where HEAD is, how it stands against its upstream, and what differs. */

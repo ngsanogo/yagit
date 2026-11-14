@@ -43,7 +43,7 @@ describe('commitMenuItems', () => {
   it('reads from the reversible to the ruinous', () => {
     expect(items().map((item) => item.label)).toEqual([
       'Reset the current branch to this…',
-      'Start a bisect here as bad…',
+      'Bisect from here to HEAD…',
       'Rewrite the commits after this…',
     ]);
   });
