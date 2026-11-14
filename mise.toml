@@ -117,16 +117,22 @@ run = "pnpm --dir web exec playwright install chromium"
 
 # The daemon (rebuilt by air on every saved Go file) may open repositories under
 # YAGIT_ROOT (your home directory unless .env says otherwise), and proxies
-# everything outside /api to Vite, so the browser only ever talks to http://127.0.0.1:7420. The
-# token is the checkout's (scripts/session-token.mjs), so a rebuild does not log
-# the browser out.
+# everything outside /api to Vite, so the browser only ever talks to
+# http://127.0.0.1:7420. The token is the checkout's, so a rebuild does not log
+# the browser out; the daemon's own binary mints it (`token` below).
+#
+# It listens on every interface only when .env asks for both halves of that:
+# YAGIT_LISTEN_ALL set to what the daemon reads as true, and a YAGIT_PUBLIC_HOST
+# that is not a loopback name — the name a browser elsewhere reaches this
+# machine by. Either alone keeps the loopback; SECURITY.md is the rule this
+# follows.
 [tasks.dev]
 description = "Run the daemon (hot reload) and Vite in the foreground"
 depends = ["dev:daemon", "dev:web"]
 
 [tasks."dev:daemon"]
 hide = true
-env = { YAGIT_ROOT = "{{ env.YAGIT_ROOT | default(value=env.HOME | default(value=env.USERPROFILE)) }}", YAGIT_ADDR = "{% if env.YAGIT_LISTEN_ALL %}0.0.0.0{% else %}127.0.0.1{% endif %}:7420", YAGIT_FRONTEND_DEV_SERVER = "http://127.0.0.1:7421", YAGIT_TOKEN = "{{ exec(command='node scripts/session-token.mjs') }}" }
+env = { YAGIT_ROOT = "{{ env.YAGIT_ROOT | default(value=env.HOME | default(value=env.USERPROFILE)) }}", YAGIT_ADDR = "{% set consent = env.YAGIT_LISTEN_ALL | default(value='') | trim | lower %}{% set host = env.YAGIT_PUBLIC_HOST | default(value='') | trim | lower %}{% if consent in ['1', 'true', 'yes', 'on'] and host not in ['', 'localhost', '::1'] and host | truncate(length=4, end='') != '127.' %}0.0.0.0{% else %}127.0.0.1{% endif %}:7420", YAGIT_FRONTEND_DEV_SERVER = "http://127.0.0.1:7421", YAGIT_TOKEN = "{{ exec(command='go run ./cmd/yagit --print-checkout-token .yagit/session-token') }}" }
 run = "air -c .air.toml"
 
 [tasks."dev:web"]
@@ -154,7 +160,7 @@ run = "sh scripts/stack.sh logs"
 [tasks.token]
 description = "Print the session token (--new mints another)"
 quiet = true
-run = "node scripts/session-token.mjs"
+run = "go run ./cmd/yagit --print-checkout-token .yagit/session-token"
 
 [tasks.build]
 description = "Build the frontend, then the binaries for every platform into dist/"

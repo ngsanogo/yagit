@@ -10,9 +10,11 @@ import { baseURL } from './e2e/session';
  * `mise run dev` / `./do up` serves, reused when it is already up, otherwise
  * started for the run (`mise run test:e2e`).
  */
-process.env['YAGIT_TOKEN'] ??= execFileSync('node', ['../scripts/session-token.mjs'], {
-  encoding: 'utf8',
-}).trim();
+process.env['YAGIT_TOKEN'] ??= execFileSync(
+  'go',
+  ['run', './cmd/yagit', '--print-checkout-token', '.yagit/session-token'],
+  { cwd: '..', encoding: 'utf8' },
+).trim();
 /**
  * The root of the daemon this suite starts, when it starts one: the fixtures,
  * not the developer's YAGIT_ROOT.

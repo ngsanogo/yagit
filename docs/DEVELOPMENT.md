@@ -58,7 +58,7 @@ so the browser only talks to `http://127.0.0.1:7420`.
 
 The session token belongs to the checkout (`.yagit/session-token`), so
 restarting the stack leaves an open tab logged in. `./do token --new` replaces
-it and logs every browser out.
+it; the stack started next runs on the new one and logs every browser out.
 
 `.env` is optional; [`.env.example`](../.env.example) documents it:
 `YAGIT_ROOT` (the directory under which yagit may open repositories, your home

@@ -14,9 +14,19 @@ running() {
   [ -f "$pidfile" ] && kill -0 "$(cat "$pidfile")" 2>/dev/null
 }
 
+# The address the daemon announced, which is the one a browser opens: behind a
+# reverse proxy it is the proxy's, by a public host name it is that name's.
+# The loopback answers the readiness check below either way, and is what is
+# left to print when the log no longer holds an announcement. Anything may
+# precede it on the line: mise names the task each line came from.
+announced() {
+  announcement=$(sed -n 's/^.*Open yagit: //p' "$logfile" 2>/dev/null | tail -n 1)
+  echo "${announcement:-$url/}"
+}
+
 card() {
-  echo "yagit is running: $url"
-  echo "session token:    $(node scripts/session-token.mjs)"
+  echo "yagit is running: $(announced)"
+  echo "session token:    $(cat .yagit/session-token)"
 }
 
 case "${1:-}" in

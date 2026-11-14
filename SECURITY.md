@@ -133,9 +133,10 @@ so it runs weekly in CI instead.
   Anyone who reads `.yagit/session-token`, or the process environment of a stack
   `./do` started, has your access.
 - **The token does not rotate on its own.** One that leaked into a screenshot or
-  a log stays valid until `./do token --new`, which stops the stack, replaces the
-  file and restarts on the new token. Deleting the file by hand revokes nothing
-  until the next `./do up`. A released binary generates a token per start.
+  a log stays valid until `./do token --new` replaces the file and the stack is
+  started again on it (`./do down`, then `./do up`): a running daemon keeps the
+  token it started on. Deleting the file by hand revokes nothing until the next
+  start either. A released binary generates a token per start.
 - **The token never belongs in an API URL.** The announced address has no
   `?token=`. A browser exchanges the token through `POST /api/session` (or the
   form the unauthorized page serves); `?token=` is accepted on `GET /` alone and
@@ -147,10 +148,9 @@ so it runs weekly in CI instead.
   token and the throwaway stack's log (every git command run, every repository
   path touched), so it is mode `0700` / `0600` on Unix and owner-only ACL on
   Windows.
-- **On a multi-user host the loopback is shared.** `./do` asks the port whether a
-  stack is up, first without a credential (a yagit daemon refuses, a stranger
-  answers, so the stored token is never sent to something that answers) and then
-  with it. Another account that binds the port while your stack is down, refuses
-  the bare request and accepts any token would see the secret on that second
-  probe. Do not run yagit on a shared host you do not trust, and use
-  `./do token --new` if the token may have been exposed.
+- **On a multi-user host the loopback is shared.** Another account that binds
+  `127.0.0.1:7420` while your stack is down receives whatever is sent there: the
+  token, from a browser tab still open on it or from the end-to-end suite, which
+  reuses whatever answers on that port as your stack. Do not run yagit on a
+  shared host you do not trust, and use `./do token --new` if the token may have
+  been exposed.
