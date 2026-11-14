@@ -1,11 +1,12 @@
 // Package session mints and checks the session token: the one secret that
 // stands between a web page and every repository the daemon has open.
 //
-// Two programs handle it. The daemon generates a token when nothing hands it
-// one; `./do` mints one into the checkout and hands it down. Each used to
-// carry its own copy of the same two numbers — how many bytes a token holds,
-// how short one may be. A copy is a place to drift. This package is the one
-// place.
+// Two callers mint one. The daemon generates a token when nothing hands it
+// one; `./do` keeps one per checkout, minted by the same binary in a mode of
+// its own (cmd/yagit, checkouttoken.go) and handed down to the daemon. A
+// script used to mint that one with its own copy of the same two numbers —
+// how many bytes a token holds, how short one may be. A copy is a place to
+// drift. This package is the one place.
 package session
 
 import (

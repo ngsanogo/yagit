@@ -107,6 +107,16 @@ func main() {
 		return
 	}
 
+	// Not a daemon starting either: `./do` asking for the checkout's token.
+	// See checkouttoken.go.
+	if handled, err := runAsCheckoutToken(os.Args, os.Stdout); handled {
+		if err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			os.Exit(1)
+		}
+		return
+	}
+
 	// Whatever handler goes here has to escape control characters in values.
 	//
 	// Request paths, git's stderr and panic messages all reach the log
