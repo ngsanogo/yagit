@@ -52,6 +52,13 @@ interface DiffViewProps {
    */
   onApply: (action: DiffAction, indices: number[]) => boolean;
   busy: boolean;
+  /**
+   * How many unchanged lines surround each hunk, and how to widen or narrow
+   * it. Absent on a read-only surface (a commit's patch keeps the default).
+   */
+  context?: number;
+  onMoreContext?: () => void;
+  onLessContext?: () => void;
 }
 
 /** How each side reads in the header. git's own words for git's own states. */
@@ -73,7 +80,16 @@ function actionGlyph(action: DiffAction) {
   }
 }
 
-export function DiffView({ diff, side, repositoryId, onApply, busy }: DiffViewProps) {
+export function DiffView({
+  diff,
+  side,
+  repositoryId,
+  onApply,
+  busy,
+  context,
+  onMoreContext,
+  onLessContext,
+}: DiffViewProps) {
   const [selected, setSelected] = useState<ReadonlySet<number>>(new Set());
   // Where the last click landed, so Shift+click has a range to close. It is
   // also where the pane's single tab stop sits: the line the keyboard last
@@ -254,6 +270,9 @@ export function DiffView({ diff, side, repositoryId, onApply, busy }: DiffViewPr
         side={side}
         count={selected.size}
         busy={busy}
+        context={context}
+        onMoreContext={onMoreContext}
+        onLessContext={onLessContext}
         onApply={(action) => apply(action, [...selected])}
         onClear={() => {
           setSelected(new Set());
@@ -342,6 +361,9 @@ function DiffHeader({
   side,
   count,
   busy,
+  context,
+  onMoreContext,
+  onLessContext,
   onApply,
   onClear,
 }: {
@@ -349,11 +371,17 @@ function DiffHeader({
   side: DiffSide;
   count: number;
   busy: boolean;
+  context?: number;
+  onMoreContext?: () => void;
+  onLessContext?: () => void;
   onApply: (action: DiffAction) => void;
   onClear: () => void;
 }) {
   const { primary, label, discardable } = actionsFor(side);
   const cameFrom = diff.old_path !== undefined && diff.old_path !== '' ? diff.old_path : undefined;
+  // Drawn wherever a context is given, with the button at an end disabled:
+  // the pair keeps its place in the header as the width moves.
+  const canWiden = context !== undefined;
 
   return (
     <div className="@container flex h-10 shrink-0 items-center gap-3 border-b border-line bg-sunken/40 px-3">
@@ -378,6 +406,35 @@ function DiffHeader({
         )}
         <Badge className="shrink-0">{SIDE_LABELS[side]}</Badge>
       </span>
+
+      {canWiden && (
+        <span className="flex shrink-0 items-center gap-1">
+          <Button
+            size="sm"
+            variant="ghost"
+            disabled={busy || onLessContext === undefined}
+            onClick={onLessContext}
+          >
+            Less context
+          </Button>
+          <Button
+            size="sm"
+            variant="ghost"
+            disabled={busy || onMoreContext === undefined}
+            onClick={onMoreContext}
+          >
+            More context
+          </Button>
+          {context !== undefined && (
+            <span
+              className="hidden text-2xs text-ink-subtle tabular @xl:inline"
+              title="Unchanged lines around each change"
+            >
+              ±{context}
+            </span>
+          )}
+        </span>
+      )}
 
       {count === 0 ? (
         <p className="ml-auto hidden shrink-0 items-center gap-1.5 text-2xs text-ink-subtle @2xl:flex">

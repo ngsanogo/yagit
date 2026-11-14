@@ -7,6 +7,7 @@ import (
 	"io/fs"
 	"net/http"
 	"path"
+	"strconv"
 	"strings"
 	"unicode/utf8"
 
@@ -225,6 +226,12 @@ func (s *Server) handleDiff(writer http.ResponseWriter, request *http.Request) {
 		return
 	}
 
+	diffContext, err := requestedDiffContext(query.Get("context"))
+	if err != nil {
+		writeError(writer, s.logger, http.StatusBadRequest, err)
+		return
+	}
+
 	// git's own listing is the only authority on what this route may look at
 	// and on what the file used to be called, and it is read for the two
 	// sides that ask. Not for the third: the diff is re-read on a timer while
@@ -258,6 +265,7 @@ func (s *Server) handleDiff(writer http.ResponseWriter, request *http.Request) {
 		Path:    filePath,
 		OldPath: index.oldPathOf(filePath),
 		Side:    side,
+		Context: diffContext,
 	})
 	if err != nil {
 		writeError(writer, s.logger, statusForOperationError(err), err)
@@ -278,6 +286,22 @@ func requestedSide(raw string) (git.DiffSide, error) {
 		return "", fmt.Errorf(
 			"side=%q is none of staged, unstaged, untracked", raw)
 	}
+}
+
+// requestedDiffContext reads ?context=, which widens unified-diff context.
+//
+// Absent means the package default. Only the reading is done here: which
+// widths exist is git.AllowedContexts' to say, and a width outside it is
+// refused there, as a 400, with the list in the sentence.
+func requestedDiffContext(raw string) (int, error) {
+	if raw == "" {
+		return 0, nil
+	}
+	value, err := strconv.Atoi(raw)
+	if err != nil {
+		return 0, fmt.Errorf("context %q is not a number of lines", raw)
+	}
+	return value, nil
 }
 
 // selection is the body every operation takes.
@@ -303,6 +327,11 @@ type lineSelection struct {
 	// describe it and the request is refused rather than applied to whatever
 	// is there now.
 	Diff string `json:"diff"`
+
+	// Context is the -U width that produced Diff. Zero means the package
+	// default. It has to travel with the selection: the fingerprint hashes
+	// the expanded bytes, and a re-read at a different width never matches.
+	Context int `json:"context,omitempty"`
 
 	// Indices are DiffLine.index values. Context lines among them are
 	// ignored: context is not a change, and including it is not a choice
@@ -818,6 +847,7 @@ func (s *Server) resolveLines(
 		Path:    context.onePath(),
 		OldPath: context.status.oldPathOf(context.onePath()),
 		Side:    side,
+		Context: context.selection.Lines.Context,
 	})
 	if err != nil {
 		return git.FileDiff{}, nil, err
@@ -1024,6 +1054,7 @@ func statusForOperationError(err error) int {
 		errors.Is(err, git.ErrNoTagName),
 		errors.Is(err, git.ErrNoTagMessage),
 		errors.Is(err, git.ErrBadRevision),
+		errors.Is(err, git.ErrBadDiffContext),
 		errors.Is(err, git.ErrStashMessageLine),
 		errors.Is(err, errSameBranch),
 		errors.Is(err, errNotAFile),

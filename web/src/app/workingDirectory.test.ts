@@ -10,7 +10,7 @@ import {
   firstLineOfFile,
   firstLineOfHunk,
 } from './DiffView';
-import { isOnDisk, sideOf } from './useWorkingDirectory';
+import { isOnDisk, lessDiffContext, moreDiffContext, sideOf } from './useWorkingDirectory';
 
 /**
  * The pure parts of the working-directory screen.
@@ -305,5 +305,21 @@ describe('isOnDisk', () => {
     // "DD" is the one conflict with nothing on disk, so it is the one row
     // that must not open an editor: the read would 404.
     expect(isOnDisk(file('a.txt', { kind: 'unmerged', index: 'D', work_tree: 'D' }))).toBe(false);
+  });
+});
+
+describe('diff context steps', () => {
+  it('widens 3 → 10 → 25 → 50 and stops there', () => {
+    expect(moreDiffContext(3)).toBe(10);
+    expect(moreDiffContext(10)).toBe(25);
+    expect(moreDiffContext(25)).toBe(50);
+    expect(moreDiffContext(50)).toBeUndefined();
+  });
+
+  it("narrows back down to git's own three and stops there", () => {
+    expect(lessDiffContext(50)).toBe(25);
+    expect(lessDiffContext(25)).toBe(10);
+    expect(lessDiffContext(10)).toBe(3);
+    expect(lessDiffContext(3)).toBeUndefined();
   });
 });
