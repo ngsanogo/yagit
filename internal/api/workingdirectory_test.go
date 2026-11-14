@@ -251,7 +251,7 @@ func TestDiffWidensContextWhenAsked(t *testing.T) {
 	}
 	writeInRepo(t, path, "a.txt", body.String())
 	runGitIn(t, path, "add", "a.txt")
-	runGitIn(t, path, "commit", "-m", "base")
+	runGitIn(t, path, withIdentity("commit", "-m", "base")...)
 	edited := body.String()
 	edited = strings.Replace(edited, "line-10\n", "LINE-10\n", 1)
 	writeInRepo(t, path, "a.txt", edited)
