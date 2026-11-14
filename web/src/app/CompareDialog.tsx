@@ -30,8 +30,14 @@ export function CompareDialog({
   headName: string | undefined;
   onClose: () => void;
 }) {
+  // Branches, remote branches and tags: what names a commit to drift from.
+  // The other refs a repository holds — notes, a bisect's marks, a stash —
+  // are not offered, since a notes ref names a tree and the count would only
+  // ever answer with git's refusal to read it as a commit.
   const candidates = refs.filter(
-    (ref) => !(ref.kind === 'branch' && headName !== undefined && ref.short_name === headName),
+    (ref) =>
+      ref.kind !== 'other' &&
+      !(ref.kind === 'branch' && headName !== undefined && ref.short_name === headName),
   );
   const [chosen, setChosen] = useState(candidates[0]?.name ?? '');
 
