@@ -1,7 +1,6 @@
 package api
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
@@ -140,15 +139,7 @@ func statusForDiscoverError(err error) int {
 
 func (s *Server) handleOpenRepo(writer http.ResponseWriter, request *http.Request) {
 	var body openRepoRequest
-
-	decoder := json.NewDecoder(http.MaxBytesReader(writer, request.Body, maxRequestBody))
-	// An unknown field is refused rather than ignored: a client that sends
-	// "paht" should learn it right away, not find out later that its path was
-	// never read.
-	decoder.DisallowUnknownFields()
-	if err := decoder.Decode(&body); err != nil {
-		writeError(writer, s.logger, http.StatusBadRequest,
-			fmt.Errorf("unreadable request body, a {\"path\": \"…\"} object is expected: %w", err))
+	if !decodeBody(writer, s.logger, request, &body, `{"path": "…"}`) {
 		return
 	}
 

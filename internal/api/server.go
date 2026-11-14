@@ -617,3 +617,34 @@ func statusForLookupError(err error) int {
 		return http.StatusNotFound
 	}
 }
+
+// errBareRepository: there is no working directory to speak of.
+var errBareRepository = errors.New("this repository has no work tree")
+
+// workTree resolves the repository a route names and refuses a bare one.
+//
+// A bare repository has no file to stage and no file to discard. Every route
+// that works on the files would otherwise hand git a command it answers with
+// something obscure — `git status` in a bare repository fails on the missing
+// work tree — and the interface would report a git failure where the honest
+// answer is that the question does not apply.
+func (s *Server) workTree(request *http.Request) (*repo.Repo, error) {
+	opened, err := s.lookupRepo(request)
+	if err != nil {
+		return nil, err
+	}
+	if opened.Bare {
+		return nil, fmt.Errorf("%w: %s is bare, so there is nothing to stage or commit",
+			errBareRepository, opened.Name)
+	}
+	return opened, nil
+}
+
+func statusForWorkTreeError(err error) int {
+	if errors.Is(err, errBareRepository) {
+		// The request is well formed and the repository exists; what is asked
+		// for cannot apply to it.
+		return http.StatusConflict
+	}
+	return statusForLookupError(err)
+}

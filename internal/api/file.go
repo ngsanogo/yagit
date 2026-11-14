@@ -182,11 +182,7 @@ func (s *Server) handleResolve(writer http.ResponseWriter, request *http.Request
 	}
 
 	var body resolveRequest
-	decoder := json.NewDecoder(http.MaxBytesReader(writer, request.Body, maxRequestBody))
-	decoder.DisallowUnknownFields()
-	if err := decoder.Decode(&body); err != nil {
-		writeError(writer, s.logger, http.StatusBadRequest, fmt.Errorf(
-			"unreadable request body, a {\"paths\": [\"…\"], \"side\": \"ours\"} object is expected: %w", err))
+	if !decodeBody(writer, s.logger, request, &body, `{"paths": ["…"], "side": "ours"}`) {
 		return
 	}
 

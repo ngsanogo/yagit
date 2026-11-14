@@ -280,9 +280,12 @@ func (s *Server) answerWithRefs(writer http.ResponseWriter, request *http.Reques
 // decodeBody reads a JSON request body, bounded, refusing anything it does not
 // recognise.
 //
-// One function because five handlers in this file need the same four lines and
-// the same sentence when they fail — and because a body limit that one of them
-// forgot would be the one that mattered.
+// An unknown field is refused rather than ignored: a client that sends "paht"
+// should learn it at once, not find out later that its path was never read.
+// One function for every route with a body, because each needs the same four
+// lines and the same sentence when they fail — and because a body limit that
+// one of them forgot would be the one that mattered. The few that decode on
+// their own say why beside the decoder.
 func decodeBody(writer http.ResponseWriter, logger *slog.Logger, request *http.Request, into any, shape string) bool {
 	decoder := json.NewDecoder(http.MaxBytesReader(writer, request.Body, maxRequestBody))
 	decoder.DisallowUnknownFields()

@@ -1,7 +1,6 @@
 package api
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
@@ -77,11 +76,7 @@ func (s *Server) readMergetoolPath(
 	}
 
 	var body mergetoolRequest
-	decoder := json.NewDecoder(http.MaxBytesReader(writer, request.Body, maxRequestBody))
-	decoder.DisallowUnknownFields()
-	if err := decoder.Decode(&body); err != nil {
-		writeError(writer, s.logger, http.StatusBadRequest, fmt.Errorf(
-			"unreadable request body, a {\"path\": \"…\"} object is expected: %w", err))
+	if !decodeBody(writer, s.logger, request, &body, `{"path": "…"}`) {
 		return nil, "", false
 	}
 
