@@ -39,6 +39,7 @@ export type WorkbenchDialog =
   // and a commit to follow. In the slot all the same, because <dialog> is
   // modal and two open at once is two.
   | { kind: 'search' }
+  | { kind: 'compare' }
   | { kind: 'create-tag' }
   | { kind: 'rename'; branch: string }
   | {

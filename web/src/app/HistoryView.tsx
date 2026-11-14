@@ -302,6 +302,9 @@ export function HistoryView({
               >
                 Search…
               </Button>
+              <Button size="sm" onClick={() => openDialog({ kind: 'compare' })}>
+                Compare…
+              </Button>
               <div className="flex items-center gap-2">
                 <SegmentedControl
                   label="Refs the graph is drawn from"

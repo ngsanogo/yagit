@@ -20,6 +20,7 @@ import type { HistoryOperations } from './historyOperations';
 import type { HistoryProposals } from './historyProposals';
 import { TrackLFSDialog, UntrackLFSDialog } from './LFSDialogs';
 import { RebasePlanDialog } from './RebasePlanDialog';
+import { CompareDialog } from './CompareDialog';
 import { SearchHistory } from './SearchHistory';
 import { StashApplyDialog, StashDropDialog, StashPushDialog } from './StashDialogs';
 import { AddSubmoduleDialog, RemoveSubmoduleDialog } from './SubmoduleDialogs';
@@ -74,6 +75,27 @@ export function HistoryDialogs({
   }
 
   switch (dialog.kind) {
+    case 'compare':
+      return (
+        <CompareDialog
+          repositoryId={repository.id}
+          refs={refs}
+          headName={head?.detached ? undefined : head?.name}
+          canAct={!repository.bare && head?.detached !== true}
+          actRefusal={
+            repository.bare
+              ? 'A bare repository has no work tree to merge or rebase in.'
+              : head?.detached
+                ? 'HEAD is detached, so there is no branch to merge into or rebase.'
+                : undefined
+          }
+          busyMerge={ops.branches.planMerge.isPending}
+          busyRebase={ops.branches.planRebase.isPending}
+          onClose={close}
+          onMerge={(branch) => proposals.proposeBranchMerge(branch)}
+          onRebase={(onto) => proposals.proposeBranchRebase(onto)}
+        />
+      );
     case 'search':
       return (
         <Dialog
