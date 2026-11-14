@@ -87,11 +87,11 @@ test('draws the graph from the references that are ticked', async ({ page }) => 
   // Switching to the picker opens it on the branch HEAD is on, so the first
   // click is a narrowing or a widening rather than a repair.
   await page.getByRole('radio', { name: 'Selected' }).click();
-  await expect(page.getByRole('button', { name: /reference/ })).toBeVisible();
+  await expect(page.getByRole('button', { name: /^\d+ references?…$/ })).toBeVisible();
   await expect(history).toContainText('main moved on');
   await expect(history).not.toContainText('the topic tip');
 
-  await page.getByRole('button', { name: /reference/ }).click();
+  await page.getByRole('button', { name: /^\d+ references?…$/ }).click();
   const picker = page.getByRole('dialog', { name: 'Draw the graph from' });
   await expect(picker).toBeVisible();
 
@@ -111,7 +111,7 @@ test('will not let the last reference be unticked', async ({ page }) => {
   await openDiverged(page, 'last-reference');
 
   await page.getByRole('radio', { name: 'Selected' }).click();
-  await page.getByRole('button', { name: /reference/ }).click();
+  await page.getByRole('button', { name: /^\d+ references?…$/ }).click();
 
   const picker = page.getByRole('dialog', { name: 'Draw the graph from' });
   const main = picker.getByRole('checkbox', { name: 'main' });
@@ -126,7 +126,7 @@ test('filters the reference list by name', async ({ page }) => {
   await openDiverged(page, 'filter-references');
 
   await page.getByRole('radio', { name: 'Selected' }).click();
-  await page.getByRole('button', { name: /reference/ }).click();
+  await page.getByRole('button', { name: /^\d+ references?…$/ }).click();
 
   const picker = page.getByRole('dialog', { name: 'Draw the graph from' });
   await expect(picker.getByRole('checkbox', { name: 'topic' })).toBeVisible();
