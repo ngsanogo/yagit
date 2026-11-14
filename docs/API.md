@@ -204,7 +204,7 @@ preference the shown-command rule left open — and the run accepts that approva
 fast-forward reading. `squash: true` asks for `git merge --squash` wherever
 commits would arrive, staging the fold for a later commit without moving HEAD
 (distinct from an interactive-rebase `squash` line). `merge` then runs
-`--ff-only`, `--no-ff --no-edit`, or `--squash`, never a bare merge, and
+`--ff-only`, `--no-ff --no-edit`, or `--ff --squash`, never a bare merge, and
 answers with the reference list the branch routes answer with — a merge that
 records a commit or fast-forwards moves HEAD's branch; a squash leaves it.
 

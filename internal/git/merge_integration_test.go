@@ -210,6 +210,27 @@ func TestMergeIsNotDecidedByTheUsersConfiguration(t *testing.T) {
 			t.Errorf("HEAD has %d parents, want the merge commit the dialog promised", len(parents))
 		}
 	})
+
+	// `git merge --squash` reads merge.ff too: false makes it refuse the
+	// combination outright, only makes it abort on diverged branches. The
+	// squash the dialog promised has to happen under either.
+	for _, setting := range []string{"false", "only"} {
+		t.Run("a squash still stages where merge.ff is "+setting, func(t *testing.T) {
+			dir, runner := mergeable(t)
+			diverged(t, runner, dir)
+			before := commitOf(t, runner, dir, "main")
+
+			runGit(t, runner, dir, "config", "merge.ff", setting)
+
+			if err := runner.Merge(context.Background(), dir, "main", "elsewhere", git.MergeSquash); err != nil {
+				t.Fatalf("Merge: %v", err)
+			}
+
+			if head := headOf(t, runner, dir); head.SHA != before {
+				t.Errorf("HEAD moved to %s, want it still at %s after a squash", head.SHA, before)
+			}
+		})
+	}
 }
 
 func TestMergeConflictStopsAndLeavesMarkers(t *testing.T) {

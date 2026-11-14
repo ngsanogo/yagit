@@ -38,7 +38,7 @@ func TestMergeArgsPinsWhatTheMergeWillBe(t *testing.T) {
 			"-m", "Merge branch 'feature' into main",
 			"--", "refs/heads/feature",
 		},
-		git.MergeSquash: {"merge", "--squash", "--", "refs/heads/feature"},
+		git.MergeSquash: {"merge", "--ff", "--squash", "--", "refs/heads/feature"},
 	}
 
 	for outcome, want := range cases {

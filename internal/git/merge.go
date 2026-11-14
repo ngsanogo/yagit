@@ -118,7 +118,10 @@ func ParseMergeOutcome(raw string) (MergeOutcome, error) {
 // confirmation that showed the command. --no-edit stays beside it because
 // GIT_MERGE_AUTOEDIT can still send git looking for an editor the daemon has
 // no terminal to open. A squash writes no commit, so it carries no -m —
-// SQUASH_MSG is what the next commit reads.
+// SQUASH_MSG is what the next commit reads — and it carries --ff, because
+// --squash reads merge.ff as well: false makes git refuse the pair as
+// "--squash and --no-ff", only makes it abort on branches that diverged.
+// --ff is the one value under which the squash is what the dialog said.
 func MergeArgs(into, branch string, outcome MergeOutcome) []string {
 	// An outcome this does not recognise is not a reason to hand git a bare
 	// `merge` and let merge.ff answer: --ff-only is the reading that can
@@ -132,7 +135,7 @@ func MergeArgs(into, branch string, outcome MergeOutcome) []string {
 	case MergeCommit:
 		args = []string{"merge", "--no-ff", "--no-edit", "-m", MergeMessage(into, branch)}
 	case MergeSquash:
-		args = []string{"merge", "--squash"}
+		args = []string{"merge", "--ff", "--squash"}
 	}
 
 	return append(args, "--", LocalBranchRef(branch))

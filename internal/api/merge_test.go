@@ -527,7 +527,7 @@ func TestMergePlanPrefersASquash(t *testing.T) {
 	if planned.Outcome != "squash" {
 		t.Fatalf("outcome = %q, want squash", planned.Outcome)
 	}
-	if planned.Command != "git merge --squash -- refs/heads/side" {
+	if planned.Command != "git merge --ff --squash -- refs/heads/side" {
 		t.Errorf("command = %q, want the pinned squash line", planned.Command)
 	}
 
