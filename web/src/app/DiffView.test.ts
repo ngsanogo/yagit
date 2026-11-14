@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest';
 
 import type { DiffHunk, DiffLine, FileDiff } from '../api/types';
-import { changedIn, changedLines, gutterWidth, markedSpans, spansAgainst } from './DiffView';
+import { changedIn, changedLines, gutterWidth } from './diffLines';
+import { markedSpans, spansAgainst } from './diffSpans';
 import { MAX_DRAWN_LINES } from './drawnLines';
 
 /**

@@ -10,29 +10,18 @@ import { Panel } from '../components/Panel';
 import { Centered, QueryErrorState } from '../components/PanelState';
 import { SegmentedControl } from '../components/SegmentedControl';
 import { Spinner } from '../components/Spinner';
-import { BlamePanel } from './Blame';
-import { CommitDetails, commitQuery } from './CommitDetails';
+import { commitQuery } from './CommitDetails';
 import { CommitList, type CommitListHandle } from './CommitList';
 import { useWorkbenchDialog } from './dialogSlot';
-import { FileHistoryPanel } from './FileHistory';
 import { HistoryDialogs } from './HistoryDialogs';
+import { InspectedCommit, InspectedPanel } from './HistoryInspector';
 import { useHistoryOperations } from './historyOperations';
 import { useHistoryProposals } from './historyProposals';
 import { HISTORY_SCOPES, initialSelectedRefs } from './historyScope';
-import { LFSPanel } from './LFSPanel';
-import { LineHistoryPanel } from './LineHistory';
-import { ReflogPanel } from './ReflogPanel';
+import { HistorySidebar } from './HistorySidebar';
 import { RefPicker } from './RefPicker';
-import { RefSidebar } from './RefSidebar';
-import { RepositoryAdditions } from './RepositoryAdditions';
 import { readStoredScope, writeStoredScope } from './sessionStore';
-import { stashPushRefusal } from './stash';
-import { StashDetails } from './StashDetails';
-import { StashPanel } from './StashPanel';
-import { SubmodulePanel } from './SubmodulePanel';
-import { checkOutRequestForCommit } from './useCheckOut';
 import { useHistoryOverview } from './useHistory';
-import { WorktreePanel } from './WorktreePanel';
 
 /**
  * What the panel under the history is showing.
@@ -49,21 +38,6 @@ export type Inspected =
   | { kind: 'file-history'; path: string; revision: string }
   | { kind: 'blame'; path: string; revision: string }
   | { kind: 'line-history'; path: string; revision: string; line: number };
-
-/**
- * The height the panel under the list is given, in one place because all five
- * of them are the same slot and a disagreement between them would be a panel
- * that jumps when the kind of thing open in it changes.
- *
- * `flex-1` over whatever the list above leaves — not a fixed fraction. A
- * click opens this panel to READ a commit (or a stash, or a path's history),
- * so it is the main object once it is open: the list keeps a capped strip
- * tall enough to stay oriented, and this slot takes the rest. A floor keeps
- * a short window from collapsing the patch to nothing. `overflow-hidden`
- * keeps a tall patch's layout height from leaking past this slot into the
- * page.
- */
-const INSPECT_PANEL = 'min-h-80 flex-1 basis-0 overflow-hidden';
 
 /**
  * The history list's height while something is open underneath.
@@ -197,12 +171,6 @@ export function HistoryView({
   // told why — the same line the branch menu draws for merge and rebase. A
   // bare repository is the other case, and it loses the button entirely.
   const detached = refs.data?.head?.detached === true;
-  const whileDetached = (what: string) => (detached ? `HEAD is detached, so ${what}` : undefined);
-
-  // Not a detached-HEAD refusal, unlike those: `git stash` works perfectly well
-  // without a branch and records "(no branch)". What it cannot do is save a
-  // work tree that matches HEAD.
-  const stashRefusal = stashPushRefusal(changed);
 
   // The commit last asked for, read back when the daemon answers. Two clicks
   // resolve in whatever order git finishes them: a reference already in the
@@ -362,317 +330,45 @@ export function HistoryView({
           )}
         </Panel>
 
-        {inspected?.kind === 'stash' && (
-          <div className={INSPECT_PANEL}>
-            <StashDetails
-              // Keyed by the position, so choosing another stash starts from
-              // nothing rather than showing the previous one's patch under the
-              // new one's header while it loads.
-              key={inspected.index}
-              repositoryId={repository.id}
-              index={inspected.index}
-              onClose={onClearSelection}
-            />
-          </div>
-        )}
-
-        {inspected?.kind === 'file-history' && (
-          <div className={INSPECT_PANEL}>
-            <FileHistoryPanel
-              key={`${inspected.path}@${inspected.revision}`}
-              repositoryId={repository.id}
-              path={inspected.path}
-              revision={inspected.revision}
-              onClose={onClearSelection}
-              onSelectCommit={(sha) => onInspect({ kind: 'commit', sha })}
-            />
-          </div>
-        )}
-
-        {inspected?.kind === 'blame' && (
-          <div className={INSPECT_PANEL}>
-            <BlamePanel
-              key={`${inspected.path}@${inspected.revision}`}
-              repositoryId={repository.id}
-              path={inspected.path}
-              revision={inspected.revision}
-              onClose={onClearSelection}
-              onSelectCommit={(sha) => onInspect({ kind: 'commit', sha })}
-              onLineHistory={(line) =>
-                onInspect({
-                  kind: 'line-history',
-                  path: inspected.path,
-                  revision: inspected.revision,
-                  line,
-                })
-              }
-            />
-          </div>
-        )}
-
-        {inspected?.kind === 'line-history' && (
-          <div className={INSPECT_PANEL}>
-            <LineHistoryPanel
-              key={`${inspected.path}:${inspected.line}@${inspected.revision}`}
-              repositoryId={repository.id}
-              path={inspected.path}
-              line={inspected.line}
-              revision={inspected.revision}
-              onClose={onClearSelection}
-              onSelectCommit={(sha) => onInspect({ kind: 'commit', sha })}
-            />
-          </div>
-        )}
+        <InspectedPanel
+          repositoryId={repository.id}
+          inspected={inspected}
+          onInspect={onInspect}
+          onClose={onClearSelection}
+        />
 
         {selected !== undefined && (
-          <div className={INSPECT_PANEL}>
-            <CommitDetails
-              // Keyed by the commit, so choosing another one starts from
-              // nothing rather than showing the previous commit's patch under
-              // the new one's message while it loads.
-              key={selected}
-              repositoryId={repository.id}
-              sha={selected}
-              scope={walkScope}
-              refs={chosenRefs}
-              onClose={onClearSelection}
-              onCheckOut={
-                canCheckOut
-                  ? () => ops.checkOut.mutate(checkOutRequestForCommit(selected))
-                  : undefined
-              }
-              checkingOut={ops.checkOut.isPending && ops.checkOut.variables.ref === selected}
-              onCherryPick={canCheckOut ? () => proposals.proposeCherryPick(selected) : undefined}
-              cherryPicking={
-                ops.cherryPick.plan.isPending && ops.cherryPick.plan.variables === selected
-              }
-              cherryPickRefusal={whileDetached('there is no branch to cherry-pick onto')}
-              onRevert={canCheckOut ? () => proposals.proposeRevert(selected) : undefined}
-              reverting={ops.revert.plan.isPending && ops.revert.plan.variables === selected}
-              revertRefusal={whileDetached('there is no branch to revert on')}
-              onReset={canCheckOut ? () => proposals.proposeReset(selected) : undefined}
-              resetting={
-                ops.reset.plan.isPending &&
-                ops.reset.plan.variables?.commit === selected &&
-                dialog?.kind !== 'reset'
-              }
-              resetRefusal={whileDetached('there is no branch to reset')}
-              onRewrite={canCheckOut ? () => proposals.proposeRewrite(selected) : undefined}
-              rewriting={ops.rewrite.plan.isPending && ops.rewrite.plan.variables === selected}
-              rewriteRefusal={whileDetached('there is no branch whose commits could be rewritten')}
-              onStartBisect={canCheckOut ? () => proposals.proposeStartBisect(selected) : undefined}
-              startingBisect={
-                ops.bisect.plan.isPending && ops.bisect.plan.variables?.good?.[0] === selected
-              }
-              startBisectRefusal={
-                operation !== ''
-                  ? `A ${operation} is already in progress.`
-                  : selected === refs.data?.head?.sha
-                    ? 'This is HEAD, the end that is broken. Pick an older commit where it still worked.'
-                    : undefined
-              }
-              onFileHistory={(path) =>
-                onInspect({ kind: 'file-history', path, revision: selected })
-              }
-              onBlame={(path) => onInspect({ kind: 'blame', path, revision: selected })}
-            />
-          </div>
-        )}
-      </div>
-
-      {/* One scroller for the whole column, and every panel in it sized to
-          what it holds. The invariant is the one this column has always had —
-          a repository with a thousand tags must scroll something other than
-          the page, and yagit's own already overflowed a 900-pixel window by
-          five hundred — but the element that takes the overflow is the column
-          rather than each panel in turn.
-
-          What that replaces is a column in which the references were both the
-          only child that could grow and the only one that could shrink:
-          `flex-1` against four capped siblings. They took every spare pixel on
-          a tall window — five hundred of them, half of it empty bordered
-          surface, for five branches — and were the first thing crushed on a
-          short one, down past their own header while a panel listing two
-          filename patterns kept its full height. Sized to content they take
-          neither, and the cap on the references panel itself is what keeps the
-          thousand tags scrolling inside it instead of pushing the stash off
-          the bottom of the column. */}
-      {/* Twenty-one rem, and it was eighteen, then twenty. The extra is what
-          the labels in these panel headers need: every one of them that opens
-          a dialog carries an ellipsis, two of them sit beside a panel title,
-          and the title now carries a glyph of its own. "References" was the
-          part that gave way each time — at twenty rem the header measured 294
-          pixels of room, the actions took 190 of it, and the title needed 102
-          of the 92 that were left, so the one word naming the panel was drawn
-          as "Referenc…". The column is also where a branch name is read, and
-          those truncate first everywhere else too. What it costs is 48 pixels
-          of the history beside it, which is a column the commit rows stopped
-          needing when they stopped stacking. */}
-      <div className="flex w-84 shrink-0 flex-col gap-3 overflow-y-auto">
-        {refs.isPending && (
-          <Panel title="References" className="shrink-0">
-            <Centered compact>
-              <Spinner label="Reading the references" />
-            </Centered>
-          </Panel>
-        )}
-
-        {/* Only where there is nothing to fall back on. A query that has
-            answered once keeps its data when a later read fails, so `isError`
-            and `data` are both true after a refetch that git refused — and
-            drawing both branches put two regions called "References" on the
-            screen at once, which is one landmark too many for anybody moving
-            between them by name.
-
-            The list wins that tie, for the reason CommitList states about a
-            failed page: a refetch that failed is no reason to take a list off
-            the screen that is still on it. The refusal is not lost with it —
-            the command, its exit code and its stderr are in the command log,
-            which is where every git failure lands whether or not a panel is
-            free to draw it. */}
-        {refs.isError && refs.data === undefined && (
-          <Panel title="References" className="shrink-0">
-            <QueryErrorState
-              title="Could not read the references"
-              error={refs.error}
-              compact
-              retry={refs}
-            />
-          </Panel>
-        )}
-
-        {refs.data !== undefined && (
-          <RefSidebar
-            refs={refs.data.refs}
-            head={refs.data.head}
-            onGoTo={goTo}
-            onCheckOut={canCheckOut ? ops.checkOut.mutate : undefined}
-            checkingOut={ops.checkOut.isPending ? ops.checkOut.variables.ref : undefined}
-            onRenameBranch={(branch) => openDialog({ kind: 'rename', branch })}
-            onSetUpstream={configuredRemotes.length > 0 ? proposals.proposeSetUpstream : undefined}
-            onUnsetUpstream={proposals.proposeUnsetUpstream}
-            onDeleteBranch={proposals.proposeBranchDelete}
-            onMergeBranch={canCheckOut ? proposals.proposeBranchMerge : undefined}
-            onRebaseBranch={canCheckOut ? proposals.proposeBranchRebase : undefined}
-            onNewBranch={() => openDialog({ kind: 'create' })}
-            onNewTag={() => openDialog({ kind: 'create-tag' })}
-            onDeleteTag={proposals.proposeTagDelete}
-            onPushTag={proposals.proposeTagPush}
-            {...(ops.remotes.isFetched && configuredRemotes.length === 0
-              ? { pushTagUnavailableReason: 'This repository has no remote configured.' }
-              : {})}
-            // No HEAD is a repository with no commit yet, and `git tag` on one
-            // answers "fatal: Failed to resolve 'HEAD' as a valid ref". The
-            // button stays and says why, the way every other refusal on this
-            // screen does. New branch beside it is NOT refused: git points an
-            // unborn HEAD at a new branch quite happily.
-            {...(refs.data.head === undefined
-              ? { newTagUnavailableReason: 'There is no commit to tag yet.' }
-              : {})}
-          />
-        )}
-
-        {/* Under the references, in the column of things the repository holds
-            rather than of things that happened. A bare repository has neither
-            a work tree to save nor one to restore into, so it has no panel.
-
-            A direct child of the column, and sized to its own content like
-            every panel in it. What used to overflow the page was a column that
-            could not scroll, and making the panels give up rows was the
-            workaround for that; the column scrolls now, so a panel that keeps
-            its rows costs nothing and hides nothing. */}
-        {canCheckOut && (
-          <StashPanel
-            stashes={ops.stash.stashes.data}
-            loading={ops.stash.stashes.isPending}
-            {...(ops.stash.stashes.error === null ? {} : { error: ops.stash.stashes.error })}
-            retry={ops.stash.stashes}
-            {...(inspected?.kind === 'stash' ? { selected: inspected.index } : {})}
-            onSelect={(chosen) => onInspect({ kind: 'stash', index: chosen.index })}
-            onStash={() => proposals.proposeStash()}
-            stashing={ops.stash.planPush.isPending && dialog?.kind !== 'stash-push'}
-            {...(stashRefusal === undefined ? {} : { stashRefusal })}
-            onApply={proposals.proposeStashApply}
-            onDrop={proposals.proposeStashDrop}
-          />
-        )}
-
-        {canCheckOut && (
-          <ReflogPanel
-            entries={ops.reflog.entries.data?.entries}
-            loading={ops.reflog.entries.isPending}
-            {...(ops.reflog.entries.error === null ? {} : { error: ops.reflog.entries.error })}
-            retry={ops.reflog.entries}
-            onRestore={(entry) => proposals.proposeReflogRestore(entry)}
-            restoring={
-              ops.reflog.planRestore.isPending
-                ? ops.reflog.planRestore.variables?.selector
-                : undefined
-            }
-          />
-        )}
-
-        {/* Beside the stash, and for the same reason: a worktree is something
-            the repository holds. Offered for a bare repository too — it has no
-            checkout of its own, and adding one is exactly how somebody gets a
-            work tree to look at. */}
-        <WorktreePanel
-          worktrees={ops.worktrees.list.data?.worktrees}
-          loading={ops.worktrees.list.isPending}
-          {...(ops.worktrees.list.error === null ? {} : { error: ops.worktrees.list.error })}
-          retry={ops.worktrees.list}
-          onAdd={() => openDialog({ kind: 'add-worktree', plan: undefined })}
-          adding={ops.worktrees.plan.isPending && dialog?.kind !== 'add-worktree'}
-          onRemove={proposals.proposeWorktreeRemove}
-          onPrune={() => ops.worktrees.prune.mutate()}
-          pruning={ops.worktrees.prune.isPending}
-        />
-
-        {/* Under the worktrees, and drawn only where there is one: most
-            repositories pin nothing, and an empty panel would be one more
-            thing to scroll this column past for a sentence saying so. */}
-        <SubmodulePanel
-          submodules={ops.submodules.list.data?.submodules}
-          loading={ops.submodules.list.isPending}
-          {...(ops.submodules.list.error === null ? {} : { error: ops.submodules.list.error })}
-          retry={ops.submodules.list}
-          onUpdate={(path) => ops.submodules.update.mutate(path)}
-          updating={ops.submodules.update.isPending}
-          onSync={() => ops.submodules.sync.mutate('')}
-          onRemove={proposals.proposeSubmoduleRemove}
-        />
-
-        {/* Not for a bare repository: `git lfs track` writes .gitattributes
-            into a work tree, and one that has none has nowhere to put it. */}
-        {!repository.bare && (
-          <LFSPanel
-            support={ops.lfs.support.data}
-            loading={ops.lfs.support.isPending}
-            {...(ops.lfs.support.error === null ? {} : { error: ops.lfs.support.error })}
-            retry={ops.lfs.support}
-            onUntrack={proposals.proposeUntrackLFS}
-          />
-        )}
-
-        {/* Last, under whichever of those two were drawn, because it is what
-            comes after a list rather than a list of its own. It holds the only
-            way to start either feature — see RepositoryAdditions for why that
-            is not on the panels. */}
-        {!repository.bare && (
-          <RepositoryAdditions
-            lfs={ops.lfs.support.data}
-            lfsLoading={ops.lfs.support.isPending}
-            lfsPending={
-              ops.lfs.plan.isPending &&
-              ops.lfs.plan.variables?.action === 'track' &&
-              dialog?.kind !== 'track-lfs'
-            }
-            submodulePending={ops.submodules.plan.isPending && dialog?.kind !== 'add-submodule'}
-            onAddSubmodule={() => openDialog({ kind: 'add-submodule', plan: undefined })}
-            onTrackLFS={() => openDialog({ kind: 'track-lfs', plan: undefined })}
+          <InspectedCommit
+            repositoryId={repository.id}
+            sha={selected}
+            scope={walkScope}
+            refs={chosenRefs}
+            headSha={refs.data?.head?.sha}
+            detached={detached}
+            canCheckOut={canCheckOut}
+            operation={operation}
+            ops={ops}
+            proposals={proposals}
+            dialog={dialog}
+            onInspect={onInspect}
+            onClose={onClearSelection}
           />
         )}
       </div>
+
+      <HistorySidebar
+        repository={repository}
+        refs={refs}
+        canCheckOut={canCheckOut}
+        changed={changed}
+        remotes={configuredRemotes}
+        ops={ops}
+        slot={slot}
+        proposals={proposals}
+        inspected={inspected}
+        onInspect={onInspect}
+        onGoTo={goTo}
+      />
 
       <HistoryDialogs
         slot={slot}
