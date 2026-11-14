@@ -841,6 +841,9 @@ function RepositoryView({ repository }: { repository: Repository }) {
           // stash panel offers to save it, and a button that offered to save
           // nothing would be a button that only ever produces a refusal.
           changed={changed}
+          // The operation in progress, so "Start a bisect" can refuse while a
+          // merge or another bisect already owns the work tree.
+          operation={status.data?.state.operation ?? ''}
         />
       )}
     </div>

@@ -446,3 +446,62 @@ func TestARebaseOutranksALeftoverSequence(t *testing.T) {
 		t.Errorf("the rebase is on %q, want feature", state.Branch)
 	}
 }
+
+// git prints the answer once, to a terminal the daemon does not have, and
+// appends it to BISECT_LOG. Read from there, the verdicts that would follow it
+// are refused with the answer as the reason, and leaving stays possible.
+func TestAFinishedBisectNamesItsFirstBadCommit(t *testing.T) {
+	const sha = "422f9d2e5227f12748808bc3e1206259635eeeb1"
+	state, err := git.ReadState(stateDir(t, map[string]string{"BISECT_LOG": "" +
+		"git bisect start 'HEAD' 'HEAD~4' '--'\n" +
+		"# good: [f4681335872ddee42cb19fc22a3b3afac7eb1624] c3\n" +
+		"git bisect good f4681335872ddee42cb19fc22a3b3afac7eb1624\n" +
+		"# bad: [" + sha + "] c4\n" +
+		"git bisect bad " + sha + "\n" +
+		"# first bad commit: [" + sha + "] c4\n"}))
+	if err != nil {
+		t.Fatalf("ReadState: %v", err)
+	}
+	if state.FirstBad == nil || state.FirstBad.SHA != sha || state.FirstBad.Subject != "c4" {
+		t.Fatalf("FirstBad = %+v, want %s c4", state.FirstBad, sha)
+	}
+	for _, action := range []git.Action{git.ActionGood, git.ActionBad, git.ActionSkip} {
+		if !strings.Contains(state.Blocked[action], "first bad commit") {
+			t.Errorf("Blocked[%s] = %q, want the answer as the reason", action, state.Blocked[action])
+		}
+	}
+	if _, blocked := state.Blocked[git.ActionAbort]; blocked {
+		t.Error("reset is blocked; it is the one way out of a finished bisect")
+	}
+}
+
+// git quotes the term from the release after 2.54, and a bisect with terms of
+// its own names them; the answer is read the same from every form.
+func TestTheFirstBadCommitIsReadWhateverTheTermIsCalled(t *testing.T) {
+	const sha = "422f9d2e5227f12748808bc3e1206259635eeeb1"
+	for _, line := range []string{
+		"# first bad commit: [" + sha + "] c4",
+		"# first 'bad' commit: [" + sha + "] c4",
+		"# first 'broken' commit: [" + sha + "] c4",
+	} {
+		state, err := git.ReadState(stateDir(t, map[string]string{
+			"BISECT_LOG": "git bisect start\n" + line + "\n",
+		}))
+		if err != nil {
+			t.Fatalf("ReadState: %v", err)
+		}
+		if state.FirstBad == nil || state.FirstBad.SHA != sha || state.FirstBad.Subject != "c4" {
+			t.Errorf("%q: FirstBad = %+v, want %s c4", line, state.FirstBad, sha)
+		}
+	}
+}
+
+func TestABisectStillSearchingHasNoAnswer(t *testing.T) {
+	state, err := git.ReadState(stateDir(t, map[string]string{"BISECT_LOG": "git bisect start\n"}))
+	if err != nil {
+		t.Fatalf("ReadState: %v", err)
+	}
+	if state.FirstBad != nil || state.Blocked != nil {
+		t.Fatalf("FirstBad = %+v, Blocked = %v; want neither while searching", state.FirstBad, state.Blocked)
+	}
+}

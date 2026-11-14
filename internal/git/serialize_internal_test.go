@@ -33,6 +33,7 @@ func TestWhichCommandsTakeTheIndexLock(t *testing.T) {
 		{[]string{"push", "origin"}, false, "a push sends objects and never touches the index"},
 		{[]string{"pull", "origin"}, true, "a pull writes the index the way a merge does"},
 		{[]string{"mergetool", "-y", "--", ":(literal)f.txt"}, true, "mergetool stages the resolved file"},
+		{[]string{"bisect", "good"}, true, "bisect checks out the next commit"},
 
 		// The three commands that are a read or a write depending on what
 		// follows. Locking their read form would hold the repository while the

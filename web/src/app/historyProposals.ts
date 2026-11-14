@@ -260,6 +260,25 @@ export function useHistoryProposals(
   }
 
   /**
+   * Puts the bisect-start question: this commit good, HEAD bad.
+   *
+   * The question a bisect answers is "it worked here, and it is broken now",
+   * and a click on an older commit says the first half of it. Naming both ends
+   * makes git check out the commit halfway at once, so the banner's verdicts
+   * are always about a commit git chose for testing. Naming only the clicked
+   * commit as bad left HEAD on that same commit, and the first Good on the
+   * banner marked it both.
+   */
+  function proposeStartBisect(good: string) {
+    propose(
+      ops.bisect.plan,
+      { bad: 'HEAD', good: [good] },
+      `what bisecting from ${shortenSha(good)} to HEAD would run`,
+      (plan) => ({ kind: 'bisect-start', plan }),
+    );
+  }
+
+  /**
    * Puts the revert question, once the daemon has said what it would do.
    *
    * Merges, roots and commits not on the branch are refused by the plan, and
@@ -438,6 +457,7 @@ export function useHistoryProposals(
     proposeTagDelete,
     proposeTagPush,
     proposeCherryPick,
+    proposeStartBisect,
     proposeRevert,
     proposeReset,
     proposeRewrite,

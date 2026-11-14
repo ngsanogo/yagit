@@ -13,8 +13,9 @@ import (
 // of the knowledge is the table in ActionArgs — which pairs are real, and what
 // each of them runs.
 //
-// Two of the three destroy work and the interface asks first, showing the line
-// from ActionArgs rather than a sentence about it. Which of them destroys what
+// A bisect takes two more, the verdicts good and bad, which are its own and
+// nobody else's. Abort and skip destroy work and the interface asks first,
+// showing the line from ActionArgs rather than a sentence about it. Which of them destroys what
 // is in the comments on the table, because that is the sentence somebody
 // deciding needs and the wrong answer to it is unrecoverable.
 
@@ -34,8 +35,15 @@ const (
 	ActionContinue Action = "continue"
 
 	// ActionSkip drops the commit being applied and moves to the next one.
-	// The commit is not applied and its changes are not kept.
+	// The commit is not applied and its changes are not kept. In a bisect it
+	// sets the commit under test aside without a verdict.
 	ActionSkip Action = "skip"
+
+	// ActionGood and ActionBad are a bisect's verdicts on the commit checked
+	// out for testing. Each records a decision and checks out the next commit
+	// to test, or names the first bad one when none is left.
+	ActionGood Action = "good"
+	ActionBad  Action = "bad"
 )
 
 // ErrNoOperation: nothing is in progress, so there is nothing to act on.
@@ -79,10 +87,10 @@ var ErrActionUnavailable = errors.New("this operation cannot be given that instr
 //     commits is the replayed commit's own message, never a draft, and the
 //     button on screen says so instead of leaving it to be discovered.
 //
-//   - A bisect is ended with `git bisect reset`, which is what leaving one is
-//     called. It is not continued either: continuing a bisect means saying
-//     whether this commit is good or bad, and yagit does not ask that yet. A
-//     button offering to continue would have to guess the answer.
+//   - A bisect is driven by its verdicts, good and bad, with skip for a commit
+//     that cannot be tested, and ended with `git bisect reset`, which is what
+//     leaving one is called. It is not continued: continuing a bisect would
+//     have to guess the verdict.
 //
 //   - Everything that replays commits — a rebase, a cherry-pick, a revert, a
 //     mailbox — takes all three, because all three are things git will do to
@@ -100,9 +108,19 @@ func ActionArgs(operation Operation, action Action) ([]string, error) {
 	// --contnue` fails with git explaining its own option parsing, about a
 	// request nobody made.
 	switch action {
-	case ActionAbort, ActionContinue, ActionSkip:
+	case ActionAbort, ActionContinue, ActionSkip, ActionGood, ActionBad:
 	default:
-		return nil, fmt.Errorf("%w: %q is not abort, continue or skip", ErrActionUnavailable, action)
+		return nil, fmt.Errorf("%w: %q is not abort, continue, skip, good or bad",
+			ErrActionUnavailable, action)
+	}
+
+	// The verdicts are refused everywhere but a bisect before the flag below is
+	// built from them: `git rebase --good` is an option parse error about a
+	// request that should never have been put. An idle repository keeps its
+	// own answer, which is that nothing is in progress at all.
+	verdict := action == ActionGood || action == ActionBad
+	if verdict && operation != OperationBisect && operation != OperationNone {
+		return nil, fmt.Errorf("%w: %q is a bisect verdict", ErrActionUnavailable, action)
 	}
 
 	// Named here rather than repeated in six cases below. The command is the
@@ -123,12 +141,19 @@ func ActionArgs(operation Operation, action Action) ([]string, error) {
 		return []string{"merge", flag}, nil
 
 	case OperationBisect:
-		if action != ActionAbort {
-			return nil, fmt.Errorf("%w: a bisect ends by marking a commit good or bad", ErrActionUnavailable)
+		switch action {
+		case ActionGood, ActionBad, ActionSkip:
+			// Subcommands, not flags: `git bisect good` marks the commit
+			// checked out, which is the one the banner is about.
+			return []string{"bisect", string(action)}, nil
+		case ActionAbort:
+			// Not `--abort`, which git does not have here. `reset` checks the
+			// original branch back out and forgets every verdict given so far.
+			return []string{"bisect", "reset"}, nil
+		default:
+			return nil, fmt.Errorf("%w: a bisect moves on by a verdict, good or bad, not by continuing",
+				ErrActionUnavailable)
 		}
-		// Not `--abort`, which git does not have here. `reset` checks the
-		// original branch back out and forgets every verdict given so far.
-		return []string{"bisect", "reset"}, nil
 
 	case OperationRebase:
 		// --abort returns to the branch the rebase started from, discarding
@@ -195,10 +220,15 @@ func (r *Runner) ActOnOperation(ctx context.Context, dir string, operation Opera
 // is refused rather than quietly doing something else.
 //
 // Continue first, because it is what somebody who resolved their conflict
-// wants and it is the only one of the three that destroys nothing.
+// wants and it is the only one of the three that destroys nothing. A bisect's
+// verdicts come first for the same reason.
 func Actions(operation Operation) []Action {
+	order := []Action{ActionContinue, ActionSkip, ActionAbort}
+	if operation == OperationBisect {
+		order = []Action{ActionGood, ActionBad, ActionSkip, ActionAbort}
+	}
 	var available []Action
-	for _, action := range []Action{ActionContinue, ActionSkip, ActionAbort} {
+	for _, action := range order {
 		if _, err := ActionArgs(operation, action); err == nil {
 			available = append(available, action)
 		}
@@ -210,7 +240,15 @@ func Actions(operation Operation) []Action {
 // interface has to ask before running it.
 //
 // Here rather than in the browser because it is a fact about git, not about a
-// screen: continuing records what was resolved and moves on, while the other
-// two exist precisely to throw something away. A dialog that decided this for
-// itself could be talked out of asking by a refactor; this cannot.
-func Destroys(action Action) bool { return action != ActionContinue }
+// screen: continuing and the two verdicts record a decision and move on, while
+// abort and skip exist precisely to throw something away. A dialog that
+// decided this for itself could be talked out of asking by a refactor; this
+// cannot.
+func Destroys(action Action) bool {
+	switch action {
+	case ActionContinue, ActionGood, ActionBad:
+		return false
+	default:
+		return true
+	}
+}

@@ -20,6 +20,9 @@ type Conditions = {
   resetRefusal?: string;
   rewriting?: boolean;
   rewriteRefusal?: string;
+  startingBisect?: boolean;
+  startBisectRefusal?: string;
+  withBisect?: boolean;
 };
 
 function items(conditions: Conditions = {}) {
@@ -30,6 +33,9 @@ function items(conditions: Conditions = {}) {
     onRewrite: () => undefined,
     rewriting: conditions.rewriting ?? false,
     rewriteRefusal: conditions.rewriteRefusal,
+    onStartBisect: conditions.withBisect === false ? undefined : () => undefined,
+    startingBisect: conditions.startingBisect ?? false,
+    startBisectRefusal: conditions.startBisectRefusal,
   });
 }
 
@@ -37,12 +43,13 @@ describe('commitMenuItems', () => {
   it('reads from the reversible to the ruinous', () => {
     expect(items().map((item) => item.label)).toEqual([
       'Reset the current branch to this…',
+      'Bisect from here to HEAD…',
       'Rewrite the commits after this…',
     ]);
   });
 
   it('reddens the rewrite and not the reset', () => {
-    const [reset, rewrite] = items();
+    const [reset, , rewrite] = items();
 
     // A rewrite always writes the commits after this one again under new
     // hashes. A reset is soft, mixed or hard, and which of the three it is
@@ -59,9 +66,14 @@ describe('commitMenuItems', () => {
   });
 
   it('refuses an operation whose plan is already being read', () => {
-    const [reset, rewrite] = items({ resetting: true, rewriting: true });
+    const [reset, bisect, rewrite] = items({
+      resetting: true,
+      rewriting: true,
+      startingBisect: true,
+    });
 
     expect(reset?.reason).toBe('Reading what this reset would do');
+    expect(bisect?.reason).toBe('Reading what starting a bisect would run');
     expect(rewrite?.reason).toBe('Reading what this rewrite would do');
   });
 
@@ -79,6 +91,9 @@ describe('commitMenuItems', () => {
       onRewrite: undefined,
       rewriting: false,
       rewriteRefusal: undefined,
+      onStartBisect: undefined,
+      startingBisect: false,
+      startBisectRefusal: undefined,
     });
 
     expect(none).toEqual([]);

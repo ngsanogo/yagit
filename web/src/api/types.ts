@@ -906,12 +906,12 @@ export type Operation =
 /**
  * What can be done about an operation in progress.
  *
- * git's own three flags, and the whole vocabulary: there is no fourth thing to
- * do about a stopped rebase. Which of them apply to which operation is the
- * daemon's to say — `git merge --skip` does not exist — and it says so in the
- * plan rather than leaving the browser to keep a second copy of the table.
+ * Sequencer operations take abort / continue / skip; a bisect takes good /
+ * bad / skip / abort. Which of them apply to which operation is the daemon's
+ * to say — `git merge --skip` does not exist — and it says so in the plan
+ * rather than leaving the browser to keep a second copy of the table.
  */
-export type OperationAction = 'abort' | 'continue' | 'skip';
+export type OperationAction = 'abort' | 'continue' | 'skip' | 'good' | 'bad';
 
 /** What one instruction would run, asked before the confirmation opens. */
 export interface OperationPlan {
@@ -971,6 +971,12 @@ export interface RepositoryState {
    * explanation and the route's refusal cannot drift apart.
    */
   blocked?: Partial<Record<OperationAction, string>>;
+
+  /**
+   * What a bisect found, once it has: the first bad commit, which git wrote
+   * to its log at the verdict that ended the search. Absent while searching.
+   */
+  first_bad?: { sha: string; subject: string };
 }
 
 /** Where HEAD is, how it stands against its upstream, and what differs. */

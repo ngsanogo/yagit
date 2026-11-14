@@ -132,6 +132,16 @@ interface CommitDetailsProps {
   rewriting?: boolean;
   /** Why rewriting is refused right now, or undefined when it is offered. */
   rewriteRefusal?: string;
+  /**
+   * Starts a bisect between this commit, as the one that still worked, and
+   * HEAD, or undefined where no repository of this shape could ever do it —
+   * same bare-repository rule as onCherryPick.
+   */
+  onStartBisect?: () => void;
+  /** Whether that bisect-start plan is being read. */
+  startingBisect?: boolean;
+  /** Why starting a bisect is refused right now, or undefined when offered. */
+  startBisectRefusal?: string;
   /** Opens the history of a path in this commit's tree. */
   onFileHistory?: (path: string) => void;
   /** Opens the blame of a path at this commit. */
@@ -158,6 +168,9 @@ export function CommitDetails({
   onRewrite,
   rewriting = false,
   rewriteRefusal,
+  onStartBisect,
+  startingBisect = false,
+  startBisectRefusal,
   onFileHistory,
   onBlame,
 }: CommitDetailsProps) {
@@ -169,6 +182,9 @@ export function CommitDetails({
     onRewrite,
     rewriting,
     rewriteRefusal,
+    onStartBisect,
+    startingBisect,
+    startBisectRefusal,
   });
 
   return (
@@ -667,6 +683,9 @@ export function commitMenuItems({
   onRewrite,
   rewriting,
   rewriteRefusal,
+  onStartBisect,
+  startingBisect,
+  startBisectRefusal,
 }: {
   onReset: (() => void) | undefined;
   resetting: boolean;
@@ -674,6 +693,9 @@ export function commitMenuItems({
   onRewrite: (() => void) | undefined;
   rewriting: boolean;
   rewriteRefusal: string | undefined;
+  onStartBisect: (() => void) | undefined;
+  startingBisect: boolean;
+  startBisectRefusal: string | undefined;
 }): MenuItem[] {
   const items: MenuItem[] = [];
 
@@ -682,6 +704,20 @@ export function commitMenuItems({
       menuItem(
         { id: 'reset', label: 'Reset the current branch to this…', onSelect: onReset },
         resetRefusal ?? (resetting ? 'Reading what this reset would do' : undefined),
+      ),
+    );
+  }
+
+  if (onStartBisect !== undefined) {
+    items.push(
+      menuItem(
+        {
+          id: 'bisect-start',
+          label: 'Bisect from here to HEAD…',
+          onSelect: onStartBisect,
+        },
+        startBisectRefusal ??
+          (startingBisect ? 'Reading what starting a bisect would run' : undefined),
       ),
     );
   }

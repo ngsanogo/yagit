@@ -1315,6 +1315,28 @@ export const api = {
       body: JSON.stringify({ action, operation, identity }),
     }),
 
+  /** What beginning a bisect would run. */
+  planStartBisect: (id: string, bad?: string, good?: string[]) =>
+    request<{ command: string }>(`/api/repos/${id}/bisect/start/plan`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        bad: bad ?? '',
+        good: good ?? [],
+      }),
+    }),
+
+  /** Begins a bisect, optionally with the bad and good ends named. */
+  startBisect: (id: string, bad?: string, good?: string[]) =>
+    request<WorkingDirectory>(`/api/repos/${id}/bisect/start`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        bad: bad ?? '',
+        good: good ?? [],
+      }),
+    }),
+
   /**
    * Takes one side of a conflict whole, and marks it resolved.
    *
