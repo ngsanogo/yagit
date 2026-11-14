@@ -21,6 +21,13 @@ type mergetoolRequest struct {
 	Path string `json:"path"`
 }
 
+// mergetoolPlan is the line, and the tool it will open, for a confirmation
+// that names the program about to take over the file.
+type mergetoolPlan struct {
+	Command string `json:"command"`
+	Tool    string `json:"tool"`
+}
+
 // handlePlanMergetool says what launching the mergetool would run.
 func (s *Server) handlePlanMergetool(writer http.ResponseWriter, request *http.Request) {
 	opened, path, ok := s.readMergetoolPath(writer, request)
@@ -31,8 +38,14 @@ func (s *Server) handlePlanMergetool(writer http.ResponseWriter, request *http.R
 		writeError(writer, s.logger, statusForMergetoolError(err), err)
 		return
 	}
-	writeJSON(writer, s.logger, http.StatusOK, plannedCommand{
+	tool, err := s.runner.ConfiguredMergeTool(request.Context(), opened.Path)
+	if err != nil {
+		writeError(writer, s.logger, statusForMergetoolError(err), err)
+		return
+	}
+	writeJSON(writer, s.logger, http.StatusOK, mergetoolPlan{
 		Command: git.CommandLine(git.MergeToolArgs(path)),
+		Tool:    tool,
 	})
 }
 
@@ -99,7 +112,7 @@ func (s *Server) requireConflicted(request *http.Request, dir, path string) erro
 
 func statusForMergetoolError(err error) int {
 	switch {
-	case errors.Is(err, errNotConflicted):
+	case errors.Is(err, errNotConflicted), errors.Is(err, git.ErrNoMergeTool):
 		return http.StatusConflict
 	default:
 		return statusForOperationError(err)

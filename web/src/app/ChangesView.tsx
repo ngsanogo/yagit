@@ -97,7 +97,11 @@ export function ChangesView({
    * same shape as discard: the dialog's whole content is the command the
    * daemon named.
    */
-  const [pendingMergetool, setPendingMergetool] = useState<{ path: string; command: string }>();
+  const [pendingMergetool, setPendingMergetool] = useState<{
+    path: string;
+    command: string;
+    tool: string;
+  }>();
 
   /**
    * Which face of the chosen file the right pane shows.
@@ -345,7 +349,7 @@ export function ChangesView({
    */
   function proposeMergetool(path: string) {
     operations.mergetoolPlan.mutate(path, {
-      onSuccess: ({ command }) => setPendingMergetool({ path, command }),
+      onSuccess: ({ command, tool }) => setPendingMergetool({ path, command, tool }),
       onError: (error) => report('read what the mergetool would run', error),
     });
   }
@@ -703,8 +707,8 @@ export function ChangesView({
       {pendingMergetool !== undefined && (
         <ConfirmDialog
           open
-          title={`Open mergetool for ${pendingMergetool.path}?`}
-          description="Launches the merge tool configured in git for this path. The tool writes the file and typically stages it when it exits cleanly; unsaved edits in this pane are not sent to it."
+          title={`Open ${pendingMergetool.tool} for ${pendingMergetool.path}?`}
+          description={`git hands the file to ${pendingMergetool.tool}, the merge.tool configured here, and yagit waits until it closes. What the tool saves is what the file becomes, and git stages it when the tool reports success. Unsaved edits in this pane are not sent to it.`}
           command={pendingMergetool.command}
           confirmLabel="Open mergetool"
           busy={operations.mergetool.isPending}

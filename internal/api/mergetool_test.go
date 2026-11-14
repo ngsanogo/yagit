@@ -12,10 +12,12 @@ import (
 // wireMergetoolPlan mirrors what POST /mergetool/plan sends.
 type wireMergetoolPlan struct {
 	Command string `json:"command"`
+	Tool    string `json:"tool"`
 }
 
-func TestMergetoolPlanNamesTheExactCommand(t *testing.T) {
-	handler, id, _ := conflictedRepository(t)
+func TestMergetoolPlanNamesTheExactCommandAndTheTool(t *testing.T) {
+	handler, id, path := conflictedRepository(t)
+	installFakeMergetool(t, path)
 
 	response := postJSON(t, handler, "/api/repos/"+id+"/mergetool/plan", `{"path":"f.txt"}`)
 	if response.Code != http.StatusOK {
@@ -24,6 +26,28 @@ func TestMergetoolPlanNamesTheExactCommand(t *testing.T) {
 	plan := decode[wireMergetoolPlan](t, response)
 	if plan.Command != "git mergetool -y -- ':(literal)f.txt'" {
 		t.Fatalf("command = %q", plan.Command)
+	}
+	if plan.Tool != "fake" {
+		t.Fatalf("tool = %q, want the configured merge.tool", plan.Tool)
+	}
+}
+
+// Without merge.tool git guesses from its own list, and a terminal tool it
+// finds first would wait on a stdin nobody can type into.
+func TestMergetoolRefusesWhereNoToolIsConfigured(t *testing.T) {
+	handler, id, path := conflictedRepository(t)
+
+	for _, route := range []string{"/mergetool/plan", "/mergetool"} {
+		response := postJSON(t, handler, "/api/repos/"+id+route, `{"path":"f.txt"}`)
+		if response.Code != http.StatusConflict {
+			t.Fatalf("%s: status = %d, want 409: %s", route, response.Code, response.Body)
+		}
+		if !strings.Contains(response.Body.String(), "merge.tool") {
+			t.Fatalf("%s: the refusal does not name the setting: %s", route, response.Body)
+		}
+	}
+	if got := readInRepo(t, path, "f.txt"); !strings.Contains(got, "<<<<<<<") {
+		t.Fatalf("f.txt = %q, want the conflict left as it was", got)
 	}
 }
 

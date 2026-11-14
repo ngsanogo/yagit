@@ -48,7 +48,9 @@ step.
   three buttons between them. Taking a side rewrites the buffer and is
   reversible until the save; taking a side of the whole file goes through
   `git checkout --ours`. Editing by hand is the third way, and the pane refuses
-  to stage a file with a marker still in it
+  to stage a file with a marker still in it. Where `merge.tool` is set, the
+  path can be handed to it instead through `git mergetool`, and the request
+  waits for the tool to close
 .
 
 ## Moving history
