@@ -286,6 +286,14 @@ func inheritedNames(goos string) []string {
 			// push fails with an authentication error on a machine whose
 			// credentials are stored and working.
 			"DBUS_SESSION_BUS_ADDRESS",
+
+			// The display a graphical mergetool opens on. Without these,
+			// `git mergetool` launches meld or kdiff3 into a void and the
+			// request hangs until the rewrite deadline — on a machine where
+			// the same tool works from the user's own terminal.
+			"DISPLAY",
+			"WAYLAND_DISPLAY",
+			"XAUTHORITY",
 		)
 	}
 

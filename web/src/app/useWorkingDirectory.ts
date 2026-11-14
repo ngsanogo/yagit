@@ -260,6 +260,28 @@ export function useWorktreeOperations(repositoryId: string) {
     },
   });
 
+  /**
+   * Asks what launching the mergetool would run, so the confirmation can show
+   * the line. Settles nothing: the answer is only true for the path that
+   * produced it.
+   */
+  const mergetoolPlan = useMutation({
+    mutationFn: (path: string) => api.planMergetool(repositoryId, path),
+  });
+
+  /**
+   * Runs the configured mergetool over one conflicted path. The file on disk
+   * is replaced by whatever the tool wrote, so its cache entry is dropped the
+   * same way a whole-file resolve drops it.
+   */
+  const mergetool = useMutation({
+    mutationFn: (path: string) => api.mergetool(repositoryId, path),
+    onSuccess: async (status, path) => {
+      await queryClient.invalidateQueries({ queryKey: ['file', repositoryId, path] });
+      await settle(status);
+    },
+  });
+
   const commit = useMutation({
     mutationFn: ({ message, amend }: { message: string; amend: boolean }) =>
       api.commit(repositoryId, message, amend),
@@ -280,7 +302,17 @@ export function useWorktreeOperations(repositoryId: string) {
     },
   });
 
-  return { stage, unstage, discard, discardPlan, save, resolve, commit };
+  return {
+    stage,
+    unstage,
+    discard,
+    discardPlan,
+    save,
+    resolve,
+    mergetoolPlan,
+    mergetool,
+    commit,
+  };
 }
 
 /**

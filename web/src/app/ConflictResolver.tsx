@@ -48,6 +48,11 @@ interface ConflictResolverProps {
    * merge, and a note that does not follow the operation names the wrong side.
    */
   operation: Operation;
+  /**
+   * Opens the confirmation that launches the configured mergetool for this
+   * path, or undefined where that escape hatch is not offered.
+   */
+  onMergetool?: () => void;
 }
 
 /**
@@ -60,12 +65,35 @@ interface ConflictResolverProps {
  */
 const CONTEXT_LINES = 3;
 
-export function ConflictResolver({ text, onChange, busy, operation }: ConflictResolverProps) {
+export function ConflictResolver({
+  text,
+  onChange,
+  busy,
+  operation,
+  onMergetool,
+}: ConflictResolverProps) {
   const { blocks, skippedAfter } = layOutConflicts(text, CONTEXT_LINES);
   const notes = conflictSideNotes(operation);
 
   return (
     <div className="min-h-0 flex-1 overflow-auto">
+      {onMergetool !== undefined && (
+        <div className="flex items-center gap-2 border-b border-line bg-sunken px-3 py-1.5">
+          <span className="text-2xs text-ink-muted">
+            Prefer a tool already configured on this machine?
+          </span>
+          <Button
+            size="sm"
+            variant="ghost"
+            className="ml-auto"
+            disabled={busy}
+            onClick={onMergetool}
+          >
+            Open mergetool…
+          </Button>
+        </div>
+      )}
+
       {blocks.map((block, position) => (
         <RegionView
           // Regions have no identity of their own, and the whole list is

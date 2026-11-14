@@ -1290,6 +1290,33 @@ export const api = {
       body: JSON.stringify({ paths, side }),
     }),
 
+  /**
+   * What launching the configured mergetool for one conflicted path would run.
+   */
+  planMergetool: (id: string, path: string) =>
+    request<{ command: string; tool: string }>(`/api/repos/${id}/mergetool/plan`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ path }),
+    }),
+
+  /**
+   * Runs the configured mergetool over one conflicted path, then returns the
+   * status — the tool typically stages the file when it exits cleanly.
+   *
+   * The long deadline: the request lasts as long as somebody works in the
+   * tool, which the daemon bounds at its ten-minute rewrite deadline. The
+   * ordinary one would give up while the tool was still open, and report a
+   * daemon that had stopped answering.
+   */
+  mergetool: (id: string, path: string) =>
+    request<WorkingDirectory>(`/api/repos/${id}/mergetool`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ path }),
+      timeoutMs: NETWORK_TIMEOUT_MS,
+    }),
+
   commit: (id: string, message: string, amend: boolean) =>
     request<CommitResult>(`/api/repos/${id}/commit`, {
       method: 'POST',

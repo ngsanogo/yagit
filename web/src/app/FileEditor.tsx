@@ -70,6 +70,11 @@ interface FileEditorProps {
   onKeepWholeFile: (path: string, side: ConflictSide, onSettled: () => void) => void;
   /** `git add`, which is what marks a hand-resolved file resolved. */
   onStage: (path: string) => void;
+  /**
+   * Opens the confirmation that launches the configured mergetool for this
+   * path. Optional so callers that have no route yet still mount the editor.
+   */
+  onMergetool?: () => void;
 }
 
 export function FileEditor({
@@ -80,6 +85,7 @@ export function FileEditor({
   onSave,
   onKeepWholeFile,
   onStage,
+  onMergetool,
 }: FileEditorProps) {
   const opened = useWorkFile(repositoryId, file.path);
 
@@ -199,6 +205,9 @@ export function FileEditor({
           onRevert={() => setDraft(undefined)}
           onKeepWholeFile={(side) => setKeeping({ side, running: false })}
           onStage={() => onStage(file.path)}
+          // Guided view draws the mergetool escape on ConflictResolver; the
+          // text view has no regions strip, so the button lives here instead.
+          onMergetool={showing === 'text' ? onMergetool : undefined}
           operation={operation}
         />
 
@@ -210,7 +219,13 @@ export function FileEditor({
         )}
 
         {showing === 'guided' ? (
-          <ConflictResolver text={text} onChange={setDraft} busy={busy} operation={operation} />
+          <ConflictResolver
+            text={text}
+            onChange={setDraft}
+            busy={busy}
+            operation={operation}
+            onMergetool={onMergetool}
+          />
         ) : (
           <TextView text={text} onChange={setDraft} />
         )}
@@ -459,6 +474,7 @@ function Header({
   onRevert,
   onKeepWholeFile,
   onStage,
+  onMergetool,
   operation,
 }: {
   content: WorkFile;
@@ -473,6 +489,7 @@ function Header({
   onRevert: () => void;
   onKeepWholeFile: (side: ConflictSide) => void;
   onStage: () => void;
+  onMergetool?: () => void;
   operation: Operation;
 }) {
   const notes = conflictSideNotes(operation);
@@ -569,6 +586,11 @@ function Header({
           </div>
 
           <span className="ml-auto flex items-center gap-2">
+            {onMergetool !== undefined && (
+              <Button size="sm" variant="ghost" disabled={busy} onClick={onMergetool}>
+                Open mergetool…
+              </Button>
+            )}
             {/* What actually ends a conflict: `git add` collapses the three
                 index stages into one. Saving the file does not, which is why
                 this is a separate button and not a step inside Save.

@@ -74,6 +74,9 @@ func writesTheIndex(args []string) bool {
 	switch subcommandOf(args) {
 	case "add", "commit", "switch", "checkout", "restore", "reset",
 		"merge", "rebase", "cherry-pick", "revert", "rm", "mv", "clean", "am",
+		// mergetool writes the resolved file and stages it; a concurrent
+		// commit on the same path would race the index the same way.
+		"mergetool",
 		// pull integrates into the work tree and takes .git/index.lock the
 		// same way merge does. Leaving it out let a commit start on top of a
 		// pull and fail on the lock — or worse, interleave — which is the
