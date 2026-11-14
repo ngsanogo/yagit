@@ -30,8 +30,10 @@ import { ChangesView } from './ChangesView';
 import { HistoryView, type Inspected } from './HistoryView';
 import { OperationBanner } from './OperationBanner';
 import { RemoteActions } from './RemoteActions';
+import { Onboarding } from './Onboarding';
 import {
   applyTheme,
+  readOnboardingDone,
   readStoredActivePath,
   readStoredPaths,
   readStoredTheme,
@@ -79,6 +81,7 @@ const NONE: Repository[] = [];
 export function Workbench() {
   const [activeId, setActiveId] = useState<string>();
   const [showingLog, setShowingLog] = useState(false);
+  const [onboardingDone, setOnboardingDone] = useState(() => readOnboardingDone());
   const queryClient = useQueryClient();
   /** False until the first restore pass finishes — including "nothing to restore". */
   const sessionReady = useRef(false);
@@ -352,14 +355,21 @@ export function Workbench() {
         <Centered>
           <EmptyState
             icon={<RepositoryIcon size={20} />}
-            title="No repository open"
-            description="Pick a repository from the scan, clone one, or open one by path. The daemon only reads inside the allowed root it was started with."
+            title={onboardingDone ? 'No repository open' : 'Welcome to yagit'}
+            description={
+              onboardingDone
+                ? 'Pick a repository from the scan, clone one, or open one by path. The daemon only reads inside the allowed root it was started with.'
+                : 'Two things are worth knowing before the first repository opens.'
+            }
             action={
               // A surface of its own for the form, because it is the whole
               // screen: three tabs and a list drawn straight on the canvas
               // read as a page that has not finished loading.
-              <div className="w-full max-w-xl rounded-lg border border-line bg-surface p-4 text-left shadow-panel">
-                <AddRepository />
+              <div className="flex w-full max-w-xl flex-col gap-4">
+                {!onboardingDone && <Onboarding onContinue={() => setOnboardingDone(true)} />}
+                <div className="rounded-lg border border-line bg-surface p-4 text-left shadow-panel">
+                  <AddRepository />
+                </div>
               </div>
             }
           />

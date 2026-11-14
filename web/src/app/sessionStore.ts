@@ -14,6 +14,7 @@ const PATHS_KEY = 'yagit.open-paths';
 const ACTIVE_KEY = 'yagit.active-path';
 const THEME_KEY = 'yagit.theme';
 const SCOPE_KEY = 'yagit.history-scope';
+const ONBOARDING_KEY = 'yagit.onboarding-done';
 
 /** What actually gets painted. `data-theme` is always one of these two. */
 export type Theme = 'dark' | 'light';
@@ -187,6 +188,28 @@ export function writeStoredScope(path: string, scope: 'head' | 'all' | 'refs'): 
       raw === null ? {} : (JSON.parse(raw) as Record<string, string>);
     parsed[path] = scope;
     localStorage.setItem(SCOPE_KEY, JSON.stringify(parsed));
+  } catch {
+    // Preference lost on reload.
+  }
+}
+
+/**
+ * Whether the first-run welcome has been dismissed.
+ *
+ * Stored as the presence of the key. Absence means show the welcome once;
+ * after that the empty state is the ordinary "no repository open" screen.
+ */
+export function readOnboardingDone(): boolean {
+  try {
+    return localStorage.getItem(ONBOARDING_KEY) === '1';
+  } catch {
+    return false;
+  }
+}
+
+export function writeOnboardingDone(): void {
+  try {
+    localStorage.setItem(ONBOARDING_KEY, '1');
   } catch {
     // Preference lost on reload.
   }
