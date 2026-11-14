@@ -32,25 +32,26 @@ already runs is allowed **only** via an **OSI-licensed** path we ship. We do
 
 ## Official default stack (OSI)
 
-| Piece     | Choice                                              | License            |
-| --------- | --------------------------------------------------- | ------------------ |
-| App       | yagit                                               | MIT                |
-| Language  | Go (toolchain pinned in `mise.toml`)                | BSD-3-Clause       |
-| Frontend  | React / TypeScript / Vite (see `web/package.json`)  | MIT (typical)      |
-| Toolchain | mise                                                | MIT                |
-| VCS       | The operator's `git` on PATH                        | GPL-2.0 (upstream) |
+| Piece     | Choice                                    | License            |
+| --------- | ----------------------------------------- | ------------------ |
+| App       | yagit                                     | MIT                |
+| Language  | Go (toolchain pinned in `mise.toml`)      | BSD-3-Clause       |
+| UI        | React, Vite (see `web/package.json`)      | MIT                |
+| Types     | TypeScript (pinned in `web/package.json`) | Apache-2.0         |
+| Toolchain | mise                                      | MIT                |
+| VCS       | The operator's `git` on PATH              | GPL-2.0 (upstream) |
 
 **Prefer** free, redistributable tooling — not a proprietary desktop runtime as
 a **requirement**. Documented alternatives are fine.
 
 ## Explicitly out of the default path
 
-| Product / pattern                                          | Why                         |
-| ---------------------------------------------------------- | --------------------------- |
-| Non-OSI “community” editions with SSPL/BSL traps           | Legal surface               |
-| Proprietary SDKs or commercial “Pro” libraries             | Proprietary                 |
-| License servers, phone-home entitlement checks             | Paid-lock pattern           |
-| Telemetry on by default                                    | Privacy; SDKs must be OSI and **opt-in** if present |
+| Product / pattern                                | Why                                                 |
+| ------------------------------------------------ | --------------------------------------------------- |
+| Non-OSI “community” editions with SSPL/BSL traps | Legal surface                                       |
+| Proprietary SDKs or commercial “Pro” libraries   | Proprietary                                         |
+| License servers, phone-home entitlement checks   | Paid-lock pattern                                   |
+| Telemetry on by default                          | Privacy; SDKs must be OSI and **opt-in** if present |
 
 ## How to add a dependency or stack piece
 
