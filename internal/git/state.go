@@ -515,6 +515,11 @@ func editsTheMessage(arguments string) bool {
 
 // bisectResult reads the first bad commit a finished bisect wrote to its log.
 //
+// The line is `# first bad commit: [<sha>] <subject>` up to git 2.54, and
+// `# first 'bad' commit: …` from the release after, which quotes the term;
+// a bisect started with its own terms writes that term instead of bad. So
+// the term between "first" and "commit" is skipped rather than spelled.
+//
 // The last such line wins: a `git bisect replay` of an old log can carry an
 // earlier answer above a later one. Anything that does not parse is no answer
 // rather than an error, because the log is git's to change and an unreadable
@@ -526,21 +531,24 @@ func bisectResult(logPath string) *BisectResult {
 		// itself was already established from the file existing.
 		return nil
 	}
-	const marker = "# first bad commit: ["
 	var found *BisectResult
 	for _, line := range strings.Split(string(content), "\n") {
-		rest, ok := strings.CutPrefix(line, marker)
+		rest, ok := strings.CutPrefix(line, "# first ")
 		if !ok {
 			continue
 		}
-		sha, subject, ok := strings.Cut(rest, "] ")
+		_, named, ok := strings.Cut(rest, " commit: [")
 		if !ok {
-			sha, ok = strings.CutSuffix(rest, "]")
+			continue
+		}
+		sha, subject, ok := strings.Cut(named, "] ")
+		if !ok {
+			sha, ok = strings.CutSuffix(named, "]")
 			if !ok {
 				continue
 			}
 		}
-		if checkRevision(sha) != nil || sha == "" {
+		if sha == "" || checkRevision(sha) != nil {
 			continue
 		}
 		found = &BisectResult{SHA: sha, Subject: subject}

@@ -475,6 +475,27 @@ func TestAFinishedBisectNamesItsFirstBadCommit(t *testing.T) {
 	}
 }
 
+// git quotes the term from the release after 2.54, and a bisect with terms of
+// its own names them; the answer is read the same from every form.
+func TestTheFirstBadCommitIsReadWhateverTheTermIsCalled(t *testing.T) {
+	const sha = "422f9d2e5227f12748808bc3e1206259635eeeb1"
+	for _, line := range []string{
+		"# first bad commit: [" + sha + "] c4",
+		"# first 'bad' commit: [" + sha + "] c4",
+		"# first 'broken' commit: [" + sha + "] c4",
+	} {
+		state, err := git.ReadState(stateDir(t, map[string]string{
+			"BISECT_LOG": "git bisect start\n" + line + "\n",
+		}))
+		if err != nil {
+			t.Fatalf("ReadState: %v", err)
+		}
+		if state.FirstBad == nil || state.FirstBad.SHA != sha || state.FirstBad.Subject != "c4" {
+			t.Errorf("%q: FirstBad = %+v, want %s c4", line, state.FirstBad, sha)
+		}
+	}
+}
+
 func TestABisectStillSearchingHasNoAnswer(t *testing.T) {
 	state, err := git.ReadState(stateDir(t, map[string]string{"BISECT_LOG": "git bisect start\n"}))
 	if err != nil {
