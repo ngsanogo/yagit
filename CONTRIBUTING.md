@@ -10,7 +10,7 @@ it as blocked. Full rules: [`OPEN_SOURCE_POLICY.md`](OPEN_SOURCE_POLICY.md).
 ## Getting set up
 
 One prerequisite: [mise](https://mise.jdx.dev). Nothing else — `./do` is a
-POSIX `sh` shim over a Go program, and on Windows `do.cmd` beside it does the
+POSIX `sh` shim over `mise run`, and on Windows `do.cmd` beside it does the
 same job. Full setup, the command table, and the git version bars are in
 [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md).
 

@@ -66,15 +66,15 @@ Read downwards. Every dependency points down the list, and none points back up.
 
 ```
 web       the React frontend               → api, over HTTP
-api       routes, authentication, errors   → history, repo, git, watch
+api       routes, authentication, errors   → history, repo, git, watch, edit
 history   the assigned history, held       → graph, repo, git
 graph     lane assignment, pure            → git
 repo      open repositories, the boundary  → git
 watch     the git directories, watched     → fsnotify, nothing of yagit's
 edit      work-tree files, read and written → nothing
 git       exec and parsing                 → nothing else in the project
-session   the token, minted and checked    → nothing; used by both cmd/
-protect   owner-only lockdown for secrets  → nothing; used by both cmd/
+session   the token, minted and checked    → nothing; used by cmd/yagit
+protect   owner-only lockdown for secrets  → nothing; used by cmd/yagit
 ```
 
 `internal/git` knows nothing about HTTP; `internal/api` never spawns a
@@ -93,7 +93,7 @@ else.
 | `internal/api` | HTTP surface, authentication, error shape. |
 | `internal/assets` | The built frontend, embedded through `//go:embed`. |
 | `internal/session` | The session token: minted and checked in one place, for the daemon and for `./do`. |
-| `internal/publicurl` | The address a reverse proxy serves yagit at, checked and turned into the origin a browser presents — one rule for `./do` and the daemon. |
+| `internal/publicurl` | The address a reverse proxy serves yagit at, checked and turned into the origin a browser presents. |
 | `internal/protect` | Owner-only lockdown for secrets — chmod on Unix, an explicit ACL on Windows. |
 | `web/src/design` | Tokens and the design system showcase. |
 | `web/src/components` | Base components. |
@@ -155,7 +155,8 @@ Machine-readable formats throughout:
   the files differ, which is the case it exists for, so 1 is listed as a
   success code rather than checked for afterwards.
 - One commit:
-  `git log -1 --pretty=format:'%H%x00%P%x00%an%x00%aI%x00%cn%x00%cI%x00%D%x00%B'`
+  `git log -1 --decorate=short --pretty=format:'%H%x00%P%x00%an%x00%aI%x00%cn%x00%cI%x00%D%x00%G?%x00%GS%x00%B'`
+  — `%G?` and `%GS` are git's own verdict on the signature and who made it —
   and then `git show --format= --patch`. Two reads rather than one, because
   `git show` prints the message and the patch together and telling where one
   ends means either trusting a message not to look like a diff — it can — or

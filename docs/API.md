@@ -4,19 +4,19 @@ The daemon serves one JSON API on the loopback, under `/api`. This document is
 the map: what the routes are, how a client gets in, and what a failure looks
 like on the way out.
 
-**It does not list payload fields.** Those are declared once, in
+**It does not list response fields.** Those are declared once, in
 [`web/src/api/types.ts`](../web/src/api/types.ts), and that file is the
 contract — a second copy here would be a second definition to keep in step.
-Read it beside this page.
+Read it beside this page. A route's request body is shown where it has one,
+because that is what calling it with curl needs.
 
 ## Getting in
 
 Every route below `/api` requires the session token. The daemon never prints
 the token. Under `./do` it lives in `.yagit/session-token`, is kept across
-restarts, and `./do token --new` replaces it. `./do token` prints it once
-the stack has answered it — a stack that is down, still starting, or running
-on a different token is reported in those words instead of handing you a
-secret that opens nothing.
+restarts, and `./do token --new` replaces it. `./do token` prints it, and
+mints it first when the checkout has none yet; a stack started before a
+`--new` still runs on the old one until it is restarted.
 
 ```sh
 TOKEN=$(./do token)
