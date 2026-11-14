@@ -22,6 +22,8 @@ import (
 // "unreadable file header" for the file, for its diff on all three sides, and
 // for every commit that touches it.
 func TestDiffOfANonASCIIName(t *testing.T) {
+	t.Parallel()
+
 	dir, runner := workingDirectory(t)
 	ctx := context.Background()
 
@@ -75,6 +77,8 @@ func TestDiffOfANonASCIIName(t *testing.T) {
 // patch reader can find where the name ends. Kept, the payload names a path
 // the status list never mentioned.
 func TestDiffKeepsTheNameGitDisambiguatesWithATab(t *testing.T) {
+	t.Parallel()
+
 	dir, runner := workingDirectory(t)
 	ctx := context.Background()
 
@@ -116,6 +120,8 @@ func TestDiffKeepsTheNameGitDisambiguatesWithATab(t *testing.T) {
 // `a/`…`b/` this package parses back out. Unpinned, one line in a user's
 // ~/.gitconfig makes every diff in the interface unreadable.
 func TestDiffPinsThePathPrefixesAgainstUserConfiguration(t *testing.T) {
+	t.Parallel()
+
 	for _, setting := range []string{"diff.mnemonicPrefix", "diff.noprefix"} {
 		t.Run(setting, func(t *testing.T) {
 			dir, runner := workingDirectory(t)
@@ -143,6 +149,8 @@ func TestDiffPinsThePathPrefixesAgainstUserConfiguration(t *testing.T) {
 // one of those lines writes an index holding neither HEAD's content nor the
 // work tree's.
 func TestDiffOfAStagedRenameKeepsBothNames(t *testing.T) {
+	t.Parallel()
+
 	dir, runner := workingDirectory(t)
 	ctx := context.Background()
 
@@ -176,6 +184,8 @@ func TestDiffOfAStagedRenameKeepsBothNames(t *testing.T) {
 // reason to stderr and nothing to standard output. Taking the second for an
 // empty diff draws "no change here" over git's own explanation.
 func TestUntrackedDiffOfAPathGitCannotOpenFails(t *testing.T) {
+	t.Parallel()
+
 	dir, runner := workingDirectory(t)
 	ctx := context.Background()
 
@@ -197,6 +207,8 @@ func TestUntrackedDiffOfAPathGitCannotOpenFails(t *testing.T) {
 // refusing the one legitimate near-empty answer: git still writes a header for
 // a file with no content in it.
 func TestUntrackedDiffOfAnEmptyFileIsNotAFailure(t *testing.T) {
+	t.Parallel()
+
 	dir, runner := workingDirectory(t)
 	writeFile(t, dir, "empty.txt", "")
 
@@ -216,7 +228,8 @@ func TestUntrackedDiffOfAnEmptyFileIsNotAFailure(t *testing.T) {
 // `@@@` hunk headers, which are not a unified diff, and no hand-resolved merge
 // commit can be opened at all.
 func TestShowOfAMergeIgnoresLogDiffMerges(t *testing.T) {
-	isolateGitConfiguration(t)
+	t.Parallel()
+
 	dir := t.TempDir()
 	runner := git.NewRunner(nil)
 
@@ -266,6 +279,8 @@ func TestShowOfAMergeIgnoresLogDiffMerges(t *testing.T) {
 // while its row stays selected, so an unbounded read is a daemon that grows
 // until the kernel kills it, taking every open repository's state with it.
 func TestADiffTooLargeToHoldIsRefusedRatherThanHeld(t *testing.T) {
+	t.Parallel()
+
 	dir, runner := workingDirectory(t)
 	ctx := context.Background()
 

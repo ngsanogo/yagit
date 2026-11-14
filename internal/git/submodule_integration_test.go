@@ -95,6 +95,8 @@ func TestSubmodulesReadsWhatIsPinned(t *testing.T) {
 // `git config -f .gitmodules` on a missing file exits 1, and that is the
 // answer here.
 func TestSubmodulesOnARepositoryWithNone(t *testing.T) {
+	t.Parallel()
+
 	dir := initRepo(t)
 	runner := git.NewRunner(nil)
 
@@ -192,6 +194,8 @@ func TestRemoveSubmoduleUnpinsIt(t *testing.T) {
 }
 
 func TestRemoveSubmoduleArgsAreTwoCommands(t *testing.T) {
+	t.Parallel()
+
 	argsets := git.RemoveSubmoduleArgs("vendor/lib", true)
 	if len(argsets) != 2 {
 		t.Fatalf("argsets = %v", argsets)
@@ -228,6 +232,8 @@ func TestSyncSubmodulesCopiesANewURL(t *testing.T) {
 }
 
 func TestAddSubmoduleRefusesEmptyFields(t *testing.T) {
+	t.Parallel()
+
 	runner := git.NewRunner(nil)
 	ctx := context.Background()
 

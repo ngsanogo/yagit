@@ -19,6 +19,8 @@ func statusOutput(records ...string) []byte {
 }
 
 func TestParseStatusEmptyOutput(t *testing.T) {
+	t.Parallel()
+
 	status, err := git.ParseStatus(nil)
 	if err != nil {
 		t.Fatalf("empty output must not be an error: %v", err)
@@ -34,6 +36,8 @@ func TestParseStatusEmptyOutput(t *testing.T) {
 }
 
 func TestParseStatusHeaders(t *testing.T) {
+	t.Parallel()
+
 	status, err := git.ParseStatus(statusOutput(
 		"# branch.oid 876c34abaf1974ba03918bd22071592cf4a7ac3e",
 		"# branch.head main",
@@ -62,6 +66,8 @@ func TestParseStatusHeaders(t *testing.T) {
 }
 
 func TestParseStatusUnbornBranch(t *testing.T) {
+	t.Parallel()
+
 	// The state right after `git init`: a branch name, no commit behind it.
 	status, err := git.ParseStatus(statusOutput(
 		"# branch.oid (initial)",
@@ -84,6 +90,8 @@ func TestParseStatusUnbornBranch(t *testing.T) {
 }
 
 func TestParseStatusDetachedHead(t *testing.T) {
+	t.Parallel()
+
 	status, err := git.ParseStatus(statusOutput(
 		"# branch.oid 876c34abaf1974ba03918bd22071592cf4a7ac3e",
 		"# branch.head (detached)",
@@ -101,6 +109,8 @@ func TestParseStatusDetachedHead(t *testing.T) {
 }
 
 func TestParseStatusOrdinaryEntries(t *testing.T) {
+	t.Parallel()
+
 	const blob = "4cb29ea38f70d7c61b2a3a25b02e3bdf44905402"
 
 	status, err := git.ParseStatus(statusOutput(
@@ -141,6 +151,8 @@ func TestParseStatusOrdinaryEntries(t *testing.T) {
 }
 
 func TestParseStatusRenameCarriesItsOriginPath(t *testing.T) {
+	t.Parallel()
+
 	const blob = "3367afdbbf91e638efe983616377c60477cc6612"
 
 	// The rename spends two records: the entry, then the path it came from.
@@ -176,6 +188,8 @@ func TestParseStatusRenameCarriesItsOriginPath(t *testing.T) {
 }
 
 func TestParseStatusCopyIsNotARename(t *testing.T) {
+	t.Parallel()
+
 	const blob = "3367afdbbf91e638efe983616377c60477cc6612"
 
 	status, err := git.ParseStatus(statusOutput(
@@ -194,6 +208,8 @@ func TestParseStatusCopyIsNotARename(t *testing.T) {
 }
 
 func TestParseStatusRenameWithNoOriginPathIsRefused(t *testing.T) {
+	t.Parallel()
+
 	const blob = "3367afdbbf91e638efe983616377c60477cc6612"
 
 	// Reading the entry without its second record would shift every field
@@ -208,6 +224,8 @@ func TestParseStatusRenameWithNoOriginPathIsRefused(t *testing.T) {
 }
 
 func TestParseStatusUnmergedEntriesReadAsUsAndThem(t *testing.T) {
+	t.Parallel()
+
 	const blob = "3367afdbbf91e638efe983616377c60477cc6612"
 	const stages = blob + " " + blob + " " + blob
 
@@ -251,6 +269,8 @@ func TestParseStatusUnmergedEntriesReadAsUsAndThem(t *testing.T) {
 // checkout --ours` then fails with "does not have our version" on the exact
 // conflict the function is consulted about.
 func TestHasSideFollowsTheConflictAndNotTheLetterD(t *testing.T) {
+	t.Parallel()
+
 	for _, testCase := range []struct {
 		pair   string
 		ours   bool
@@ -285,6 +305,8 @@ func TestHasSideFollowsTheConflictAndNotTheLetterD(t *testing.T) {
 // A path that is not unmerged has no sides at all, so neither answer is yes:
 // the caller would otherwise run `git checkout --ours` on an ordinary file.
 func TestHasSideIsFalseForAPathThatIsNotUnmerged(t *testing.T) {
+	t.Parallel()
+
 	ordinary := git.FileStatus{Kind: git.EntryOrdinary, Index: git.CodeModified, WorkTree: git.CodeUnchanged}
 	if ordinary.HasSide(git.SideOurs) || ordinary.HasSide(git.SideTheirs) {
 		t.Error("an ordinary entry reports a side to keep")
@@ -292,6 +314,8 @@ func TestHasSideIsFalseForAPathThatIsNotUnmerged(t *testing.T) {
 }
 
 func TestConflictIsEmptyForEverythingElse(t *testing.T) {
+	t.Parallel()
+
 	ordinary := git.FileStatus{Kind: git.EntryOrdinary, Index: git.CodeModified, WorkTree: git.CodeUnchanged}
 	if got := ordinary.Conflict(); got != "" {
 		t.Errorf("Conflict() = %q on an ordinary entry, expected empty", got)
@@ -299,6 +323,8 @@ func TestConflictIsEmptyForEverythingElse(t *testing.T) {
 }
 
 func TestParseStatusUntrackedPathsKeepEverythingAfterTheMarker(t *testing.T) {
+	t.Parallel()
+
 	// The path is taken as the remainder, so a space or a leading dash in it
 	// survives. -z is what makes that safe: without it git would have quoted
 	// and escaped this name, and the interface would show something else.
@@ -326,6 +352,8 @@ func TestParseStatusUntrackedPathsKeepEverythingAfterTheMarker(t *testing.T) {
 }
 
 func TestParseStatusPathWithSpacesInAnOrdinaryEntry(t *testing.T) {
+	t.Parallel()
+
 	const blob = "4cb29ea38f70d7c61b2a3a25b02e3bdf44905402"
 
 	status, err := git.ParseStatus(statusOutput(
@@ -340,6 +368,8 @@ func TestParseStatusPathWithSpacesInAnOrdinaryEntry(t *testing.T) {
 }
 
 func TestParseStatusSubmoduleField(t *testing.T) {
+	t.Parallel()
+
 	const blob = "4cb29ea38f70d7c61b2a3a25b02e3bdf44905402"
 
 	status, err := git.ParseStatus(statusOutput(
@@ -364,6 +394,8 @@ func TestParseStatusSubmoduleField(t *testing.T) {
 }
 
 func TestParseStatusIgnoresUnknownHeaders(t *testing.T) {
+	t.Parallel()
+
 	// git adds headers over time — `# stash` arrived in 2.35. One unread line
 	// is a smaller failure than a working directory that will not load on a
 	// newer git than this was written against.
@@ -381,6 +413,8 @@ func TestParseStatusIgnoresUnknownHeaders(t *testing.T) {
 }
 
 func TestParseStatusRefusesRecordsItCannotRead(t *testing.T) {
+	t.Parallel()
+
 	cases := map[string][]byte{
 		"unknown record kind": statusOutput("x something"),
 		"short ordinary entry": statusOutput(
@@ -401,6 +435,8 @@ func TestParseStatusRefusesRecordsItCannotRead(t *testing.T) {
 }
 
 func TestParseStatusAheadBehindIsNeverNegative(t *testing.T) {
+	t.Parallel()
+
 	// git writes the behind count with a minus sign. The interface counts
 	// commits, and there is no such thing as minus two of them.
 	status, err := git.ParseStatus(statusOutput("# branch.ab +0 -7"))

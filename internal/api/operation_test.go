@@ -138,6 +138,8 @@ func operationBody(action, operation, identity string) string {
 // The plan says the exact line, from the state the daemon reads for itself.
 // The client never names what to abort — only which of the three things to do.
 func TestThePlanNamesTheCommandFromTheStateTheDaemonReads(t *testing.T) {
+	t.Parallel()
+
 	handler, id, _ := openStoppedMerge(t)
 
 	response := postJSON(t, handler, "/api/repos/"+id+"/operation/plan", `{"action": "abort"}`)
@@ -161,6 +163,8 @@ func TestThePlanNamesTheCommandFromTheStateTheDaemonReads(t *testing.T) {
 }
 
 func TestAbortingEndsTheOperationAndAnswersWithTheWorkingDirectory(t *testing.T) {
+	t.Parallel()
+
 	handler, id, _ := openStoppedMerge(t)
 	operation, identity := operationLease(t, handler, id, "abort")
 
@@ -187,6 +191,8 @@ func TestAbortingEndsTheOperationAndAnswersWithTheWorkingDirectory(t *testing.T)
 // still on screen must not abort the something else — the dialog said `git
 // merge --abort` and the user read it.
 func TestAnInstructionAimedAtAnOperationThatHasPassedIsRefused(t *testing.T) {
+	t.Parallel()
+
 	handler, id, path := openStoppedMerge(t)
 	_, identity := operationLease(t, handler, id, "abort")
 
@@ -208,6 +214,8 @@ func TestAnInstructionAimedAtAnOperationThatHasPassedIsRefused(t *testing.T) {
 
 // Naming a different operation is refused, and the message names both.
 func TestAnInstructionNamingTheWrongOperationIsRefused(t *testing.T) {
+	t.Parallel()
+
 	handler, id, _ := openStoppedMerge(t)
 	_, identity := operationLease(t, handler, id, "abort")
 
@@ -230,6 +238,8 @@ func TestAnInstructionNamingTheWrongOperationIsRefused(t *testing.T) {
 // Same kind, different instance: a finished rebase must not be aborted as the
 // next one that started while the dialog sat open.
 func TestAnInstructionAimedAtADifferentInstanceIsRefused(t *testing.T) {
+	t.Parallel()
+
 	handler, id, path := openStoppedMerge(t)
 	_, firstIdentity := operationLease(t, handler, id, "abort")
 
@@ -255,6 +265,8 @@ func TestAnInstructionAimedAtADifferentInstanceIsRefused(t *testing.T) {
 // Naming nothing is not a wildcard. A client that did not look must not be
 // allowed to abort whatever happens to be running.
 func TestAnInstructionNamingNoOperationIsRefused(t *testing.T) {
+	t.Parallel()
+
 	handler, id, _ := openStoppedMerge(t)
 
 	response := postJSON(t, handler, "/api/repos/"+id+"/operation", `{"action": "abort"}`)
@@ -268,6 +280,8 @@ func TestAnInstructionNamingNoOperationIsRefused(t *testing.T) {
 
 // A merge takes no --skip, and git has no such command to be handed one.
 func TestAnInstructionAnOperationDoesNotTakeIsRefusedAsABadRequest(t *testing.T) {
+	t.Parallel()
+
 	handler, id, _ := openStoppedMerge(t)
 	operation, identity := operationLease(t, handler, id, "abort")
 
@@ -287,6 +301,8 @@ func TestAnInstructionAnOperationDoesNotTakeIsRefusedAsABadRequest(t *testing.T)
 // builds is `--` and this string, so `exec` would be `git rebase --exec`,
 // which takes a shell command as its argument.
 func TestAnUnknownActionIsRefusedByTheRoute(t *testing.T) {
+	t.Parallel()
+
 	handler, id, _ := openStoppedMerge(t)
 	operation, identity := operationLease(t, handler, id, "abort")
 
@@ -302,6 +318,8 @@ func TestAnUnknownActionIsRefusedByTheRoute(t *testing.T) {
 // Nothing in progress means nothing to instruct, and the interface tells that
 // from a git command that refused.
 func TestARepositoryInTheMiddleOfNothingRefusesEveryInstruction(t *testing.T) {
+	t.Parallel()
+
 	handler, id, _ := openWorkingRepository(t)
 
 	for _, target := range []string{"/operation", "/operation/plan"} {
@@ -323,6 +341,8 @@ func TestARepositoryInTheMiddleOfNothingRefusesEveryInstruction(t *testing.T) {
 // is what makes that more than a suggestion: the screen is up to two seconds
 // old, and a client is not the thing that decides.
 func TestARebaseThatWouldWriteAnUnreadMessageIsRefusedByTheRoute(t *testing.T) {
+	t.Parallel()
+
 	handler, id, path := openDiverged(t)
 	runGitIn(t, path, "checkout", "side")
 	stopOn(t, path, "rebase", "main")
@@ -358,6 +378,8 @@ func TestARebaseThatWouldWriteAnUnreadMessageIsRefusedByTheRoute(t *testing.T) {
 // The status carries the reason with the buttons, so the interface can draw
 // one refused without inventing a sentence for it.
 func TestTheStatusCarriesWhyAnActionIsRefused(t *testing.T) {
+	t.Parallel()
+
 	handler, id, path := openDiverged(t)
 	runGitIn(t, path, "checkout", "side")
 	stopOn(t, path, "rebase", "main")

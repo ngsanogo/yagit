@@ -11,6 +11,8 @@ import (
 )
 
 func TestFileHistoryFollowsARename(t *testing.T) {
+	t.Parallel()
+
 	handler, id, path := openNamedRepository(t, "history-rename")
 
 	writeFile(t, path, "notes.md", "first\n")
@@ -39,6 +41,8 @@ func TestFileHistoryFollowsARename(t *testing.T) {
 }
 
 func TestFileHistoryStartsAtARevision(t *testing.T) {
+	t.Parallel()
+
 	handler, id, path := openNamedRepository(t, "history-rev")
 
 	writeFile(t, path, "a.txt", "one\n")
@@ -67,6 +71,8 @@ func TestFileHistoryStartsAtARevision(t *testing.T) {
 }
 
 func TestFileHistoryRefusesABadPath(t *testing.T) {
+	t.Parallel()
+
 	handler, id, _ := openNamedRepository(t, "history-bad")
 	response := get(t, handler, "/api/repos/"+id+"/files/history?path=../etc/passwd")
 	if response.Code != http.StatusBadRequest {

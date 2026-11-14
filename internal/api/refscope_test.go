@@ -24,6 +24,8 @@ func repositoryWithATopic(t *testing.T, name string) (http.Handler, string, stri
 }
 
 func TestCommitsUnderAChosenSetWalkThoseRefsOnly(t *testing.T) {
+	t.Parallel()
+
 	handler, id, _ := repositoryWithATopic(t, "chosen")
 
 	main := decode[historyPayload](t, get(t, handler,
@@ -43,6 +45,8 @@ func TestCommitsUnderAChosenSetWalkThoseRefsOnly(t *testing.T) {
 // hold a comma — and a separator a name can contain is one that eventually
 // splits a reference into two that do not exist.
 func TestARefNameHoldingACommaIsOneRef(t *testing.T) {
+	t.Parallel()
+
 	handler, id, path := repositoryWithATopic(t, "comma")
 	runGitIn(t, path, "branch", "a,b", "main")
 
@@ -59,6 +63,8 @@ func TestARefNameHoldingACommaIsOneRef(t *testing.T) {
 // An empty walk drawn is indistinguishable from an empty repository, so a
 // blank graph would be a correct-looking answer to a question nobody asked.
 func TestScopeRefsWithNoRefIsRefused(t *testing.T) {
+	t.Parallel()
+
 	handler, id, _ := repositoryWithATopic(t, "norefs")
 
 	for _, target := range []string{
@@ -75,6 +81,8 @@ func TestScopeRefsWithNoRefIsRefused(t *testing.T) {
 // would get the whole repository's graph back and no indication of it — the
 // same failure mode as an unknown scope, refused for the same reason.
 func TestARefUnderAScopeThatIgnoresItIsRefused(t *testing.T) {
+	t.Parallel()
+
 	handler, id, _ := repositoryWithATopic(t, "strayref")
 
 	for _, target := range []string{
@@ -93,6 +101,8 @@ func TestARefUnderAScopeThatIgnoresItIsRefused(t *testing.T) {
 // string that is an option is an option. Refused as a bad request, not
 // reported as the daemon breaking.
 func TestARefNameThatIsAnOptionIsRefused(t *testing.T) {
+	t.Parallel()
+
 	handler, id, _ := repositoryWithATopic(t, "optionref")
 
 	response := get(t, handler,
@@ -107,6 +117,8 @@ func TestARefNameThatIsAnOptionIsRefused(t *testing.T) {
 // reach it — which the route says in words rather than by scrolling somewhere
 // wrong.
 func TestOneCommitsRowIsAskedOfTheChosenSet(t *testing.T) {
+	t.Parallel()
+
 	handler, id, _ := repositoryWithATopic(t, "locate")
 
 	topic := decode[historyPayload](t, get(t, handler,
@@ -128,6 +140,8 @@ func TestOneCommitsRowIsAskedOfTheChosenSet(t *testing.T) {
 // A search says what walk it covered, because "in this history" is most of
 // what a search means.
 func TestSearchUnderAChosenSetCoversThatSet(t *testing.T) {
+	t.Parallel()
+
 	handler, id, _ := repositoryWithATopic(t, "searchchosen")
 
 	found := searchWithin(t, handler, id, "scope=refs&ref=refs/heads/topic", "message", "moved")

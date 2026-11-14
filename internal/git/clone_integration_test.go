@@ -12,6 +12,8 @@ import (
 )
 
 func TestCloneArgsPutsURLAndPathAfterTheDashDash(t *testing.T) {
+	t.Parallel()
+
 	args := git.CloneArgs("-v", "-o")
 	joined := strings.Join(args, " ")
 	if !strings.Contains(joined, "-- -v -o") {
@@ -23,6 +25,8 @@ func TestCloneArgsPutsURLAndPathAfterTheDashDash(t *testing.T) {
 }
 
 func TestClonePlanCommandRedactsCredentials(t *testing.T) {
+	t.Parallel()
+
 	line := git.ClonePlanCommand("https://ada:ghp_secret@example.test/x.git", "/tmp/x")
 	if strings.Contains(line, "ghp_secret") {
 		t.Fatalf("plan still holds the password: %s", line)
@@ -33,6 +37,8 @@ func TestClonePlanCommandRedactsCredentials(t *testing.T) {
 }
 
 func TestCloneCopiesALocalRepositoryAndReportsProgress(t *testing.T) {
+	t.Parallel()
+
 	server, _, runner := clonedPair(t)
 	destination := filepath.Join(t.TempDir(), "fresh")
 
@@ -53,6 +59,8 @@ func TestCloneCopiesALocalRepositoryAndReportsProgress(t *testing.T) {
 }
 
 func TestCloneRefusesAnEmptyURL(t *testing.T) {
+	t.Parallel()
+
 	runner := git.NewRunner(nil)
 	err := runner.Clone(context.Background(), "", filepath.Join(t.TempDir(), "x"), nil)
 	if !errors.Is(err, git.ErrEmptyCloneURL) {
@@ -61,6 +69,8 @@ func TestCloneRefusesAnEmptyURL(t *testing.T) {
 }
 
 func TestCloneSurfacesGitFailure(t *testing.T) {
+	t.Parallel()
+
 	runner := git.NewRunner(nil)
 	destination := filepath.Join(t.TempDir(), "nowhere")
 	err := runner.Clone(context.Background(), filepath.Join(t.TempDir(), "missing.git"), destination, nil)

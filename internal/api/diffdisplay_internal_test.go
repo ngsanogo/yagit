@@ -22,6 +22,8 @@ func diffWithLine(text string) git.FileDiff {
 }
 
 func TestBoundedForDisplayCutsALineThatNobodyCanRead(t *testing.T) {
+	t.Parallel()
+
 	long := strings.Repeat("x", maxDisplayedLineRunes+500)
 
 	bounded := boundedForDisplay(diffWithLine(long))
@@ -45,6 +47,8 @@ func TestBoundedForDisplayCutsALineThatNobodyCanRead(t *testing.T) {
 // the user's file — silently, and only for files whose lines are long, which
 // are exactly the files nobody reads closely enough to notice.
 func TestBoundedForDisplayLeavesTheCallersDiffWhole(t *testing.T) {
+	t.Parallel()
+
 	long := strings.Repeat("y", maxDisplayedLineRunes+42)
 	original := diffWithLine(long)
 
@@ -61,6 +65,8 @@ func TestBoundedForDisplayLeavesTheCallersDiffWhole(t *testing.T) {
 }
 
 func TestBoundedForDisplayCutsOnARuneBoundary(t *testing.T) {
+	t.Parallel()
+
 	// A three-byte rune, repeated past the limit: cutting by bytes would leave
 	// a dangling fragment that reaches the browser as a replacement character
 	// in the middle of a word.
@@ -80,6 +86,8 @@ func TestBoundedForDisplayCutsOnARuneBoundary(t *testing.T) {
 }
 
 func TestBoundedForDisplayLeavesAnOrdinaryDiffAlone(t *testing.T) {
+	t.Parallel()
+
 	original := diffWithLine("const answer = 42;")
 	bounded := boundedForDisplay(original)
 

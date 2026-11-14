@@ -8,6 +8,8 @@ import (
 )
 
 func TestMergeToolArgsPinsNoPromptAndALiteralPath(t *testing.T) {
+	t.Parallel()
+
 	line := git.CommandLine(git.MergeToolArgs("app/[id].tsx"))
 	if line != "git mergetool -y -- ':(literal)app/[id].tsx'" {
 		t.Fatalf("command = %q", line)
@@ -15,6 +17,8 @@ func TestMergeToolArgsPinsNoPromptAndALiteralPath(t *testing.T) {
 }
 
 func TestMergeToolArgsKeepsASimplePathReadable(t *testing.T) {
+	t.Parallel()
+
 	line := git.CommandLine(git.MergeToolArgs("f.txt"))
 	if !strings.Contains(line, "mergetool -y --") {
 		t.Fatalf("command = %q", line)

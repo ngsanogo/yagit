@@ -90,6 +90,8 @@ func shaOf(t *testing.T, path, reference string) string {
 }
 
 func TestPlanningACherryPickAnswersTheCommandItWouldRun(t *testing.T) {
+	t.Parallel()
+
 	handler, id, path := openPickableRepository(t)
 	side := shaOf(t, path, "side")
 
@@ -118,6 +120,8 @@ func TestPlanningACherryPickAnswersTheCommandItWouldRun(t *testing.T) {
 }
 
 func TestPlanningACherryPickFastForwardSaysWhatItIs(t *testing.T) {
+	t.Parallel()
+
 	handler, id, path := openPickableRepository(t)
 
 	runGitIn(t, path, "switch", "-c", "ahead")
@@ -138,6 +142,8 @@ func TestPlanningACherryPickFastForwardSaysWhatItIs(t *testing.T) {
 }
 
 func TestPlanningACherryPickAlreadyOnTheBranchHasNoCommand(t *testing.T) {
+	t.Parallel()
+
 	handler, id, path := openPickableRepository(t)
 	head := shaOf(t, path, "HEAD")
 
@@ -151,6 +157,8 @@ func TestPlanningACherryPickAlreadyOnTheBranchHasNoCommand(t *testing.T) {
 }
 
 func TestCherryPickAppliesTheCommit(t *testing.T) {
+	t.Parallel()
+
 	handler, id, path := openPickableRepository(t)
 	side := shaOf(t, path, "side")
 	before := shaOf(t, path, "HEAD")
@@ -173,6 +181,8 @@ func TestCherryPickAppliesTheCommit(t *testing.T) {
 }
 
 func TestACherryPickThatHasBecomeSomethingElseIsRefused(t *testing.T) {
+	t.Parallel()
+
 	handler, id, path := openPickableRepository(t)
 	side := shaOf(t, path, "side")
 
@@ -192,6 +202,8 @@ func TestACherryPickThatHasBecomeSomethingElseIsRefused(t *testing.T) {
 }
 
 func TestACherryPickAimedAtABranchHEADHasLeftIsRefused(t *testing.T) {
+	t.Parallel()
+
 	handler, id, path := openPickableRepository(t)
 	side := shaOf(t, path, "side")
 
@@ -209,6 +221,8 @@ func TestACherryPickAimedAtABranchHEADHasLeftIsRefused(t *testing.T) {
 }
 
 func TestPlanningACherryPickOfAMergeIsRefused(t *testing.T) {
+	t.Parallel()
+
 	handler, id, path := openPickableRepository(t)
 
 	runGitIn(t, path, "switch", "-c", "elsewhere", "main")
@@ -235,6 +249,8 @@ func TestPlanningACherryPickOfAMergeIsRefused(t *testing.T) {
 // resolved a second time: two spellings of what was approved are two
 // definitions of it.
 func TestACherryPickNamingTheCommitDifferentlyFromThePlanIsRefused(t *testing.T) {
+	t.Parallel()
+
 	handler, id, path := openPickableRepository(t)
 	side := shaOf(t, path, "side")
 
@@ -256,6 +272,8 @@ func TestACherryPickNamingTheCommitDifferentlyFromThePlanIsRefused(t *testing.T)
 // An outcome the daemon cannot name was never on any plan, so it is the
 // request that is wrong — before anything is read from the repository.
 func TestCherryPickingWithAnUnknownOutcomeIsRefused(t *testing.T) {
+	t.Parallel()
+
 	handler, id, path := openPickableRepository(t)
 	side := shaOf(t, path, "side")
 
@@ -273,6 +291,8 @@ func TestCherryPickingWithAnUnknownOutcomeIsRefused(t *testing.T) {
 // answers 400 rather than 500: nothing was read from the repository to decide
 // it, and reading it again would answer the same way.
 func TestPlanningACherryPickOfARevisionGitWouldReadAsAnOptionIsRefused(t *testing.T) {
+	t.Parallel()
+
 	handler, id, _ := openPickableRepository(t)
 
 	for _, revision := range []string{"", "--output=/tmp/yagit-escaped"} {

@@ -26,8 +26,6 @@ import (
 //	on disk:    one  TWO   three  four
 func workingDirectory(t *testing.T) (string, *git.Runner) {
 	t.Helper()
-	isolateGitConfiguration(t)
-
 	dir := t.TempDir()
 	runner := git.NewRunner(nil)
 
@@ -73,6 +71,8 @@ func indexContent(t *testing.T, runner *git.Runner, dir, path string) string {
 }
 
 func TestStatusAgainstARealWorkingDirectory(t *testing.T) {
+	t.Parallel()
+
 	dir, runner := workingDirectory(t)
 	ctx := context.Background()
 
@@ -119,7 +119,8 @@ func TestStatusAgainstARealWorkingDirectory(t *testing.T) {
 }
 
 func TestStatusOnAnUnbornBranch(t *testing.T) {
-	isolateGitConfiguration(t)
+	t.Parallel()
+
 	dir := t.TempDir()
 	runner := git.NewRunner(nil)
 
@@ -139,6 +140,8 @@ func TestStatusOnAnUnbornBranch(t *testing.T) {
 }
 
 func TestDiffOfAnUntrackedFileIsEveryLineAdded(t *testing.T) {
+	t.Parallel()
+
 	dir, runner := workingDirectory(t)
 	writeFile(t, dir, "untracked.txt", "alpha\nbeta\n")
 
@@ -166,6 +169,8 @@ func TestDiffOfAnUntrackedFileIsEveryLineAdded(t *testing.T) {
 }
 
 func TestDiffOfAnUnchangedPathIsEmptyRatherThanAnError(t *testing.T) {
+	t.Parallel()
+
 	dir, runner := workingDirectory(t)
 
 	// a.txt has no staged change: git answers nothing, and nothing is a
@@ -183,6 +188,8 @@ func TestDiffOfAnUnchangedPathIsEmptyRatherThanAnError(t *testing.T) {
 }
 
 func TestStagingSomeLinesPutsExactlyThoseLinesInTheIndex(t *testing.T) {
+	t.Parallel()
+
 	dir, runner := workingDirectory(t)
 	ctx := context.Background()
 
@@ -208,6 +215,8 @@ func TestStagingSomeLinesPutsExactlyThoseLinesInTheIndex(t *testing.T) {
 }
 
 func TestUnstagingSomeLinesTakesExactlyThoseBackOut(t *testing.T) {
+	t.Parallel()
+
 	dir, runner := workingDirectory(t)
 	ctx := context.Background()
 
@@ -233,6 +242,8 @@ func TestUnstagingSomeLinesTakesExactlyThoseBackOut(t *testing.T) {
 }
 
 func TestDiscardingSomeLinesRemovesThemFromTheWorkTree(t *testing.T) {
+	t.Parallel()
+
 	dir, runner := workingDirectory(t)
 	ctx := context.Background()
 
@@ -252,6 +263,8 @@ func TestDiscardingSomeLinesRemovesThemFromTheWorkTree(t *testing.T) {
 }
 
 func TestStagingPartOfANewFile(t *testing.T) {
+	t.Parallel()
+
 	dir, runner := workingDirectory(t)
 	ctx := context.Background()
 
@@ -277,6 +290,8 @@ func TestStagingPartOfANewFile(t *testing.T) {
 }
 
 func TestAPatchBuiltFromAStaleDiffIsRefused(t *testing.T) {
+	t.Parallel()
+
 	dir, runner := workingDirectory(t)
 	ctx := context.Background()
 
@@ -302,6 +317,8 @@ func TestAPatchBuiltFromAStaleDiffIsRefused(t *testing.T) {
 }
 
 func TestStageAndUnstageAWholePath(t *testing.T) {
+	t.Parallel()
+
 	dir, runner := workingDirectory(t)
 	ctx := context.Background()
 
@@ -324,7 +341,8 @@ func TestStageAndUnstageAWholePath(t *testing.T) {
 }
 
 func TestUnstageOnAnUnbornBranch(t *testing.T) {
-	isolateGitConfiguration(t)
+	t.Parallel()
+
 	dir := t.TempDir()
 	runner := git.NewRunner(nil)
 	ctx := context.Background()
@@ -356,6 +374,8 @@ func TestUnstageOnAnUnbornBranch(t *testing.T) {
 }
 
 func TestDiscardWholePaths(t *testing.T) {
+	t.Parallel()
+
 	dir, runner := workingDirectory(t)
 	ctx := context.Background()
 
@@ -377,6 +397,8 @@ func TestDiscardWholePaths(t *testing.T) {
 }
 
 func TestOperationsRefuseAnEmptyPathList(t *testing.T) {
+	t.Parallel()
+
 	dir, runner := workingDirectory(t)
 	ctx := context.Background()
 
@@ -396,6 +418,8 @@ func TestOperationsRefuseAnEmptyPathList(t *testing.T) {
 }
 
 func TestCommitRecordsTheIndexAndReturnsItsSHA(t *testing.T) {
+	t.Parallel()
+
 	dir, runner := workingDirectory(t)
 	ctx := context.Background()
 
@@ -438,6 +462,8 @@ func TestCommitRecordsTheIndexAndReturnsItsSHA(t *testing.T) {
 }
 
 func TestCommitRefusesAnEmptyMessageBeforeRunningGit(t *testing.T) {
+	t.Parallel()
+
 	dir, runner := workingDirectory(t)
 
 	_, err := runner.Commit(context.Background(), dir, git.CommitOptions{Message: "  \n\t "})
@@ -460,7 +486,8 @@ func TestCommitRefusesAnEmptyMessageBeforeRunningGit(t *testing.T) {
 // says BOTH sides end at "two" — which `git apply` accepts, welding "two" and
 // "three" into one line in the index. Silently: exit 0, and the panel redraws.
 func TestStagingALineAfterALastLineWithNoNewline(t *testing.T) {
-	isolateGitConfiguration(t)
+	t.Parallel()
+
 	dir := t.TempDir()
 	runner := git.NewRunner(nil)
 	ctx := context.Background()
@@ -505,7 +532,8 @@ func TestStagingALineAfterALastLineWithNoNewline(t *testing.T) {
 // where the file still ends without a newline afterwards, the marker has to
 // survive. Dropping it appends a newline the file never had.
 func TestStagingEveryLineOfAFileThatKeepsNoTrailingNewline(t *testing.T) {
-	isolateGitConfiguration(t)
+	t.Parallel()
+
 	dir := t.TempDir()
 	runner := git.NewRunner(nil)
 	ctx := context.Background()
@@ -537,6 +565,8 @@ func TestStagingEveryLineOfAFileThatKeepsNoTrailingNewline(t *testing.T) {
 // keeps the bit, so the loss happens on the partial path alone — and silently,
 // because the work tree keeps it.
 func TestStagingPartOfANewExecutableFileKeepsTheMode(t *testing.T) {
+	t.Parallel()
+
 	dir, runner := workingDirectory(t)
 	ctx := context.Background()
 
@@ -574,6 +604,8 @@ func TestStagingPartOfANewExecutableFileKeepsTheMode(t *testing.T) {
 // clean --force` deletes three files while the interface named one, and
 // nothing it removes was ever committed or is in any reflog.
 func TestDiscardingAFileNamedLikeAPatternRemovesOnlyIt(t *testing.T) {
+	t.Parallel()
+
 	dir, runner := workingDirectory(t)
 	ctx := context.Background()
 
@@ -601,6 +633,8 @@ func TestDiscardingAFileNamedLikeAPatternRemovesOnlyIt(t *testing.T) {
 // absent — a row the status listed and something removed in between. Naming
 // one file must then be a refusal, never "these three matched instead".
 func TestStagingANameThatIsNotThereStagesNothing(t *testing.T) {
+	t.Parallel()
+
 	dir, runner := workingDirectory(t)
 	ctx := context.Background()
 
@@ -632,7 +666,8 @@ func TestStagingANameThatIsNotThereStagesNothing(t *testing.T) {
 // side ends there. `git apply` accepts that and welds the two "two" lines into
 // one, exit 0, with the panel redrawing as though nothing happened.
 func TestDiscardingOnlyARemovalWhenAdditionsFollowIt(t *testing.T) {
-	isolateGitConfiguration(t)
+	t.Parallel()
+
 	dir := t.TempDir()
 	runner := git.NewRunner(nil)
 	ctx := context.Background()
@@ -677,6 +712,8 @@ func TestDiscardingOnlyARemovalWhenAdditionsFollowIt(t *testing.T) {
 // single flag. Without this the flag could be dropped, or added where it does
 // not belong, and every test would still pass.
 func TestCommitAmendReplacesThePreviousCommit(t *testing.T) {
+	t.Parallel()
+
 	dir, runner := workingDirectory(t)
 	ctx := context.Background()
 
@@ -704,6 +741,8 @@ func TestCommitAmendReplacesThePreviousCommit(t *testing.T) {
 // regression that always amended would destroy the previous commit, and would
 // pass every assertion the test above makes on its own.
 func TestCommitWithoutAmendAddsACommit(t *testing.T) {
+	t.Parallel()
+
 	dir, runner := workingDirectory(t)
 	ctx := context.Background()
 
@@ -755,6 +794,8 @@ func headSubject(t *testing.T, runner *git.Runner, dir string) string {
 // instead, git stages an empty blob and the commit records a file with no
 // content where the user removed one.
 func TestStagingAWholeDeletionThroughAPatchRemovesTheIndexEntry(t *testing.T) {
+	t.Parallel()
+
 	dir, runner := workingDirectory(t)
 	ctx := context.Background()
 
@@ -794,7 +835,8 @@ func TestStagingAWholeDeletionThroughAPatchRemovesTheIndexEntry(t *testing.T) {
 // empty new side looks exactly like a deletion, and a header that wrote
 // /dev/null for it would remove a file the user still has.
 func TestStagingOnlyTheRemovalsOfAContextFreeHunk(t *testing.T) {
-	isolateGitConfiguration(t)
+	t.Parallel()
+
 	dir := t.TempDir()
 	runner := git.NewRunner(nil)
 	ctx := context.Background()
@@ -847,6 +889,8 @@ func TestStagingOnlyTheRemovalsOfAContextFreeHunk(t *testing.T) {
 // turn. Without the round trip, unquoting could be right and staging still
 // broken for every accented, CJK or emoji filename in the repository.
 func TestStagingSomeLinesOfANonASCIIName(t *testing.T) {
+	t.Parallel()
+
 	dir, runner := workingDirectory(t)
 	ctx := context.Background()
 

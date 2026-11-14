@@ -20,14 +20,6 @@ import (
 func newRegistry(t *testing.T) (*repo.Registry, string, *git.Runner) {
 	t.Helper()
 
-	// The Runner passes HOME through on purpose, so git here reads whatever
-	// ~/.gitconfig the machine has. These tests create repositories, which a
-	// global init.templateDir or core.hooksPath would quietly change. Point
-	// git at no configuration at all and the outcome stops depending on whose
-	// machine runs it.
-	t.Setenv("GIT_CONFIG_GLOBAL", os.DevNull)
-	t.Setenv("GIT_CONFIG_SYSTEM", os.DevNull)
-
 	// EvalSymlinks: on some systems /tmp is itself a symlink. Without that
 	// resolution, the root and the resolved paths would never compare equal.
 	root, err := filepath.EvalSymlinks(t.TempDir())
@@ -54,6 +46,8 @@ func createRepo(t *testing.T, runner *git.Runner, path string) {
 }
 
 func TestOpenAcceptsRepoUnderRoot(t *testing.T) {
+	t.Parallel()
+
 	registry, root, runner := newRegistry(t)
 	path := filepath.Join(root, "project")
 	createRepo(t, runner, path)
@@ -74,6 +68,8 @@ func TestOpenAcceptsRepoUnderRoot(t *testing.T) {
 }
 
 func TestOpenIsIdempotent(t *testing.T) {
+	t.Parallel()
+
 	registry, root, runner := newRegistry(t)
 	path := filepath.Join(root, "project")
 	createRepo(t, runner, path)
@@ -98,6 +94,8 @@ func TestOpenIsIdempotent(t *testing.T) {
 // Opening a subdirectory of the repository must open the repository, not the
 // subdirectory: git is what decides where a repository starts.
 func TestOpenWalksUpToRepoRoot(t *testing.T) {
+	t.Parallel()
+
 	registry, root, runner := newRegistry(t)
 	repoPath := filepath.Join(root, "project")
 	createRepo(t, runner, repoPath)
@@ -117,6 +115,8 @@ func TestOpenWalksUpToRepoRoot(t *testing.T) {
 }
 
 func TestOpenRejectsPathOutsideRoot(t *testing.T) {
+	t.Parallel()
+
 	registry, _, runner := newRegistry(t)
 
 	outside, err := filepath.EvalSymlinks(t.TempDir())
@@ -132,6 +132,8 @@ func TestOpenRejectsPathOutsideRoot(t *testing.T) {
 }
 
 func TestOpenRejectsDotDotEscape(t *testing.T) {
+	t.Parallel()
+
 	registry, root, _ := newRegistry(t)
 
 	_, err := registry.Open(context.Background(), filepath.Join(root, "..", "..", "etc"))
@@ -149,6 +151,8 @@ func TestOpenRejectsDotDotEscape(t *testing.T) {
 // The case that string comparison alone would let through: a symlink planted
 // inside the root and pointing outside.
 func TestOpenRejectsSymlinkEscape(t *testing.T) {
+	t.Parallel()
+
 	registry, root, runner := newRegistry(t)
 
 	outside, err := filepath.EvalSymlinks(t.TempDir())
@@ -170,6 +174,8 @@ func TestOpenRejectsSymlinkEscape(t *testing.T) {
 
 // "/root-sibling" must not count as contained in "/root".
 func TestOpenRejectsSiblingWithSharedPrefix(t *testing.T) {
+	t.Parallel()
+
 	registry, root, runner := newRegistry(t)
 
 	sibling := root + "-sibling"
@@ -187,6 +193,8 @@ func TestOpenRejectsSiblingWithSharedPrefix(t *testing.T) {
 }
 
 func TestOpenRejectsDirectoryThatIsNotARepo(t *testing.T) {
+	t.Parallel()
+
 	registry, root, _ := newRegistry(t)
 
 	plain := filepath.Join(root, "not-a-repo")
@@ -207,6 +215,8 @@ func TestOpenRejectsDirectoryThatIsNotARepo(t *testing.T) {
 }
 
 func TestOpenRejectsRelativePath(t *testing.T) {
+	t.Parallel()
+
 	registry, _, _ := newRegistry(t)
 
 	_, err := registry.Open(context.Background(), "project/relative")
@@ -216,6 +226,8 @@ func TestOpenRejectsRelativePath(t *testing.T) {
 }
 
 func TestPrepareNewRepositoryPathAcceptsANewPathUnderTheRoot(t *testing.T) {
+	t.Parallel()
+
 	registry, root, _ := newRegistry(t)
 	destination := filepath.Join(root, "fresh")
 
@@ -229,6 +241,8 @@ func TestPrepareNewRepositoryPathAcceptsANewPathUnderTheRoot(t *testing.T) {
 }
 
 func TestPrepareNewRepositoryPathRejectsAnExistingDirectory(t *testing.T) {
+	t.Parallel()
+
 	registry, root, _ := newRegistry(t)
 	destination := filepath.Join(root, "taken")
 	if err := os.MkdirAll(destination, 0o755); err != nil {
@@ -242,6 +256,8 @@ func TestPrepareNewRepositoryPathRejectsAnExistingDirectory(t *testing.T) {
 }
 
 func TestPrepareNewRepositoryPathRejectsOutsideRoot(t *testing.T) {
+	t.Parallel()
+
 	registry, _, _ := newRegistry(t)
 	outside := filepath.Join(t.TempDir(), "escape")
 
@@ -252,6 +268,8 @@ func TestPrepareNewRepositoryPathRejectsOutsideRoot(t *testing.T) {
 }
 
 func TestPrepareNewRepositoryPathRejectsRelativePath(t *testing.T) {
+	t.Parallel()
+
 	registry, _, _ := newRegistry(t)
 	_, err := registry.PrepareNewRepositoryPath("relative/clone")
 	if !errors.Is(err, repo.ErrPathNotAbsolute) {
@@ -268,6 +286,8 @@ func TestPrepareNewRepositoryPathRejectsRelativePath(t *testing.T) {
 // destination outside it.
 
 func TestPrepareNewRepositoryPathRefusesTraversalOutOfTheRoot(t *testing.T) {
+	t.Parallel()
+
 	registry, root, _ := newRegistry(t)
 	inside := filepath.Join(root, "sub")
 	if err := os.MkdirAll(inside, 0o755); err != nil {
@@ -287,6 +307,8 @@ func TestPrepareNewRepositoryPathRefusesTraversalOutOfTheRoot(t *testing.T) {
 }
 
 func TestPrepareNewRepositoryPathRefusesAParentSymlinkedOutOfTheRoot(t *testing.T) {
+	t.Parallel()
+
 	registry, root, _ := newRegistry(t)
 
 	outside, err := filepath.EvalSymlinks(t.TempDir())
@@ -307,6 +329,8 @@ func TestPrepareNewRepositoryPathRefusesAParentSymlinkedOutOfTheRoot(t *testing.
 }
 
 func TestGetOnUnknownIdentifier(t *testing.T) {
+	t.Parallel()
+
 	registry, _, _ := newRegistry(t)
 
 	_, err := registry.Get("000000000000")
@@ -320,6 +344,8 @@ func TestGetOnUnknownIdentifier(t *testing.T) {
 // checks the git directory and not only the work tree.
 
 func TestOpenRejectsAGitDirectoryOutsideTheRoot(t *testing.T) {
+	t.Parallel()
+
 	registry, root, runner := newRegistry(t)
 
 	// A repository the boundary is meant to protect, outside the root.
@@ -350,6 +376,8 @@ func TestOpenRejectsAGitDirectoryOutsideTheRoot(t *testing.T) {
 }
 
 func TestOpenAcceptsABareRepository(t *testing.T) {
+	t.Parallel()
+
 	registry, root, runner := newRegistry(t)
 
 	source := filepath.Join(root, "source")
@@ -375,6 +403,8 @@ func TestOpenAcceptsABareRepository(t *testing.T) {
 }
 
 func TestOpenKeepsATrailingSpaceInADirectoryName(t *testing.T) {
+	t.Parallel()
+
 	// Win32 strips a trailing space from every path component, so the directory
 	// this test is about cannot be created there at all. Nothing to assert
 	// rather than something wrong.
@@ -400,6 +430,8 @@ func TestOpenKeepsATrailingSpaceInADirectoryName(t *testing.T) {
 }
 
 func TestGetRefusesARepositoryReplacedSinceItWasOpened(t *testing.T) {
+	t.Parallel()
+
 	registry, root, runner := newRegistry(t)
 
 	path := filepath.Join(root, "project")
@@ -428,6 +460,8 @@ func TestGetRefusesARepositoryReplacedSinceItWasOpened(t *testing.T) {
 }
 
 func TestGetRefusesADifferentRepositoryUnderTheSamePath(t *testing.T) {
+	t.Parallel()
+
 	registry, root, runner := newRegistry(t)
 
 	path := filepath.Join(root, "project")
@@ -459,6 +493,8 @@ func TestGetRefusesADifferentRepositoryUnderTheSamePath(t *testing.T) {
 // error from handing it back would have nowhere to go. A daemon that runs for
 // weeks does not get to leak one per call.
 func TestOpenTwiceHoldsOneDescriptor(t *testing.T) {
+	t.Parallel()
+
 	// Windows holds no descriptor by design — see pin_windows.go — so there is
 	// nothing here to leak and nothing to count.
 	if runtime.GOOS == "windows" {
@@ -502,6 +538,8 @@ func TestOpenTwiceHoldsOneDescriptor(t *testing.T) {
 }
 
 func TestCloseForgetsARepository(t *testing.T) {
+	t.Parallel()
+
 	registry, root, runner := newRegistry(t)
 	path := filepath.Join(root, "project")
 	createRepo(t, runner, path)
@@ -527,6 +565,8 @@ func TestCloseForgetsARepository(t *testing.T) {
 // shut twice, and a reload racing a click. Neither is an error about a
 // repository nobody wanted any more.
 func TestCloseIsIdempotent(t *testing.T) {
+	t.Parallel()
+
 	registry, root, runner := newRegistry(t)
 	path := filepath.Join(root, "project")
 	createRepo(t, runner, path)
@@ -554,6 +594,8 @@ func TestCloseIsIdempotent(t *testing.T) {
 // turns a long session into a descriptor leak — the opposite of what closing
 // is for.
 func TestCloseReleasesTheDescriptor(t *testing.T) {
+	t.Parallel()
+
 	if runtime.GOOS == "windows" {
 		t.Skip("no descriptor is held on Windows")
 	}
@@ -604,6 +646,8 @@ func TestCloseReleasesTheDescriptor(t *testing.T) {
 
 // TestAReplacedRepositoryCanBeClosed is why the operation exists at all.
 func TestAReplacedRepositoryCanBeClosed(t *testing.T) {
+	t.Parallel()
+
 	registry, root, runner := newRegistry(t)
 	path := filepath.Join(root, "project")
 	createRepo(t, runner, path)
@@ -632,6 +676,8 @@ func TestAReplacedRepositoryCanBeClosed(t *testing.T) {
 }
 
 func TestTheFilesystemRootContainsEverything(t *testing.T) {
+	t.Parallel()
+
 	// The root already ends in a separator, and appending another produced
 	// "//", which no absolute path starts with: every path was refused as being
 	// outside a root that contains the whole filesystem.
@@ -677,6 +723,8 @@ func filesystemRootOf(t *testing.T, path string) string {
 }
 
 func TestGitDirsOfAnOrdinaryRepositoryIsTheOneDirectory(t *testing.T) {
+	t.Parallel()
+
 	registry, root, runner := newRegistry(t)
 	path := filepath.Join(root, "project")
 	createRepo(t, runner, path)
@@ -696,6 +744,8 @@ func TestGitDirsOfAnOrdinaryRepositoryIsTheOneDirectory(t *testing.T) {
 }
 
 func TestStateDirOfAnOrdinaryRepositoryIsItsGitDirectory(t *testing.T) {
+	t.Parallel()
+
 	registry, root, runner := newRegistry(t)
 	path := filepath.Join(root, "project")
 	createRepo(t, runner, path)
@@ -712,6 +762,8 @@ func TestStateDirOfAnOrdinaryRepositoryIsItsGitDirectory(t *testing.T) {
 }
 
 func TestStateDirOfALinkedWorktreeIsItsOwnStateDirectory(t *testing.T) {
+	t.Parallel()
+
 	registry, root, runner := newRegistry(t)
 	main := filepath.Join(root, "project")
 	createRepo(t, runner, main)
@@ -742,6 +794,8 @@ func TestStateDirOfALinkedWorktreeIsItsOwnStateDirectory(t *testing.T) {
 }
 
 func TestGitDirsOfALinkedWorktreeNamesItsOwnStateToo(t *testing.T) {
+	t.Parallel()
+
 	registry, root, runner := newRegistry(t)
 	main := filepath.Join(root, "project")
 	createRepo(t, runner, main)
@@ -794,6 +848,8 @@ func TestGitDirsOfALinkedWorktreeNamesItsOwnStateToo(t *testing.T) {
 // again, or run a test suite that rebuilds its fixtures, against a daemon that
 // outlives either.
 func TestOpeningARepositoryThatWasReplacedOnDiskOpensTheNewOne(t *testing.T) {
+	t.Parallel()
+
 	registry, root, runner := newRegistry(t)
 	path := filepath.Join(root, "project")
 	createRepo(t, runner, path)
@@ -833,6 +889,8 @@ func TestOpeningARepositoryThatWasReplacedOnDiskOpensTheNewOne(t *testing.T) {
 }
 
 func TestClaimNewRepositoryPathCreatesARealDirectory(t *testing.T) {
+	t.Parallel()
+
 	registry, root, _ := newRegistry(t)
 	destination := filepath.Join(root, "claimed")
 
@@ -863,6 +921,8 @@ func TestClaimNewRepositoryPathCreatesARealDirectory(t *testing.T) {
 }
 
 func TestClaimNewRepositoryPathRefusesWhenASymlinkAppearsFirst(t *testing.T) {
+	t.Parallel()
+
 	registry, root, _ := newRegistry(t)
 	outside, err := filepath.EvalSymlinks(t.TempDir())
 	if err != nil {

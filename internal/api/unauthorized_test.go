@@ -33,6 +33,8 @@ func theDoor(t *testing.T, handler http.Handler) string {
 // telling the reader to paste a filesystem path into the field, and the step
 // in between was nowhere on the screen.
 func TestTheDoorNamesTheStepBetweenThePrintedLineAndTheToken(t *testing.T) {
+	t.Parallel()
+
 	body := theDoor(t, testServer(t))
 
 	for _, needed := range []string{
@@ -52,6 +54,8 @@ func TestTheDoorNamesTheStepBetweenThePrintedLineAndTheToken(t *testing.T) {
 // yet, and a page that arrived already telling them they were wrong would be
 // answering a question nobody asked.
 func TestTheFirstVisitShowsNoRefusal(t *testing.T) {
+	t.Parallel()
+
 	body := theDoor(t, testServer(t))
 
 	// aria-describedby rather than aria-invalid: the stylesheet on the page
@@ -71,6 +75,8 @@ func TestTheFirstVisitShowsNoRefusal(t *testing.T) {
 // reference added in good faith would fail silently, on the one screen with no
 // interface left to report it.
 func TestTheDoorLoadsNothingItCannotHave(t *testing.T) {
+	t.Parallel()
+
 	body := theDoor(t, testServer(t))
 
 	for _, forbidden := range []string{"<script", "<link", "src=", "@import"} {

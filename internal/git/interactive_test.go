@@ -16,6 +16,8 @@ import (
 // tests beside this ask what git does with the result.
 
 func TestParseInstructionTakesTheFiveAndNothingElse(t *testing.T) {
+	t.Parallel()
+
 	for _, raw := range []string{"pick", "fixup", "fixup -C", "edit", "drop"} {
 		instruction, err := git.ParseInstruction(raw)
 		if err != nil {
@@ -51,6 +53,8 @@ func step(sha string, instruction git.Instruction) git.RebaseStep {
 }
 
 func TestCheckPlanAcceptsARearrangement(t *testing.T) {
+	t.Parallel()
+
 	commits := aRange()
 
 	// Reversed, with the last one folded into the one now above it: the shape
@@ -67,6 +71,8 @@ func TestCheckPlanAcceptsARearrangement(t *testing.T) {
 }
 
 func TestCheckPlanAcceptsDroppingEveryCommit(t *testing.T) {
+	t.Parallel()
+
 	commits := aRange()
 
 	plan := make([]git.RebaseStep, 0, len(commits))
@@ -83,6 +89,8 @@ func TestCheckPlanAcceptsDroppingEveryCommit(t *testing.T) {
 }
 
 func TestCheckPlanRefusesAPlanThatIsNotTheRange(t *testing.T) {
+	t.Parallel()
+
 	commits := aRange()
 	foreign := strings.Repeat("f", 40)
 
@@ -122,6 +130,8 @@ func TestCheckPlanRefusesAPlanThatIsNotTheRange(t *testing.T) {
 // run. Both spellings of "nothing above it" are refused: the literal first
 // row, and the first row that survives.
 func TestCheckPlanRefusesACombineWithNothingAboveIt(t *testing.T) {
+	t.Parallel()
+
 	commits := aRange()
 
 	cases := map[string][]git.RebaseStep{
@@ -146,6 +156,8 @@ func TestCheckPlanRefusesACombineWithNothingAboveIt(t *testing.T) {
 }
 
 func TestCheckPlanRefusesAnInstructionItDoesNotKnow(t *testing.T) {
+	t.Parallel()
+
 	commits := aRange()
 	plan := []git.RebaseStep{
 		step(commits[0].SHA, "squash"),
@@ -161,6 +173,8 @@ func TestCheckPlanRefusesAnInstructionItDoesNotKnow(t *testing.T) {
 // The file git executes. The subjects come from the range rather than from the
 // plan, which is what makes the line safe to write unquoted.
 func TestTodoListWritesTheVerbTheCommitAndTheSubject(t *testing.T) {
+	t.Parallel()
+
 	commits := aRange()
 	plan := []git.RebaseStep{
 		step(commits[1].SHA, git.InstructionPick),
@@ -181,6 +195,8 @@ func TestTodoListWritesTheVerbTheCommitAndTheSubject(t *testing.T) {
 // pin --no-ff. There it makes "every commit is written again" true; here it
 // would rewrite the commits the plan left alone.
 func TestInteractiveRebaseArgsPinsTheSettingsAndNotTheFastForward(t *testing.T) {
+	t.Parallel()
+
 	args := git.InteractiveRebaseArgs("a2801ba")
 	line := strings.Join(args, " ")
 
@@ -206,6 +222,8 @@ func TestInteractiveRebaseArgsPinsTheSettingsAndNotTheFastForward(t *testing.T) 
 // The two shapes an interactive rebase asks this program to take, and the
 // shape an ordinary start must fall through untouched.
 func TestRunAsEditorIsRecognisedByTheFlagAndTheCount(t *testing.T) {
+	t.Parallel()
+
 	// Writing the todo list: two paths, and the work succeeds.
 	handled, err := git.RunAsEditor(
 		[]string{"yagit", "--write-rebase-todo", "/nowhere/plan", "/nowhere/todo"})

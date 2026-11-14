@@ -11,6 +11,8 @@ import (
 )
 
 func TestShowBlobReadsIndexAndHEAD(t *testing.T) {
+	t.Parallel()
+
 	dir, runner := workingDirectory(t)
 	ctx := context.Background()
 
@@ -40,6 +42,8 @@ func TestShowBlobReadsIndexAndHEAD(t *testing.T) {
 }
 
 func TestShowBlobRefusesADashRevision(t *testing.T) {
+	t.Parallel()
+
 	dir, runner := workingDirectory(t)
 
 	_, err := runner.ShowBlob(context.Background(), dir, "--output=/tmp/x", "a.png")
@@ -49,6 +53,8 @@ func TestShowBlobRefusesADashRevision(t *testing.T) {
 }
 
 func TestShowBlobRefusesWorktreeAsAnObject(t *testing.T) {
+	t.Parallel()
+
 	dir, runner := workingDirectory(t)
 
 	_, err := runner.ShowBlob(context.Background(), dir, "worktree", "a.png")

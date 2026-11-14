@@ -51,6 +51,8 @@ func readDiff(t *testing.T, handler http.Handler, id, path, side string) wireDif
 }
 
 func TestDiscardingSomeLinesOfATrackedFile(t *testing.T) {
+	t.Parallel()
+
 	handler, id, path := openWorkingRepository(t)
 
 	diff := readDiff(t, handler, id, "a.txt", "unstaged")
@@ -71,6 +73,8 @@ func TestDiscardingSomeLinesOfATrackedFile(t *testing.T) {
 }
 
 func TestDiscardingSomeLinesOfAnUntrackedFile(t *testing.T) {
+	t.Parallel()
+
 	handler, id, path := openWorkingRepository(t)
 	writeInRepo(t, path, "new.txt", "alpha\nbeta\ngamma\n")
 
@@ -96,6 +100,8 @@ func TestDiscardingSomeLinesOfAnUntrackedFile(t *testing.T) {
 }
 
 func TestDiscardingLinesAgainstAStaleDiffIsRefused(t *testing.T) {
+	t.Parallel()
+
 	handler, id, path := openWorkingRepository(t)
 
 	diff := readDiff(t, handler, id, "a.txt", "unstaged")
@@ -117,6 +123,8 @@ func TestDiscardingLinesAgainstAStaleDiffIsRefused(t *testing.T) {
 }
 
 func TestDiffRefusesAWindowsDriveLetter(t *testing.T) {
+	t.Parallel()
+
 	handler, id, _ := openWorkingRepository(t)
 
 	// path.IsAbs knows only a leading slash, and `C:/…` is relative to it —
@@ -137,6 +145,8 @@ func TestDiffRefusesAWindowsDriveLetter(t *testing.T) {
 }
 
 func TestTheUntrackedDiffOnlyReadsWhatGitCallsUntracked(t *testing.T) {
+	t.Parallel()
+
 	handler, id, path := openWorkingRepository(t)
 
 	// `git diff --no-index` deliberately ignores the index and the work-tree
@@ -167,6 +177,8 @@ func TestTheUntrackedDiffOnlyReadsWhatGitCallsUntracked(t *testing.T) {
 }
 
 func TestDiscardingANestedRepositoryIsRefusedRatherThanAttempted(t *testing.T) {
+	t.Parallel()
+
 	handler, id, path := openWorkingRepository(t)
 
 	// `--untracked-files=all` expands untracked directories into their files,
@@ -196,6 +208,8 @@ func TestDiscardingANestedRepositoryIsRefusedRatherThanAttempted(t *testing.T) {
 }
 
 func TestASelectionLargerThanARequestMaySaySoRatherThanLookMalformed(t *testing.T) {
+	t.Parallel()
+
 	handler, id, _ := openWorkingRepository(t)
 
 	// One integer per changed line, so a single very large hunk goes over the
@@ -220,6 +234,8 @@ func TestASelectionLargerThanARequestMaySaySoRatherThanLookMalformed(t *testing.
 }
 
 func TestAmendingReplacesTheCommitRatherThanAddingOne(t *testing.T) {
+	t.Parallel()
+
 	handler, id, path := openWorkingRepository(t)
 
 	runGitIn(t, path, "config", "user.name", "yagit Test")
@@ -243,6 +259,8 @@ func TestAmendingReplacesTheCommitRatherThanAddingOne(t *testing.T) {
 }
 
 func TestCommittingWithoutAmendAddsACommit(t *testing.T) {
+	t.Parallel()
+
 	handler, id, path := openWorkingRepository(t)
 
 	runGitIn(t, path, "config", "user.name", "yagit Test")
@@ -270,6 +288,8 @@ func TestCommittingWithoutAmendAddsACommit(t *testing.T) {
 // it, and that what it sees is published. Watching the wrong directory is
 // silent: no error, no log line, just an interface that never refreshes.
 func TestAChangeOnDiskReachesTheStream(t *testing.T) {
+	t.Parallel()
+
 	handler, root, _ := serverOnWatchedRoot(t, true)
 
 	path := filepath.Join(root, "project")
@@ -312,6 +332,8 @@ func TestAChangeOnDiskReachesTheStream(t *testing.T) {
 // reconnects with Last-Event-ID, and the replay is what makes that a recovery
 // rather than a silent gap.
 func TestAReconnectingStreamIsGivenWhatItMissed(t *testing.T) {
+	t.Parallel()
+
 	handler, id, _ := openWorkingRepository(t)
 
 	server := httptest.NewServer(handler)
@@ -470,6 +492,8 @@ func nextEvent(reader *bufio.Reader) (kind, data string, err error) {
 // work tree's. The old name has to come from the status, which is where git
 // already reported it.
 func TestTheStagedDiffOfARenameCarriesBothNames(t *testing.T) {
+	t.Parallel()
+
 	handler, id, path := openWorkingRepository(t)
 
 	runGitIn(t, path, "checkout", "--", "a.txt")
@@ -508,6 +532,8 @@ func TestTheStagedDiffOfARenameCarriesBothNames(t *testing.T) {
 // can still see that the file was renamed, which is what re-reading the diff
 // with both names is for.
 func TestUnstagingLinesOfARenameIsRefusedRatherThanApplied(t *testing.T) {
+	t.Parallel()
+
 	handler, id, path := openWorkingRepository(t)
 
 	runGitIn(t, path, "checkout", "--", "a.txt")

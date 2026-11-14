@@ -31,6 +31,8 @@ func readHealth(t *testing.T) map[string]any {
 }
 
 func TestHealthNamesTheMachineItIsRunningOn(t *testing.T) {
+	t.Parallel()
+
 	payload := readHealth(t)
 
 	if payload["status"] != "ok" {
@@ -45,6 +47,8 @@ func TestHealthNamesTheMachineItIsRunningOn(t *testing.T) {
 }
 
 func TestHealthNamesTheGitItDrives(t *testing.T) {
+	t.Parallel()
+
 	payload := readHealth(t)
 
 	// yagit is a front end over the git on the machine. A health answer that
@@ -69,6 +73,8 @@ func TestHealthNamesTheGitItDrives(t *testing.T) {
 }
 
 func TestHealthNamesNothingPrivate(t *testing.T) {
+	t.Parallel()
+
 	// The point of the route is that it can be pasted into a public bug report
 	// by someone who did not read it first. A repository path, a branch name
 	// or the token would all make that a mistake.

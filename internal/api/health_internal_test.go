@@ -7,6 +7,8 @@ import "testing"
 // states, which is why one changed here without changing that is a drift
 // nothing else would catch.
 func TestGitFloorsAreOrderedAndEachNamesAnOperation(t *testing.T) {
+	t.Parallel()
+
 	for index, floor := range gitFloors {
 		if floor.operation == "" {
 			t.Errorf("floor %d names no operation, so the sentence it produces says nothing", index)

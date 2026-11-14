@@ -30,6 +30,8 @@ import (
 // Not on Windows: the fake is a shell script, and the process-group semantics
 // this exercises are not the ones Windows has.
 func TestExecComesBackWhenAGrandchildHoldsThePipe(t *testing.T) {
+	t.Parallel()
+
 	// The grandchild outlives any honest answer, so a Run that waits for it is
 	// unambiguous rather than slow.
 	const grandchildLifetime = 120
@@ -70,6 +72,8 @@ func TestExecComesBackWhenAGrandchildHoldsThePipe(t *testing.T) {
 // the moment somebody removes the line while tidying, which is a different and
 // much likelier accident.
 func TestWaitDelayIsSetOnEveryCommand(t *testing.T) {
+	t.Parallel()
+
 	if waitDelay <= 0 {
 		t.Fatal("waitDelay is not positive, which os/exec reads as 'wait forever'")
 	}
@@ -85,6 +89,8 @@ func TestWaitDelayIsSetOnEveryCommand(t *testing.T) {
 // Reading that as a failure is the worst answer available: the commit exists,
 // the interface says it does not, and the user makes a second one.
 func TestACleanExitSurvivesAGrandchildHoldingThePipe(t *testing.T) {
+	t.Parallel()
+
 	const grandchildLifetime = 120
 
 	directory := t.TempDir()
@@ -125,6 +131,8 @@ func TestACleanExitSurvivesAGrandchildHoldingThePipe(t *testing.T) {
 // that git reports progress through, and a wall clock turned that into a
 // repository written most of the way and a message blaming the network.
 func TestATransferSurvivesAsLongAsItKeepsReporting(t *testing.T) {
+	t.Parallel()
+
 	directory := t.TempDir()
 	fake := filepath.Join(directory, "git")
 
@@ -171,6 +179,8 @@ func TestATransferSurvivesAsLongAsItKeepsReporting(t *testing.T) {
 // And the case the deadline exists for: a connection that stopped answering
 // without closing.
 func TestATransferThatGoesQuietIsGivenUpOn(t *testing.T) {
+	t.Parallel()
+
 	directory := t.TempDir()
 	fake := filepath.Join(directory, "git")
 

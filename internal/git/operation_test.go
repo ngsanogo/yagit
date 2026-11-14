@@ -31,6 +31,8 @@ var everyAction = []git.Action{
 }
 
 func TestEveryPairEitherRunsGitOrSaysWhyNot(t *testing.T) {
+	t.Parallel()
+
 	for _, operation := range everyOperation {
 		for _, action := range everyAction {
 			args, err := git.ActionArgs(operation, action)
@@ -59,6 +61,8 @@ func TestEveryPairEitherRunsGitOrSaysWhyNot(t *testing.T) {
 // Written out rather than derived. A test that built the expectation the same
 // way the code does would pass just as happily with `--abrot` on both sides.
 func TestTheCommandEachInstructionRuns(t *testing.T) {
+	t.Parallel()
+
 	for _, testCase := range []struct {
 		operation git.Operation
 		action    git.Action
@@ -107,6 +111,8 @@ func TestTheCommandEachInstructionRuns(t *testing.T) {
 // request body. `exec` is the one that matters: `git rebase --exec` takes a
 // SHELL COMMAND as its argument.
 func TestAnUnknownActionIsRefusedRatherThanSpelledAsAFlag(t *testing.T) {
+	t.Parallel()
+
 	for _, action := range []git.Action{"exec", "onto", "", "--abort", "abort --exec rm -rf /"} {
 		for _, operation := range everyOperation {
 			args, err := git.ActionArgs(operation, action)
@@ -126,6 +132,8 @@ func TestAnUnknownActionIsRefusedRatherThanSpelledAsAFlag(t *testing.T) {
 // is refused, so Actions is derived from ActionArgs; this is the test that
 // says it still is.
 func TestTheButtonsOfferedAreTheCommandsAccepted(t *testing.T) {
+	t.Parallel()
+
 	for _, operation := range everyOperation {
 		offered := git.Actions(operation)
 
@@ -145,6 +153,8 @@ func TestTheButtonsOfferedAreTheCommandsAccepted(t *testing.T) {
 }
 
 func TestNothingIsOfferedForARepositoryInTheMiddleOfNothing(t *testing.T) {
+	t.Parallel()
+
 	if offered := git.Actions(git.OperationNone); len(offered) != 0 {
 		t.Errorf("an idle repository offers %v, want nothing", offered)
 	}
@@ -153,6 +163,8 @@ func TestNothingIsOfferedForARepositoryInTheMiddleOfNothing(t *testing.T) {
 // Continue is first because it is what somebody who just resolved a conflict
 // is reaching for, and it is the only one of the three that keeps their work.
 func TestContinueIsOfferedFirstWhereItIsOfferedAtAll(t *testing.T) {
+	t.Parallel()
+
 	offered := git.Actions(git.OperationRebase)
 	if len(offered) == 0 || offered[0] != git.ActionContinue {
 		t.Errorf("a rebase offers %v, want continue first", offered)
@@ -163,6 +175,8 @@ func TestContinueIsOfferedFirstWhereItIsOfferedAtAll(t *testing.T) {
 // prepared. `git merge --continue` would commit that message without showing
 // it, throwing away anything typed into the box — so the pair does not exist.
 func TestAMergeIsAbortedButNotContinued(t *testing.T) {
+	t.Parallel()
+
 	if offered := git.Actions(git.OperationMerge); !slices.Equal(offered, []git.Action{git.ActionAbort}) {
 		t.Errorf("a merge offers %v, want abort alone", offered)
 	}
@@ -180,6 +194,8 @@ func TestAMergeIsAbortedButNotContinued(t *testing.T) {
 // A bisect is driven by verdicts, not by continue. Continue would have to
 // guess whether the commit is good or bad.
 func TestABisectOffersVerdictsAndReset(t *testing.T) {
+	t.Parallel()
+
 	want := []git.Action{git.ActionGood, git.ActionBad, git.ActionSkip, git.ActionAbort}
 	if offered := git.Actions(git.OperationBisect); !slices.Equal(offered, want) {
 		t.Errorf("a bisect offers %v, want %v", offered, want)
@@ -192,6 +208,8 @@ func TestABisectOffersVerdictsAndReset(t *testing.T) {
 }
 
 func TestNothingCanBeDoneToAnOperationThatIsNotHappening(t *testing.T) {
+	t.Parallel()
+
 	for _, action := range everyAction {
 		if _, err := git.ActionArgs(git.OperationNone, action); !errors.Is(err, git.ErrNoOperation) {
 			t.Errorf("%s on an idle repository gave %v, want ErrNoOperation", action, err)
@@ -202,6 +220,8 @@ func TestNothingCanBeDoneToAnOperationThatIsNotHappening(t *testing.T) {
 // Which instructions need a confirmation, decided here rather than in a
 // dialog that could be refactored out of asking.
 func TestOnlyContinueAndBisectVerdictsKeepWhatIsThere(t *testing.T) {
+	t.Parallel()
+
 	for _, action := range []git.Action{git.ActionContinue, git.ActionGood, git.ActionBad} {
 		if git.Destroys(action) {
 			t.Errorf("%s is marked destructive; it records a decision and moves on", action)

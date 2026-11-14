@@ -57,6 +57,8 @@ func stagedPaths(t *testing.T, runner *git.Runner, dir string) map[string]bool {
 }
 
 func TestStagingMoreFilesThanACommandLineHolds(t *testing.T) {
+	t.Parallel()
+
 	dir, runner := workingDirectory(t)
 
 	paths := manyFiles(t, dir, 1000)
@@ -79,6 +81,8 @@ func TestStagingMoreFilesThanACommandLineHolds(t *testing.T) {
 // them. `:(literal)` is what makes that true, and it has to survive the move
 // from the command line into the file.
 func TestTheFallbackStillTakesNamesLiterally(t *testing.T) {
+	t.Parallel()
+
 	dir, runner := workingDirectory(t)
 
 	// One file whose name is a glob, among enough others to force the
@@ -112,6 +116,8 @@ func TestTheFallbackStillTakesNamesLiterally(t *testing.T) {
 }
 
 func TestUnstagingMoreFilesThanACommandLineHolds(t *testing.T) {
+	t.Parallel()
+
 	dir, runner := workingDirectory(t)
 
 	paths := manyFiles(t, dir, 1000)
@@ -130,6 +136,8 @@ func TestUnstagingMoreFilesThanACommandLineHolds(t *testing.T) {
 // `git clean` is the one command git never gave a pathspec file, so this list
 // reaches it as several commands. What the test pins is that every file goes.
 func TestDiscardingMoreUntrackedFilesThanACommandLineHolds(t *testing.T) {
+	t.Parallel()
+
 	dir, runner := workingDirectory(t)
 
 	paths := manyFiles(t, dir, 1000)

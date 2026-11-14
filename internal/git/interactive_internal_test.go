@@ -13,6 +13,8 @@ import "testing"
 // is written as what a shell would see rather than as a string comparison of
 // convenience.
 func TestShellQuoteMakesOneWordOfAPath(t *testing.T) {
+	t.Parallel()
+
 	for value, want := range map[string]string{
 		// Nothing a shell reads: one word already.
 		"/usr/local/bin/yagit": "/usr/local/bin/yagit",

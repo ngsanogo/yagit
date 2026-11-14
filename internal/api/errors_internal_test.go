@@ -6,6 +6,8 @@ import (
 )
 
 func TestForLogKeepsOneLineOnOneLine(t *testing.T) {
+	t.Parallel()
+
 	// The case the sanitiser exists for: a name written to forge a second
 	// entry that a reader of the log could not tell from one yagit wrote.
 	forged := "release\nlevel=ERROR msg=\"repository deleted\""
@@ -19,12 +21,16 @@ func TestForLogKeepsOneLineOnOneLine(t *testing.T) {
 }
 
 func TestForLogDropsControlCharacters(t *testing.T) {
+	t.Parallel()
+
 	if got := forLog("a\x00b\x1bc\x7fd"); strings.ContainsAny(got, "\x00\x1b\x7f") {
 		t.Fatalf("forLog = %q", got)
 	}
 }
 
 func TestForLogBoundsTheLength(t *testing.T) {
+	t.Parallel()
+
 	got := forLog(strings.Repeat("x", maxLoggedValue*4))
 	if len([]rune(got)) > maxLoggedValue+1 {
 		t.Fatalf("forLog kept %d characters", len([]rune(got)))
@@ -32,6 +38,8 @@ func TestForLogBoundsTheLength(t *testing.T) {
 }
 
 func TestForLogLeavesAnOrdinaryNameAlone(t *testing.T) {
+	t.Parallel()
+
 	if got := forLog("release/2.0"); got != "release/2.0" {
 		t.Fatalf("forLog = %q", got)
 	}

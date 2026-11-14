@@ -32,6 +32,8 @@ var commandsThatMustNotUseTheDefaultDeadline = []struct {
 }
 
 func TestWorkTreeCommandsCarryTheRewriteDeadline(t *testing.T) {
+	t.Parallel()
+
 	sources, err := filepath.Glob("*.go")
 	if err != nil {
 		t.Fatal(err)

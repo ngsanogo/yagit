@@ -25,8 +25,6 @@ import (
 //	side   base ─── side edit
 func mergeable(t *testing.T) (string, *git.Runner) {
 	t.Helper()
-	isolateGitConfiguration(t)
-
 	dir := t.TempDir()
 	runner := git.NewRunner(nil)
 
@@ -75,6 +73,8 @@ func diverged(t *testing.T, runner *git.Runner, dir string) {
 }
 
 func TestMergeFastForwardMovesHEAD(t *testing.T) {
+	t.Parallel()
+
 	dir, runner := mergeable(t)
 	ahead(t, runner, dir)
 
@@ -100,6 +100,8 @@ func TestMergeFastForwardMovesHEAD(t *testing.T) {
 // The case every open question bites in: git commits, which means the user's
 // identity, their hooks and their signing configuration.
 func TestMergeOfDivergedBranchesRecordsAMergeCommit(t *testing.T) {
+	t.Parallel()
+
 	dir, runner := mergeable(t)
 	diverged(t, runner, dir)
 
@@ -138,6 +140,8 @@ func TestMergeOfDivergedBranchesRecordsAMergeCommit(t *testing.T) {
 // stays put, and SQUASH_MSG holds what the next commit will say. Distinct from
 // an interactive-rebase squash line, which this package refuses on purpose.
 func TestMergeSquashStagesWithoutMovingHEAD(t *testing.T) {
+	t.Parallel()
+
 	dir, runner := mergeable(t)
 	diverged(t, runner, dir)
 
@@ -177,6 +181,8 @@ func TestMergeSquashStagesWithoutMovingHEAD(t *testing.T) {
 // The regression test for the whole design: merge.ff decides what a bare
 // `git merge` does, and yagit shows a command before it runs one.
 func TestMergeIsNotDecidedByTheUsersConfiguration(t *testing.T) {
+	t.Parallel()
+
 	t.Run("a fast-forward stays one where merge.ff is false", func(t *testing.T) {
 		dir, runner := mergeable(t)
 		ahead(t, runner, dir)
@@ -234,6 +240,8 @@ func TestMergeIsNotDecidedByTheUsersConfiguration(t *testing.T) {
 }
 
 func TestMergeConflictStopsAndLeavesMarkers(t *testing.T) {
+	t.Parallel()
+
 	dir, runner := mergeable(t)
 
 	err := runner.Merge(context.Background(), dir, "main", "side", git.MergeCommit)
@@ -267,6 +275,8 @@ func TestMergeConflictStopsAndLeavesMarkers(t *testing.T) {
 // same commits or the interface has described one operation and performed
 // another.
 func TestMergeTakesTheBranchAndNotATagOfTheSameName(t *testing.T) {
+	t.Parallel()
+
 	dir, runner := mergeable(t)
 	diverged(t, runner, dir)
 
@@ -299,6 +309,8 @@ func TestMergeTakesTheBranchAndNotATagOfTheSameName(t *testing.T) {
 }
 
 func TestMergeRefusesAnEmptyBranchName(t *testing.T) {
+	t.Parallel()
+
 	dir, runner := mergeable(t)
 
 	err := runner.Merge(context.Background(), dir, "main", "", git.MergeFastForward)
@@ -310,6 +322,8 @@ func TestMergeRefusesAnEmptyBranchName(t *testing.T) {
 // What the confirmation is built from: the three shapes, and the counts that
 // let a sentence say how many commits are coming.
 func TestPreviewMergeReadsWhatTheMergeWouldBe(t *testing.T) {
+	t.Parallel()
+
 	dir, runner := mergeable(t)
 	ahead(t, runner, dir)
 	diverged(t, runner, dir)
@@ -345,6 +359,8 @@ func TestPreviewMergeReadsWhatTheMergeWouldBe(t *testing.T) {
 }
 
 func TestPreviewMergeTellsAFastForwardFromABranchAlreadyIn(t *testing.T) {
+	t.Parallel()
+
 	dir, runner := mergeable(t)
 
 	// main has nothing of its own past this fork, so the merge is the pointer
@@ -379,6 +395,8 @@ func TestPreviewMergeTellsAFastForwardFromABranchAlreadyIn(t *testing.T) {
 // refs/tags first. The short name would count against the tag while the dialog
 // named the branch — which is why PreviewMerge spells refs/heads/… in full.
 func TestPreviewMergeReadsTheBranchAndNotATagOfTheSameName(t *testing.T) {
+	t.Parallel()
+
 	dir, runner := mergeable(t)
 
 	// The branch has a commit main does not; the tag is main itself, so a
@@ -399,6 +417,8 @@ func TestPreviewMergeReadsTheBranchAndNotATagOfTheSameName(t *testing.T) {
 // ordinary divergence — each side reports every commit it has — so a plan
 // built from them alone promises a merge commit git refuses to make.
 func TestPreviewMergeRefusesHistoriesThatNeverMet(t *testing.T) {
+	t.Parallel()
+
 	dir, runner := mergeable(t)
 
 	runGit(t, runner, dir, "checkout", "--orphan", "orphan")
@@ -433,6 +453,8 @@ func TestPreviewMergeRefusesHistoriesThatNeverMet(t *testing.T) {
 }
 
 func TestPreviewMergeRefusesAnEmptyName(t *testing.T) {
+	t.Parallel()
+
 	dir, runner := mergeable(t)
 
 	if _, err := runner.PreviewMerge(context.Background(), dir, "main", ""); !errors.Is(err, git.ErrNoBranchName) {

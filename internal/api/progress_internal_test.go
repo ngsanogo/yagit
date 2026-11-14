@@ -9,6 +9,8 @@ import (
 // A producer that never blocks is the whole point: the caller of line() is the
 // goroutine os/exec copies git's stderr on, and blocking it stops git.
 func TestProgressPumpNeverBlocksTheProducer(t *testing.T) {
+	t.Parallel()
+
 	release := make(chan struct{})
 	var delivered int
 
@@ -44,6 +46,8 @@ func TestProgressPumpNeverBlocksTheProducer(t *testing.T) {
 // Until it returns, the pump is still writing; the handler emits its done or
 // error event afterwards.
 func TestProgressPumpStopWaitsForTheLastLine(t *testing.T) {
+	t.Parallel()
+
 	var mutex sync.Mutex
 	var seen []string
 
@@ -75,6 +79,8 @@ func TestProgressPumpStopWaitsForTheLastLine(t *testing.T) {
 // Every handler defers a stop and also stops explicitly once git returns, so
 // the second call has to be harmless rather than a close of a closed channel.
 func TestProgressPumpStopIsIdempotent(t *testing.T) {
+	t.Parallel()
+
 	pump := startProgressPump(func(string) {})
 	pump.line("one")
 	pump.stop()
@@ -86,6 +92,8 @@ func TestProgressPumpStopIsIdempotent(t *testing.T) {
 // not a panic: os/exec's copy goroutine can still be finishing when the
 // handler has already moved on.
 func TestProgressPumpDropsALineAfterStop(t *testing.T) {
+	t.Parallel()
+
 	var mutex sync.Mutex
 	var count int
 

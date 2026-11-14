@@ -11,6 +11,8 @@ import (
 )
 
 func TestParseBlameReadsLinePorcelain(t *testing.T) {
+	t.Parallel()
+
 	// Two lines from one commit: --line-porcelain repeats the fields.
 	output := []byte("" +
 		"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa 1 1 2\n" +
@@ -57,6 +59,8 @@ func TestParseBlameReadsLinePorcelain(t *testing.T) {
 }
 
 func TestParseBlameRefusesABrokenHeader(t *testing.T) {
+	t.Parallel()
+
 	_, err := git.ParseBlame([]byte("not-a-header\n\ttext\n"))
 	if err == nil {
 		t.Fatal("accepted a broken header")
@@ -64,6 +68,8 @@ func TestParseBlameRefusesABrokenHeader(t *testing.T) {
 }
 
 func TestBlameAttributesLinesToCommits(t *testing.T) {
+	t.Parallel()
+
 	dir := initRepo(t)
 	runner := git.NewRunner(nil)
 	ctx := context.Background()
@@ -97,6 +103,8 @@ func TestBlameAttributesLinesToCommits(t *testing.T) {
 }
 
 func TestBlameRefusesAnEmptyPath(t *testing.T) {
+	t.Parallel()
+
 	dir := initRepo(t)
 	_, err := git.NewRunner(nil).Blame(context.Background(), dir, "HEAD", "")
 	if !errors.Is(err, git.ErrNoPaths) {

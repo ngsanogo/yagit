@@ -31,8 +31,6 @@ import (
 //	work         A          ← on main, following origin/main
 func clonedPair(t *testing.T) (server, work string, runner *git.Runner) {
 	t.Helper()
-	isolateGitConfiguration(t)
-
 	root := t.TempDir()
 	server = filepath.Join(root, "server.git")
 	work = filepath.Join(root, "work")
@@ -78,6 +76,8 @@ func shaOf(t *testing.T, runner *git.Runner, dir, revision string) string {
 }
 
 func TestRemotesReadsBothURLs(t *testing.T) {
+	t.Parallel()
+
 	_, work, runner := clonedPair(t)
 	runGit(t, runner, work, "config", "remote.origin.pushurl", "https://ada:secret@example.test/x.git")
 
@@ -97,6 +97,8 @@ func TestRemotesReadsBothURLs(t *testing.T) {
 }
 
 func TestUpstreamOfReadsWhatABranchFollows(t *testing.T) {
+	t.Parallel()
+
 	_, work, runner := clonedPair(t)
 	ctx := context.Background()
 
@@ -128,6 +130,8 @@ func TestUpstreamOfReadsWhatABranchFollows(t *testing.T) {
 // to trunk — and `git push origin main`, which looks like the same request,
 // would create a second branch on the server and push to that one forever.
 func TestPushFollowsTheUpstreamsNameRatherThanTheBranchs(t *testing.T) {
+	t.Parallel()
+
 	server, work, runner := clonedPair(t)
 	ctx := context.Background()
 
@@ -160,6 +164,8 @@ func TestPushFollowsTheUpstreamsNameRatherThanTheBranchs(t *testing.T) {
 }
 
 func TestPushPublishesABranchAndRecordsWhereItWent(t *testing.T) {
+	t.Parallel()
+
 	server, work, runner := clonedPair(t)
 	ctx := context.Background()
 
@@ -190,6 +196,8 @@ func TestPushPublishesABranchAndRecordsWhereItWent(t *testing.T) {
 }
 
 func TestFetchPrunesABranchThatIsGoneFromTheServer(t *testing.T) {
+	t.Parallel()
+
 	server, work, runner := clonedPair(t)
 	ctx := context.Background()
 
@@ -214,6 +222,8 @@ func TestFetchPrunesABranchThatIsGoneFromTheServer(t *testing.T) {
 }
 
 func TestFetchWithNoRemoteNamedReachesAllOfThem(t *testing.T) {
+	t.Parallel()
+
 	server, work, runner := clonedPair(t)
 	ctx := context.Background()
 
@@ -231,6 +241,8 @@ func TestFetchWithNoRemoteNamedReachesAllOfThem(t *testing.T) {
 }
 
 func TestPullFastForwardMovesTheBranchUp(t *testing.T) {
+	t.Parallel()
+
 	server, work, runner := clonedPair(t)
 	ctx := context.Background()
 
@@ -252,6 +264,8 @@ func TestPullFastForwardMovesTheBranchUp(t *testing.T) {
 }
 
 func TestPullFastForwardRefusesDivergedBranchesAndSaysSo(t *testing.T) {
+	t.Parallel()
+
 	server, work, runner := clonedPair(t)
 	ctx := context.Background()
 
@@ -288,6 +302,8 @@ func TestPullFastForwardRefusesDivergedBranchesAndSaysSo(t *testing.T) {
 }
 
 func TestPullRebaseReplaysTheLocalCommitOnTop(t *testing.T) {
+	t.Parallel()
+
 	server, work, runner := clonedPair(t)
 	ctx := context.Background()
 
@@ -312,6 +328,8 @@ func TestPullRebaseReplaysTheLocalCommitOnTop(t *testing.T) {
 }
 
 func TestPullMergeBringsTheUpstreamInAsAMerge(t *testing.T) {
+	t.Parallel()
+
 	server, work, runner := clonedPair(t)
 	ctx := context.Background()
 
@@ -346,6 +364,8 @@ func TestPullMergeBringsTheUpstreamInAsAMerge(t *testing.T) {
 // succeeds over work nobody has seen. --force-if-includes is what requires the
 // overwritten commit to actually be in this branch's history.
 func TestForcePushRefusesWhenTheRemoteMovedUnderneath(t *testing.T) {
+	t.Parallel()
+
 	server, work, runner := clonedPair(t)
 	ctx := context.Background()
 
@@ -383,6 +403,8 @@ func TestForcePushRefusesWhenTheRemoteMovedUnderneath(t *testing.T) {
 }
 
 func TestForcePushGoesThroughOnceTheRewriteIncludesWhatWasThere(t *testing.T) {
+	t.Parallel()
+
 	server, work, runner := clonedPair(t)
 	ctx := context.Background()
 
@@ -411,6 +433,8 @@ func TestForcePushGoesThroughOnceTheRewriteIncludesWhatWasThere(t *testing.T) {
 }
 
 func TestPushRefusesWithoutSomewhereToSend(t *testing.T) {
+	t.Parallel()
+
 	_, work, runner := clonedPair(t)
 	ctx := context.Background()
 
@@ -428,6 +452,8 @@ func TestPushRefusesWithoutSomewhereToSend(t *testing.T) {
 }
 
 func TestAddRenameRemoveRemote(t *testing.T) {
+	t.Parallel()
+
 	_, work, runner := clonedPair(t)
 	ctx := context.Background()
 
@@ -465,6 +491,8 @@ func TestAddRenameRemoveRemote(t *testing.T) {
 }
 
 func TestRemoteManagementRefusesEmptyFields(t *testing.T) {
+	t.Parallel()
+
 	_, work, runner := clonedPair(t)
 	ctx := context.Background()
 
@@ -487,6 +515,8 @@ func TestRemoteManagementRefusesEmptyFields(t *testing.T) {
 }
 
 func TestSetRemoteURLChangesWhereFetchComesFrom(t *testing.T) {
+	t.Parallel()
+
 	_, work, runner := clonedPair(t)
 	ctx := context.Background()
 
@@ -506,6 +536,8 @@ func TestSetRemoteURLChangesWhereFetchComesFrom(t *testing.T) {
 }
 
 func TestSetUpstreamRecordsWhatABranchFollows(t *testing.T) {
+	t.Parallel()
+
 	_, work, runner := clonedPair(t)
 	ctx := context.Background()
 
@@ -523,6 +555,8 @@ func TestSetUpstreamRecordsWhatABranchFollows(t *testing.T) {
 }
 
 func TestUnsetUpstreamForgetsWhatABranchFollows(t *testing.T) {
+	t.Parallel()
+
 	_, work, runner := clonedPair(t)
 	ctx := context.Background()
 
@@ -543,6 +577,8 @@ func TestUnsetUpstreamForgetsWhatABranchFollows(t *testing.T) {
 }
 
 func TestRemoveRemoteDropsItsTrackingBranches(t *testing.T) {
+	t.Parallel()
+
 	_, work, runner := clonedPair(t)
 	ctx := context.Background()
 

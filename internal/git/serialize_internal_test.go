@@ -13,6 +13,8 @@ import (
 )
 
 func TestWhichCommandsTakeTheIndexLock(t *testing.T) {
+	t.Parallel()
+
 	cases := []struct {
 		args   []string
 		writes bool
@@ -64,6 +66,8 @@ func TestWhichCommandsTakeTheIndexLock(t *testing.T) {
 // The subcommand is found, not assumed, so a global flag added in front of a
 // command later cannot take it out of the lock in silence.
 func TestTheSubcommandIsFoundPastAnyGlobalFlag(t *testing.T) {
+	t.Parallel()
+
 	cases := []struct {
 		args []string
 		want string
@@ -94,6 +98,8 @@ func TestTheSubcommandIsFoundPastAnyGlobalFlag(t *testing.T) {
 }
 
 func TestTwoWritesToOneRepositoryDoNotOverlap(t *testing.T) {
+	t.Parallel()
+
 	locks := newDirLocks()
 
 	release, err := locks.acquire(context.Background(), "/repo")
@@ -137,6 +143,8 @@ func TestTwoWritesToOneRepositoryDoNotOverlap(t *testing.T) {
 }
 
 func TestTwoRepositoriesDoNotWaitOnEachOther(t *testing.T) {
+	t.Parallel()
+
 	locks := newDirLocks()
 
 	release, err := locks.acquire(context.Background(), "/one")
@@ -155,6 +163,8 @@ func TestTwoRepositoriesDoNotWaitOnEachOther(t *testing.T) {
 }
 
 func TestAWriteGivesUpRatherThanHangingForever(t *testing.T) {
+	t.Parallel()
+
 	locks := newDirLocks()
 
 	release, err := locks.acquire(context.Background(), "/repo")
@@ -179,6 +189,8 @@ func TestAWriteGivesUpRatherThanHangingForever(t *testing.T) {
 // command travels. This runs two writes through Exec itself, against a git
 // slow enough that an overlap would be visible.
 func TestExecSerialisesTwoWritesToOneRepository(t *testing.T) {
+	t.Parallel()
+
 	if runtime.GOOS == "windows" {
 		t.Skip("the fake git is a shell script")
 	}
@@ -225,6 +237,8 @@ func TestExecSerialisesTwoWritesToOneRepository(t *testing.T) {
 // And the other half: a read must go through while a write holds the
 // repository, or the side panels would stop answering during a rebase.
 func TestExecLetsAReadThroughDuringAWrite(t *testing.T) {
+	t.Parallel()
+
 	if runtime.GOOS == "windows" {
 		t.Skip("the fake git is a shell script")
 	}

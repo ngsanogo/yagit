@@ -7,6 +7,8 @@ import (
 )
 
 func TestARepositoryIsWatchedUnlessItIsRecordedOtherwise(t *testing.T) {
+	t.Parallel()
+
 	opened := &repo.Repo{ID: "abc123", Path: "/tmp/x", Name: "x"}
 
 	// The default has to be true rather than false: a zero value that read
@@ -18,6 +20,8 @@ func TestARepositoryIsWatchedUnlessItIsRecordedOtherwise(t *testing.T) {
 }
 
 func TestAWatchFailureReachesTheView(t *testing.T) {
+	t.Parallel()
+
 	opened := &repo.Repo{ID: "abc123", Path: "/tmp/x", Name: "x"}
 
 	failures := newUnwatched()
@@ -35,6 +39,8 @@ func TestAWatchFailureReachesTheView(t *testing.T) {
 }
 
 func TestForgettingAFailureRestoresTheView(t *testing.T) {
+	t.Parallel()
+
 	// Opening a repository retries the watch, so a warning must not outlive
 	// the thing it was about.
 	opened := &repo.Repo{ID: "abc123", Path: "/tmp/x", Name: "x"}
@@ -50,6 +56,8 @@ func TestForgettingAFailureRestoresTheView(t *testing.T) {
 }
 
 func TestOneRepositorysFailureDoesNotReachAnother(t *testing.T) {
+	t.Parallel()
+
 	failures := newUnwatched()
 	failures.record("broken", "no watches left")
 
@@ -60,6 +68,8 @@ func TestOneRepositorysFailureDoesNotReachAnother(t *testing.T) {
 }
 
 func TestAViewSurvivesWithoutAnyRecord(t *testing.T) {
+	t.Parallel()
+
 	// A daemon started with no watcher at all hands nil here, and the answer
 	// has to be a view rather than a panic.
 	view := repositoryViewOf(&repo.Repo{ID: "abc123", Name: "x"}, nil)

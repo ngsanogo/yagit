@@ -16,6 +16,8 @@ import (
 const secret = "ghp_ThisMustNeverBeLogged"
 
 func TestRedactTextHidesCredentialsInsideASentence(t *testing.T) {
+	t.Parallel()
+
 	// git names the URL it could not reach, whole, in the middle of prose. The
 	// sentence is shown, broadcast and journalled, so this is where a token
 	// escapes even when the argument list is clean.
@@ -78,6 +80,8 @@ func TestRedactTextHidesCredentialsInsideASentence(t *testing.T) {
 // what the Runner hands its observer, so one check at that boundary covers
 // them.
 func TestNoCredentialReachesTheObserverOrTheError(t *testing.T) {
+	t.Parallel()
+
 	observed := []git.Execution{}
 	runner := git.NewRunner(func(execution git.Execution) {
 		observed = append(observed, execution)
@@ -128,6 +132,8 @@ func TestNoCredentialReachesTheObserverOrTheError(t *testing.T) {
 // A failed command reaches the user as an *Error, whose message is built from
 // the same arguments and the same stderr.
 func TestNoCredentialReachesAFailedCommandsError(t *testing.T) {
+	t.Parallel()
+
 	runner := git.NewRunner(nil)
 	directory := t.TempDir()
 
@@ -161,6 +167,8 @@ func TestNoCredentialReachesAFailedCommandsError(t *testing.T) {
 // A clone is the route where a credential URL is most likely to be typed, and
 // the one whose command line is broadcast for the whole of a long transfer.
 func TestNoCredentialReachesTheObserverDuringAClone(t *testing.T) {
+	t.Parallel()
+
 	observed := []git.Execution{}
 	runner := git.NewRunner(func(execution git.Execution) {
 		observed = append(observed, execution)

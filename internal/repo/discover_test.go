@@ -14,6 +14,8 @@ import (
 )
 
 func TestDiscoverFindsSiblingRepositories(t *testing.T) {
+	t.Parallel()
+
 	registry, root, runner := newRegistry(t)
 
 	pathA := filepath.Join(root, "projects", "alpha")
@@ -33,6 +35,8 @@ func TestDiscoverFindsSiblingRepositories(t *testing.T) {
 }
 
 func TestDiscoverScansASubdirectoryOnly(t *testing.T) {
+	t.Parallel()
+
 	registry, root, runner := newRegistry(t)
 
 	inside := filepath.Join(root, "keep", "repo")
@@ -56,6 +60,8 @@ func TestDiscoverScansASubdirectoryOnly(t *testing.T) {
 }
 
 func TestDiscoverRespectsMaxDepth(t *testing.T) {
+	t.Parallel()
+
 	registry, root, runner := newRegistry(t)
 
 	deep := filepath.Join(root, "a", "b", "c", "repo")
@@ -88,6 +94,8 @@ func commitEmpty(t *testing.T, runner *git.Runner, path, message string) {
 }
 
 func TestDiscoverExcludesLinkedWorktreeByDefault(t *testing.T) {
+	t.Parallel()
+
 	registry, root, runner := newRegistry(t)
 
 	mainPath := filepath.Join(root, "main")
@@ -126,6 +134,8 @@ func TestDiscoverExcludesLinkedWorktreeByDefault(t *testing.T) {
 }
 
 func TestDiscoverIncludesLinkedWorktreeWhenAsked(t *testing.T) {
+	t.Parallel()
+
 	registry, root, runner := newRegistry(t)
 
 	mainPath := filepath.Join(root, "main")
@@ -153,6 +163,8 @@ func TestDiscoverIncludesLinkedWorktreeWhenAsked(t *testing.T) {
 }
 
 func TestDiscoverExcludesSubmoduleCheckoutByDefault(t *testing.T) {
+	t.Parallel()
+
 	registry, root, runner := newRegistry(t)
 
 	standalone := filepath.Join(root, "standalone-sub")
@@ -201,6 +213,8 @@ func TestDiscoverExcludesSubmoduleCheckoutByDefault(t *testing.T) {
 }
 
 func TestDiscoverIncludesSubmoduleWhenAsked(t *testing.T) {
+	t.Parallel()
+
 	registry, root, runner := newRegistry(t)
 
 	standalone := filepath.Join(root, "standalone-sub")
@@ -247,6 +261,8 @@ func TestDiscoverIncludesSubmoduleWhenAsked(t *testing.T) {
 // join, because a single level is the case where the relative path happens to
 // be a bare name.
 func TestDiscoverFindsANestedSubmodule(t *testing.T) {
+	t.Parallel()
+
 	registry, root, runner := newRegistry(t)
 
 	leaf := filepath.Join(root, "leaf")
@@ -302,6 +318,8 @@ func addSubmodule(t *testing.T, runner *git.Runner, parent, child, at string) {
 }
 
 func TestDiscoverListsStandaloneCloneOfASubmodule(t *testing.T) {
+	t.Parallel()
+
 	registry, root, runner := newRegistry(t)
 
 	standalone := filepath.Join(root, "standalone-sub")
@@ -319,6 +337,8 @@ func TestDiscoverListsStandaloneCloneOfASubmodule(t *testing.T) {
 }
 
 func TestDiscoverReportsCanonicalScannedFrom(t *testing.T) {
+	t.Parallel()
+
 	registry, root, runner := newRegistry(t)
 	path := filepath.Join(root, "via-link", "project")
 	createRepo(t, runner, path)
@@ -354,6 +374,8 @@ func TestDiscoverReportsCanonicalScannedFrom(t *testing.T) {
 // with an inviting button beside it, and Open would then — correctly — refuse
 // the thing the interface had just offered.
 func TestDiscoverDoesNotFollowASymlinkOutOfTheRoot(t *testing.T) {
+	t.Parallel()
+
 	registry, root, runner := newRegistry(t)
 
 	outside, err := filepath.EvalSymlinks(t.TempDir())
@@ -383,6 +405,8 @@ func TestDiscoverDoesNotFollowASymlinkOutOfTheRoot(t *testing.T) {
 }
 
 func TestDiscoverRejectsPathOutsideRoot(t *testing.T) {
+	t.Parallel()
+
 	registry, _, runner := newRegistry(t)
 
 	outside, err := filepath.EvalSymlinks(t.TempDir())
@@ -421,6 +445,8 @@ func kindForPath(found []repo.DiscoveredRepo, path string) repo.DiscoveredKind {
 // A scan that finds nothing has to be able to say why, and these counts are
 // the whole of what it knows.
 func TestDiscoverCountsSkippedDirectories(t *testing.T) {
+	t.Parallel()
+
 	registry, root, runner := newRegistry(t)
 
 	createRepo(t, runner, filepath.Join(root, ".hidden", "repo"))
@@ -451,6 +477,8 @@ func TestDiscoverCountsSkippedDirectories(t *testing.T) {
 // those was skipped, pointing a scan at a `.git` helps nobody, and the one
 // true reason sat underneath it.
 func TestDiscoverCountsABrokenRepositoryOnce(t *testing.T) {
+	t.Parallel()
+
 	registry, root, _ := newRegistry(t)
 
 	// A `.git` nothing wrote into: git knows the name and then refuses to
@@ -487,6 +515,8 @@ func TestDiscoverCountsABrokenRepositoryOnce(t *testing.T) {
 // of directories, and which one depended on the order the filesystem listed
 // them in — a number nobody could act on, presented as a reason.
 func TestDiscoverCountsDirectoriesBelowTheLimitAndNotFiles(t *testing.T) {
+	t.Parallel()
+
 	registry, root, runner := newRegistry(t)
 
 	createRepo(t, runner, filepath.Join(root, "a", "b", "c", "repo"))
@@ -514,6 +544,8 @@ func TestDiscoverCountsDirectoriesBelowTheLimitAndNotFiles(t *testing.T) {
 // The interface draws its depth control from these two numbers, so they have
 // to be what the scan applied rather than what it was asked for.
 func TestDiscoverReportsTheDepthItApplied(t *testing.T) {
+	t.Parallel()
+
 	registry, _, _ := newRegistry(t)
 	ctx := context.Background()
 
@@ -553,6 +585,8 @@ func TestDiscoverReportsTheDepthItApplied(t *testing.T) {
 // still arrives: one broken .gitmodules must not hide every other repository
 // on the disk.
 func TestDiscoverReportsASubmoduleListingFailure(t *testing.T) {
+	t.Parallel()
+
 	registry, root, runner := newRegistry(t)
 
 	child := filepath.Join(root, "child")
@@ -606,6 +640,8 @@ func TestDiscoverReportsASubmoduleListingFailure(t *testing.T) {
 // The pass has nothing to report when nothing failed, and the field stays
 // empty rather than growing an entry per repository it looked at.
 func TestDiscoverReportsNoFailureWhenSubmodulesList(t *testing.T) {
+	t.Parallel()
+
 	registry, root, runner := newRegistry(t)
 
 	child := filepath.Join(root, "child")

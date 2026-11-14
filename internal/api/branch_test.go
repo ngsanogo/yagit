@@ -52,6 +52,8 @@ func openSwitchableRepository(t *testing.T) (http.Handler, string, string) {
 // that moves HEAD sends back where HEAD now is, so nothing has to ask again to
 // find out what it just did.
 func TestSwitchingAnswersWithTheReferencesAndTheNewHEAD(t *testing.T) {
+	t.Parallel()
+
 	handler, id, _ := openSwitchableRepository(t)
 
 	response := postJSON(t, handler, "/api/repos/"+id+"/switch", `{"ref":"side"}`)
@@ -75,6 +77,8 @@ func TestSwitchingAnswersWithTheReferencesAndTheNewHEAD(t *testing.T) {
 }
 
 func TestDetachingAnswersWithADetachedHEAD(t *testing.T) {
+	t.Parallel()
+
 	handler, id, _ := openSwitchableRepository(t)
 
 	response := postJSON(t, handler, "/api/repos/"+id+"/switch", `{"ref":"v1","detach":true}`)
@@ -91,6 +95,8 @@ func TestDetachingAnswersWithADetachedHEAD(t *testing.T) {
 // The status route is what the working-directory panel reads, and a checkout
 // is the one thing that changes its answer without anybody touching a file.
 func TestSwitchingChangesWhatTheStatusRouteReports(t *testing.T) {
+	t.Parallel()
+
 	handler, id, _ := openSwitchableRepository(t)
 
 	if response := postJSON(t, handler, "/api/repos/"+id+"/switch", `{"ref":"side"}`); response.Code != http.StatusOK {
@@ -110,6 +116,8 @@ func TestSwitchingChangesWhatTheStatusRouteReports(t *testing.T) {
 // request was well formed and git said no, which is a different thing from the
 // daemon not understanding it.
 func TestSwitchingToAMissingBranchIsGitsRefusal(t *testing.T) {
+	t.Parallel()
+
 	handler, id, _ := openSwitchableRepository(t)
 
 	response := postJSON(t, handler, "/api/repos/"+id+"/switch", `{"ref":"no-such-branch"}`)
@@ -126,6 +134,8 @@ func TestSwitchingToAMissingBranchIsGitsRefusal(t *testing.T) {
 // quietly detaching instead — the interface would then be showing a branch
 // name for a repository that is on none.
 func TestSwitchingToATagWithoutDetachingIsRefused(t *testing.T) {
+	t.Parallel()
+
 	handler, id, _ := openSwitchableRepository(t)
 
 	response := postJSON(t, handler, "/api/repos/"+id+"/switch", `{"ref":"v1"}`)
@@ -140,6 +150,8 @@ func TestSwitchingToATagWithoutDetachingIsRefused(t *testing.T) {
 }
 
 func TestSwitchingWithNoReferenceIsABadRequest(t *testing.T) {
+	t.Parallel()
+
 	handler, id, _ := openSwitchableRepository(t)
 
 	response := postJSON(t, handler, "/api/repos/"+id+"/switch", `{"ref":""}`)
@@ -152,6 +164,8 @@ func TestSwitchingWithNoReferenceIsABadRequest(t *testing.T) {
 // this API: a client that sent "branch" where "ref" was expected has to find
 // out now, not by wondering why nothing was checked out.
 func TestSwitchingRefusesAnUnknownField(t *testing.T) {
+	t.Parallel()
+
 	handler, id, _ := openSwitchableRepository(t)
 
 	response := postJSON(t, handler, "/api/repos/"+id+"/switch", `{"branch":"side"}`)
@@ -180,6 +194,8 @@ func branchNamesOf(payload wireRefs) []string {
 }
 
 func TestCreatingABranchAnswersWithItInTheList(t *testing.T) {
+	t.Parallel()
+
 	handler, id, _ := openSwitchableRepository(t)
 
 	response := postJSON(t, handler, "/api/repos/"+id+"/branches", `{"name":"third","start":"side"}`)
@@ -199,6 +215,8 @@ func TestCreatingABranchAnswersWithItInTheList(t *testing.T) {
 }
 
 func TestCreatingABranchCanStandOnIt(t *testing.T) {
+	t.Parallel()
+
 	handler, id, _ := openSwitchableRepository(t)
 
 	response := postJSON(t, handler, "/api/repos/"+id+"/branches",
@@ -215,6 +233,8 @@ func TestCreatingABranchCanStandOnIt(t *testing.T) {
 
 // The refusal that matters, at the edge where a name reaches git.
 func TestCreatingABranchRefusesAnOptionShapedName(t *testing.T) {
+	t.Parallel()
+
 	handler, id, _ := openSwitchableRepository(t)
 
 	response := postJSON(t, handler, "/api/repos/"+id+"/branches", `{"name":"-m","start":"side"}`)
@@ -231,6 +251,8 @@ func TestCreatingABranchRefusesAnOptionShapedName(t *testing.T) {
 }
 
 func TestRenamingABranchAnswersWithTheNewName(t *testing.T) {
+	t.Parallel()
+
 	handler, id, _ := openSwitchableRepository(t)
 
 	response := postJSON(t, handler, "/api/repos/"+id+"/branches/rename",
@@ -248,6 +270,8 @@ func TestRenamingABranchAnswersWithTheNewName(t *testing.T) {
 // The plan is the confirmation's whole content, so it has to be the command
 // and not a description of one.
 func TestPlanningADeleteAnswersTheCommandItWouldRun(t *testing.T) {
+	t.Parallel()
+
 	handler, id, _ := openSwitchableRepository(t)
 
 	response := postJSON(t, handler, "/api/repos/"+id+"/branches/delete/plan",
@@ -271,6 +295,8 @@ func TestPlanningADeleteAnswersTheCommandItWouldRun(t *testing.T) {
 }
 
 func TestPlanningADeleteSaysWhichFlagItWouldUse(t *testing.T) {
+	t.Parallel()
+
 	handler, id, _ := openSwitchableRepository(t)
 
 	response := postJSON(t, handler, "/api/repos/"+id+"/branches/delete/plan", `{"name":"side"}`)
@@ -289,6 +315,8 @@ func TestPlanningADeleteSaysWhichFlagItWouldUse(t *testing.T) {
 }
 
 func TestDeletingABranchAnswersWithoutIt(t *testing.T) {
+	t.Parallel()
+
 	handler, id, _ := openSwitchableRepository(t)
 
 	response := postJSON(t, handler, "/api/repos/"+id+"/branches/delete",
@@ -306,6 +334,8 @@ func TestDeletingABranchAnswersWithoutIt(t *testing.T) {
 // git's own refusals reach the client whole, and this is the one a person is
 // most likely to meet: side holds a commit main cannot reach.
 func TestDeletingAnUnmergedBranchIsRefusedWithGitsWords(t *testing.T) {
+	t.Parallel()
+
 	handler, id, _ := openSwitchableRepository(t)
 
 	response := postJSON(t, handler, "/api/repos/"+id+"/branches/delete", `{"name":"side"}`)
@@ -323,6 +353,8 @@ func TestDeletingAnUnmergedBranchIsRefusedWithGitsWords(t *testing.T) {
 }
 
 func TestBranchRoutesRefuseABodyTheyDoNotUnderstand(t *testing.T) {
+	t.Parallel()
+
 	handler, id, _ := openSwitchableRepository(t)
 
 	for _, route := range []string{"/branches", "/branches/rename", "/branches/delete", "/branches/delete/plan"} {
@@ -341,6 +373,8 @@ func TestBranchRoutesRefuseABodyTheyDoNotUnderstand(t *testing.T) {
 // refuses before git is reached, so nothing here has git's own words in it —
 // which is exactly why the status is the only thing that can be asserted.
 func TestBranchRoutesRefuseAnEmptyName(t *testing.T) {
+	t.Parallel()
+
 	handler, id, _ := openSwitchableRepository(t)
 
 	bodies := map[string]string{

@@ -10,6 +10,8 @@ import (
 )
 
 func TestBisectStartPlanNamesTheExactCommand(t *testing.T) {
+	t.Parallel()
+
 	handler, id, _ := openWorkingRepository(t)
 
 	response := postJSON(t, handler, "/api/repos/"+id+"/bisect/start/plan", `{}`)
@@ -28,6 +30,8 @@ func TestBisectStartPlanNamesTheExactCommand(t *testing.T) {
 }
 
 func TestBisectStartPutsTheRepositoryIntoABisect(t *testing.T) {
+	t.Parallel()
+
 	handler, id, _ := openWorkingRepository(t)
 
 	response := postJSON(t, handler, "/api/repos/"+id+"/bisect/start", `{}`)
@@ -53,6 +57,8 @@ func TestBisectStartPutsTheRepositoryIntoABisect(t *testing.T) {
 }
 
 func TestBisectGoodAdvancesFromTheBanner(t *testing.T) {
+	t.Parallel()
+
 	handler, id, path := openBisectableRepository(t)
 
 	start := postJSON(t, handler, "/api/repos/"+id+"/bisect/start",

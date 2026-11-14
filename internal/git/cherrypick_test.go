@@ -12,6 +12,8 @@ import (
 // outcome, and --no-edit so the daemon never looks for a terminal.
 
 func TestCherryPickArgsPinsWhatThePickWillBe(t *testing.T) {
+	t.Parallel()
+
 	cases := map[git.CherryPickOutcome][]string{
 		git.CherryPickFastForward: {
 			"cherry-pick", "--no-edit", "--ff", "--", "abc1234",
@@ -35,6 +37,8 @@ func TestCherryPickArgsPinsWhatThePickWillBe(t *testing.T) {
 }
 
 func TestCherryPickArgsPutsTheRevisionWhereItCannotBeAnOption(t *testing.T) {
+	t.Parallel()
+
 	for _, outcome := range []git.CherryPickOutcome{
 		git.CherryPickUpToDate, git.CherryPickFastForward, git.CherryPickApply,
 	} {
@@ -47,6 +51,8 @@ func TestCherryPickArgsPutsTheRevisionWhereItCannotBeAnOption(t *testing.T) {
 }
 
 func TestParseCherryPickOutcomeTakesTheThreeAndNothingElse(t *testing.T) {
+	t.Parallel()
+
 	for _, raw := range []string{"up-to-date", "fast-forward", "cherry-pick"} {
 		outcome, err := git.ParseCherryPickOutcome(raw)
 		if err != nil {

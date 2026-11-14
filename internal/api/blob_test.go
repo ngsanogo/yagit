@@ -7,6 +7,8 @@ import (
 )
 
 func TestBlobServesAnImageFromTheWorkTree(t *testing.T) {
+	t.Parallel()
+
 	handler, id, path := openWorkingRepository(t)
 	png := "\x89PNG\r\n\x1a\n\x00\x00"
 	writeInRepo(t, path, "logo.png", png)
@@ -27,6 +29,8 @@ func TestBlobServesAnImageFromTheWorkTree(t *testing.T) {
 }
 
 func TestBlobServesStagedAndHeadSides(t *testing.T) {
+	t.Parallel()
+
 	handler, id, path := openWorkingRepository(t)
 	oldPNG := "\x89PNG\r\n\x1a\nold"
 	newPNG := "\x89PNG\r\n\x1a\nnew"
@@ -48,6 +52,8 @@ func TestBlobServesStagedAndHeadSides(t *testing.T) {
 }
 
 func TestBlobRefusesANonImage(t *testing.T) {
+	t.Parallel()
+
 	handler, id, _ := openWorkingRepository(t)
 
 	response := get(t, handler, "/api/repos/"+id+"/blob?path=a.txt&at=worktree")
@@ -57,6 +63,8 @@ func TestBlobRefusesANonImage(t *testing.T) {
 }
 
 func TestBlobRefusesAPathThatLeavesTheRepository(t *testing.T) {
+	t.Parallel()
+
 	handler, id, _ := openWorkingRepository(t)
 
 	response := get(t, handler, "/api/repos/"+id+"/blob?path=../outside.png&at=worktree")
@@ -66,6 +74,8 @@ func TestBlobRefusesAPathThatLeavesTheRepository(t *testing.T) {
 }
 
 func TestBlobRefusesAMissingAt(t *testing.T) {
+	t.Parallel()
+
 	handler, id, path := openWorkingRepository(t)
 	writeInRepo(t, path, "logo.png", "\x89PNG\r\n\x1a\n")
 

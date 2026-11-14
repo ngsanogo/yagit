@@ -71,6 +71,8 @@ func saveBody(path, text, base string) string {
 }
 
 func TestReadingAndSavingAFile(t *testing.T) {
+	t.Parallel()
+
 	handler, id, path := openWorkingRepository(t)
 
 	opened := readFileThrough(t, handler, id, "a.txt")
@@ -107,6 +109,8 @@ func TestReadingAndSavingAFile(t *testing.T) {
 // The guard that makes this safe to use in the middle of a merge: a save is
 // only correct for the content it started from.
 func TestSavingAgainstAFileThatMovedIsRefused(t *testing.T) {
+	t.Parallel()
+
 	handler, id, path := openWorkingRepository(t)
 
 	opened := readFileThrough(t, handler, id, "a.txt")
@@ -123,6 +127,8 @@ func TestSavingAgainstAFileThatMovedIsRefused(t *testing.T) {
 }
 
 func TestSavingWithNoFingerprintIsRefused(t *testing.T) {
+	t.Parallel()
+
 	handler, id, path := openWorkingRepository(t)
 
 	response := putJSON(t, handler, "/api/repos/"+id+"/file", saveBody("a.txt", "one\n", ""))
@@ -138,6 +144,8 @@ func TestSavingWithNoFingerprintIsRefused(t *testing.T) {
 // browser that can write it can run anything on the next git command yagit
 // issues, so this is a boundary and not a courtesy.
 func TestTheGitDirectoryIsNotEditable(t *testing.T) {
+	t.Parallel()
+
 	handler, id, _ := openWorkingRepository(t)
 
 	for _, target := range []string{".git/config", ".git/HEAD", ".git/hooks/pre-commit"} {
@@ -149,6 +157,8 @@ func TestTheGitDirectoryIsNotEditable(t *testing.T) {
 }
 
 func TestAPathThatLeavesTheRepositoryIsRefused(t *testing.T) {
+	t.Parallel()
+
 	handler, id, _ := openWorkingRepository(t)
 
 	response := get(t, handler, "/api/repos/"+id+"/file?path=../outside.txt")
@@ -158,6 +168,8 @@ func TestAPathThatLeavesTheRepositoryIsRefused(t *testing.T) {
 }
 
 func TestABinaryFileIsRefusedWithAReason(t *testing.T) {
+	t.Parallel()
+
 	handler, id, path := openWorkingRepository(t)
 	writeInRepo(t, path, "logo.png", "\x89PNG\r\n\x1a\n\x00\x00")
 
@@ -171,6 +183,8 @@ func TestABinaryFileIsRefusedWithAReason(t *testing.T) {
 }
 
 func TestAFileThatIsNotThereIsNotFound(t *testing.T) {
+	t.Parallel()
+
 	handler, id, _ := openWorkingRepository(t)
 
 	response := get(t, handler, "/api/repos/"+id+"/file?path=nowhere.txt")
@@ -214,6 +228,8 @@ func conflictedRepository(t *testing.T) (http.Handler, string, string) {
 }
 
 func TestTheStatusNamesTheOperationInProgress(t *testing.T) {
+	t.Parallel()
+
 	handler, id, _ := conflictedRepository(t)
 
 	response := get(t, handler, "/api/repos/"+id+"/status")
@@ -246,6 +262,8 @@ func TestTheStatusNamesTheOperationInProgress(t *testing.T) {
 // used to fail on the `@@@`, and the interface showed a message about a range
 // over a file whose real problem was an unfinished merge.
 func TestTheDiffOfAConflictedPathIsRefusedWithAReason(t *testing.T) {
+	t.Parallel()
+
 	handler, id, _ := conflictedRepository(t)
 
 	response := get(t, handler, "/api/repos/"+id+"/diff?path=f.txt&side=unstaged")
@@ -258,6 +276,8 @@ func TestTheDiffOfAConflictedPathIsRefusedWithAReason(t *testing.T) {
 }
 
 func TestAConflictedFileIsReadWithItsMarkers(t *testing.T) {
+	t.Parallel()
+
 	handler, id, _ := conflictedRepository(t)
 
 	opened := readFileThrough(t, handler, id, "f.txt")
@@ -271,6 +291,8 @@ func TestAConflictedFileIsReadWithItsMarkers(t *testing.T) {
 // The whole loop, end to end: read the conflicted file, edit the markers out,
 // save it, stage it, and the repository stops being conflicted.
 func TestResolvingAConflictByEditingAndStaging(t *testing.T) {
+	t.Parallel()
+
 	handler, id, path := conflictedRepository(t)
 
 	opened := readFileThrough(t, handler, id, "f.txt")
@@ -298,6 +320,8 @@ func TestResolvingAConflictByEditingAndStaging(t *testing.T) {
 // the list beside it offers the same operation in bulk, on files nobody
 // opened, so the rule is made here where both of them pass.
 func TestStagingAConflictedFileThatStillHasMarkersIsRefused(t *testing.T) {
+	t.Parallel()
+
 	handler, id, path := conflictedRepository(t)
 
 	staged := postJSON(t, handler, "/api/repos/"+id+"/stage", `{"paths":["f.txt"]}`)
@@ -334,6 +358,8 @@ func TestStagingAConflictedFileThatStillHasMarkersIsRefused(t *testing.T) {
 // has some: the conflict parser documents the markers in a comment. Refusing
 // to stage that would be refusing to commit the documentation.
 func TestStagingAnOrdinaryFileHoldingAMarkerIsAllowed(t *testing.T) {
+	t.Parallel()
+
 	handler, id, path := openWorkingRepository(t)
 
 	writeInRepo(t, path, "docs.md", "git writes\n<<<<<<< HEAD\nand you fix it\n")
@@ -348,6 +374,8 @@ func TestStagingAnOrdinaryFileHoldingAMarkerIsAllowed(t *testing.T) {
 // so every file between them opened in the editor and answered the save with a
 // 413 — losing a resolution that existed nowhere but the browser.
 func TestAFileTooLargeForTheOldBodyCapCanStillBeSaved(t *testing.T) {
+	t.Parallel()
+
 	handler, id, path := openWorkingRepository(t)
 
 	// Comfortably over the 64 KiB every other route allows, comfortably under
@@ -371,6 +399,8 @@ func TestAFileTooLargeForTheOldBodyCapCanStillBeSaved(t *testing.T) {
 }
 
 func TestTakingOneSideOfAConflictWhole(t *testing.T) {
+	t.Parallel()
+
 	for _, testCase := range []struct {
 		side string
 		want string
@@ -400,6 +430,8 @@ func TestTakingOneSideOfAConflictWhole(t *testing.T) {
 }
 
 func TestResolveRefusesASideItDoesNotKnow(t *testing.T) {
+	t.Parallel()
+
 	handler, id, _ := conflictedRepository(t)
 
 	response := postJSON(t, handler, "/api/repos/"+id+"/resolve", `{"paths":["f.txt"],"side":"mine"}`)
@@ -411,6 +443,8 @@ func TestResolveRefusesASideItDoesNotKnow(t *testing.T) {
 // Taking a side of a file that has no sides would run `git checkout --ours` on
 // a path git reports as ordinary, which fails in a way that explains nothing.
 func TestResolveRefusesAPathThatIsNotConflicted(t *testing.T) {
+	t.Parallel()
+
 	handler, id, _ := openWorkingRepository(t)
 
 	response := postJSON(t, handler, "/api/repos/"+id+"/resolve", `{"paths":["a.txt"],"side":"ours"}`)
@@ -423,6 +457,8 @@ func TestResolveRefusesAPathThatIsNotConflicted(t *testing.T) {
 }
 
 func TestThePreparedMessageOfAStoppedMergeIsGitsOwn(t *testing.T) {
+	t.Parallel()
+
 	handler, id, _ := conflictedRepository(t)
 
 	response := get(t, handler, "/api/repos/"+id+"/prepared-message?amend=false")
@@ -447,6 +483,8 @@ func TestThePreparedMessageOfAStoppedMergeIsGitsOwn(t *testing.T) {
 }
 
 func TestThePreparedMessageOfAnAmendIsTheCommitBeingReplaced(t *testing.T) {
+	t.Parallel()
+
 	handler, id, _ := openWorkingRepository(t)
 
 	response := get(t, handler, "/api/repos/"+id+"/prepared-message?amend=true")
@@ -461,6 +499,8 @@ func TestThePreparedMessageOfAnAmendIsTheCommitBeingReplaced(t *testing.T) {
 }
 
 func TestAnOrdinaryRepositoryPreparesNoMessage(t *testing.T) {
+	t.Parallel()
+
 	handler, id, _ := openWorkingRepository(t)
 
 	response := get(t, handler, "/api/repos/"+id+"/prepared-message?amend=false")
@@ -482,6 +522,8 @@ func TestAnOrdinaryRepositoryPreparesNoMessage(t *testing.T) {
 // successfully went with it — leaving an error where git's own words for the
 // commit belong, and no way to get them back.
 func TestASigningConfigGitCannotParseStillAnswersWithTheMessage(t *testing.T) {
+	t.Parallel()
+
 	handler, id, path := conflictedRepository(t)
 
 	runGitIn(t, path, "config", "commit.gpgsign", "maybe")
@@ -507,6 +549,8 @@ func TestASigningConfigGitCannotParseStillAnswersWithTheMessage(t *testing.T) {
 
 // And the ordinary case still answers the question rather than dodging it.
 func TestThePreparedMessageSaysWhenTheCommitWillBeSigned(t *testing.T) {
+	t.Parallel()
+
 	handler, id, path := openWorkingRepository(t)
 
 	runGitIn(t, path, "config", "commit.gpgsign", "true")

@@ -8,6 +8,8 @@ import "testing"
 // degrading, because a preview that guessed would offer the user the wrong
 // operation.
 func TestParseLeftRightCount(t *testing.T) {
+	t.Parallel()
+
 	cases := []struct {
 		output string
 		left   int

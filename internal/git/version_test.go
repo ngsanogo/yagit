@@ -8,6 +8,8 @@ import (
 )
 
 func TestParseVersion(t *testing.T) {
+	t.Parallel()
+
 	for output, want := range map[string]git.Version{
 		"git version 2.39.5\n": {Major: 2, Minor: 39},
 		// The suffix a platform's own build adds. Ignoring it is the point:
@@ -30,6 +32,8 @@ func TestParseVersion(t *testing.T) {
 }
 
 func TestParseVersionRefusesWhatIsNotOne(t *testing.T) {
+	t.Parallel()
+
 	for _, output := range []string{
 		"", "git", "git version", "git version x.y", "git version 2",
 		"hg version 2.39.5", "git version two.point.nine",
@@ -41,6 +45,8 @@ func TestParseVersionRefusesWhatIsNotOne(t *testing.T) {
 }
 
 func TestVersionAtLeast(t *testing.T) {
+	t.Parallel()
+
 	version := git.Version{Major: 2, Minor: 36}
 
 	for _, allowed := range [][2]int{{2, 36}, {2, 35}, {2, 0}, {1, 99}} {
@@ -64,6 +70,8 @@ func TestVersionAtLeast(t *testing.T) {
 // pinned here is that it can be read at all — the failure that would leave the
 // worktree panel guessing.
 func TestGitVersionReadsThisMachinesGit(t *testing.T) {
+	t.Parallel()
+
 	runner := git.NewRunner(nil)
 	ctx := context.Background()
 

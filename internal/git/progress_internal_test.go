@@ -6,6 +6,8 @@ import (
 )
 
 func TestProgressWriterSplitsOnCarriageReturn(t *testing.T) {
+	t.Parallel()
+
 	var got []string
 	writer := &progressWriter{
 		buffer: &boundedBuffer{limit: maxStderr},
@@ -29,6 +31,8 @@ func TestProgressWriterSplitsOnCarriageReturn(t *testing.T) {
 }
 
 func TestProgressWriterDropsEmptySegments(t *testing.T) {
+	t.Parallel()
+
 	var got []string
 	writer := &progressWriter{
 		buffer: &boundedBuffer{limit: maxStderr},
@@ -46,6 +50,8 @@ func TestProgressWriterDropsEmptySegments(t *testing.T) {
 // stderr is bounded where stdout is capped, and the difference matters: a
 // command whose error output is long must still report the error.
 func TestBoundedBufferTruncatesAndSaysSo(t *testing.T) {
+	t.Parallel()
+
 	buffer := &boundedBuffer{limit: 16}
 
 	// Written in two goes, because the interesting case is the write that
@@ -73,6 +79,8 @@ func TestBoundedBufferTruncatesAndSaysSo(t *testing.T) {
 }
 
 func TestBoundedBufferSaysNothingWhenNothingWasDropped(t *testing.T) {
+	t.Parallel()
+
 	buffer := &boundedBuffer{limit: 64}
 	if _, err := buffer.Write([]byte("fatal: pathspec did not match")); err != nil {
 		t.Fatal(err)

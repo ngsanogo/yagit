@@ -22,6 +22,8 @@ func worktreeRecords(records ...[]string) []byte {
 }
 
 func TestParseWorktrees(t *testing.T) {
+	t.Parallel()
+
 	output := worktreeRecords(
 		[]string{"worktree /repo", "HEAD " + strings.Repeat("a", 40), "branch refs/heads/main"},
 		[]string{"worktree /repo-side", "HEAD " + strings.Repeat("b", 40), "detached"},
@@ -65,6 +67,8 @@ func TestParseWorktrees(t *testing.T) {
 // The reason `-z` is used at all: `--porcelain` alone prints paths raw, so a
 // directory holding a newline splits one worktree into two.
 func TestParseWorktreesKeepsANewlineInAPath(t *testing.T) {
+	t.Parallel()
+
 	output := worktreeRecords(
 		[]string{"worktree /repo", "HEAD " + strings.Repeat("a", 40), "branch refs/heads/main"},
 		[]string{"worktree /oh\ndear", "HEAD " + strings.Repeat("b", 40), "detached"},
@@ -83,6 +87,8 @@ func TestParseWorktreesKeepsANewlineInAPath(t *testing.T) {
 }
 
 func TestParseWorktreesBare(t *testing.T) {
+	t.Parallel()
+
 	output := worktreeRecords([]string{"worktree /repo.git", "bare"})
 
 	worktrees, err := git.ParseWorktrees(output, true)
@@ -95,6 +101,8 @@ func TestParseWorktreesBare(t *testing.T) {
 }
 
 func TestParseWorktreesEmpty(t *testing.T) {
+	t.Parallel()
+
 	worktrees, err := git.ParseWorktrees(nil, true)
 	if err != nil {
 		t.Fatalf("ParseWorktrees: %v", err)
@@ -107,6 +115,8 @@ func TestParseWorktreesEmpty(t *testing.T) {
 // An attribute before any worktree line means the format is not what this
 // reads. Refused rather than attached to whatever came last.
 func TestParseWorktreesRefusesAnOrphanAttribute(t *testing.T) {
+	t.Parallel()
+
 	if _, err := git.ParseWorktrees([]byte("HEAD abc\x00\x00"), true); err == nil {
 		t.Fatal("an attribute with no worktree line was accepted")
 	}
@@ -115,6 +125,8 @@ func TestParseWorktreesRefusesAnOrphanAttribute(t *testing.T) {
 // A keyword a later git adds is ignored rather than refused: the fields this
 // reads are the ones it acts on.
 func TestParseWorktreesIgnoresAnUnknownAttribute(t *testing.T) {
+	t.Parallel()
+
 	output := worktreeRecords(
 		[]string{"worktree /repo", "HEAD " + strings.Repeat("a", 40), "branch refs/heads/main",
 			"something-git-adds later"},
@@ -130,6 +142,8 @@ func TestParseWorktreesIgnoresAnUnknownAttribute(t *testing.T) {
 }
 
 func TestWorktreeArgs(t *testing.T) {
+	t.Parallel()
+
 	for _, probe := range []struct {
 		name string
 		args []string
@@ -156,6 +170,8 @@ func TestWorktreeArgs(t *testing.T) {
 // because the panel is on every screen and a red one there would be the whole
 // interface saying no, not one operation refusing.
 func TestParseWorktreesReadsTheOutputWithoutNUL(t *testing.T) {
+	t.Parallel()
+
 	output := []byte(strings.Join([]string{
 		"worktree /repo",
 		"HEAD " + strings.Repeat("a", 40),
@@ -188,6 +204,8 @@ func TestParseWorktreesReadsTheOutputWithoutNUL(t *testing.T) {
 // so the path comes back cut at it. That is the whole reason `-z` was added,
 // and the reason the fallback is only a fallback.
 func TestParseWorktreesWithoutNULCutsANewlineInAPath(t *testing.T) {
+	t.Parallel()
+
 	output := []byte("worktree /oh\ndear\nHEAD " + strings.Repeat("a", 40) + "\n\n")
 
 	worktrees, err := git.ParseWorktrees(output, false)
@@ -216,6 +234,8 @@ func TestParseWorktreesWithoutNULCutsANewlineInAPath(t *testing.T) {
 // treating \r\n as a line ending would take the last character off it and
 // leave a row whose remove button names a directory that is not there.
 func TestParseWorktreesWithoutNULKeepsACarriageReturnInAPath(t *testing.T) {
+	t.Parallel()
+
 	output := []byte("worktree /repos/build\r\nHEAD " + strings.Repeat("a", 40) + "\n\n")
 
 	worktrees, err := git.ParseWorktrees(output, false)
@@ -231,6 +251,8 @@ func TestParseWorktreesWithoutNULKeepsACarriageReturnInAPath(t *testing.T) {
 // to put a newline in a lock reason, so it C-quotes the whole thing; the panel
 // must show the sentence and not git's escaping of it.
 func TestParseWorktreesWithoutNULUnquotesALockReason(t *testing.T) {
+	t.Parallel()
+
 	output := []byte("worktree /repos/side\n" +
 		"HEAD " + strings.Repeat("a", 40) + "\n" +
 		`locked "needs a\nrebuild"` + "\n\n")
@@ -260,6 +282,8 @@ func TestParseWorktreesWithoutNULUnquotesALockReason(t *testing.T) {
 }
 
 func TestWorktreeListArgsAsksForNULOnlyWhereGitHasIt(t *testing.T) {
+	t.Parallel()
+
 	if got := strings.Join(git.WorktreeListArgs(true), " "); got != "worktree list --porcelain -z" {
 		t.Errorf("with NUL = %q", got)
 	}

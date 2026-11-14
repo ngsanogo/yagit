@@ -33,6 +33,8 @@ func mergeBody(branch, into, outcome string) string {
 }
 
 func TestPlanningAMergeAnswersTheCommandItWouldRun(t *testing.T) {
+	t.Parallel()
+
 	handler, id, _ := openSwitchableRepository(t)
 
 	response := postJSON(t, handler, "/api/repos/"+id+"/merge/plan", `{"branch":"side"}`)
@@ -63,6 +65,8 @@ func TestPlanningAMergeAnswersTheCommandItWouldRun(t *testing.T) {
 }
 
 func TestPlanningAFastForwardSaysWhatItIs(t *testing.T) {
+	t.Parallel()
+
 	handler, id, path := openSwitchableRepository(t)
 
 	// A branch one commit ahead of main, with main holding nothing of its own
@@ -93,6 +97,8 @@ func TestPlanningAFastForwardSaysWhatItIs(t *testing.T) {
 // A branch main already holds is not an error and not a merge either. The
 // sentence in the dialog is the whole difference, so the outcome carries it.
 func TestPlanningAMergeOfABranchAlreadyInSaysNothingIsComing(t *testing.T) {
+	t.Parallel()
+
 	handler, id, path := openSwitchableRepository(t)
 
 	runGitIn(t, path, "branch", "--", "trailing", "main~1")
@@ -112,6 +118,8 @@ func TestPlanningAMergeOfABranchAlreadyInSaysNothingIsComing(t *testing.T) {
 // branch that moved between the dialog and the click would be merged under a
 // dialog that promised the repository would not move.
 func TestAMergeThatHasBecomeSomethingElseIsRefused(t *testing.T) {
+	t.Parallel()
+
 	handler, id, path := openSwitchableRepository(t)
 
 	runGitIn(t, path, "branch", "--", "trailing", "main~1")
@@ -146,6 +154,8 @@ func TestAMergeThatHasBecomeSomethingElseIsRefused(t *testing.T) {
 // time the button was pressed the branch had become a fast-forward. Two
 // different things happen to the history, and only one of them was approved.
 func TestAMergeCommitThatBecameAFastForwardIsRefused(t *testing.T) {
+	t.Parallel()
+
 	handler, id, path := openSwitchableRepository(t)
 
 	planned := decode[wireMergePlan](t,
@@ -171,6 +181,8 @@ func TestAMergeCommitThatBecameAFastForwardIsRefused(t *testing.T) {
 // answers "HEAD is now on main, not main", which reads as a contradiction over
 // a repository that never moved.
 func TestAMergeDestinationIsTrimmedLikeEveryOtherName(t *testing.T) {
+	t.Parallel()
+
 	handler, id, path := openSwitchableRepository(t)
 	configureIdentityIn(t, path)
 
@@ -185,6 +197,8 @@ func TestAMergeDestinationIsTrimmedLikeEveryOtherName(t *testing.T) {
 // divergence — each side reports everything it has — so the plan has to ask
 // git for the fork point rather than promise a merge commit it cannot make.
 func TestPlanningAMergeOfUnrelatedHistoriesIsRefused(t *testing.T) {
+	t.Parallel()
+
 	handler, id, path := openSwitchableRepository(t)
 
 	runGitIn(t, path, "checkout", "--orphan", "orphan")
@@ -204,6 +218,8 @@ func TestPlanningAMergeOfUnrelatedHistoriesIsRefused(t *testing.T) {
 // stopped one, and it refuses it AFTER a dialog has promised the merge — so
 // both routes read the state and say what has to be finished first.
 func TestMergingOnTopOfAnUnfinishedOperationIsRefused(t *testing.T) {
+	t.Parallel()
+
 	handler, id, path := openSwitchableRepository(t)
 	configureIdentityIn(t, path)
 
@@ -239,6 +255,8 @@ func TestMergingOnTopOfAnUnfinishedOperationIsRefused(t *testing.T) {
 }
 
 func TestMergingABranchFastForwardAnswersWithHEADMoved(t *testing.T) {
+	t.Parallel()
+
 	handler, id, path := openSwitchableRepository(t)
 
 	runGitIn(t, path, "switch", "-c", "ahead")
@@ -263,6 +281,8 @@ func TestMergingABranchFastForwardAnswersWithHEADMoved(t *testing.T) {
 // The route's other half: git commits here, which is where the daemon's own
 // environment starts to matter.
 func TestMergingDivergedBranchesRecordsAMergeCommit(t *testing.T) {
+	t.Parallel()
+
 	handler, id, path := openSwitchableRepository(t)
 	configureIdentityIn(t, path)
 
@@ -287,6 +307,8 @@ func TestMergingDivergedBranchesRecordsAMergeCommit(t *testing.T) {
 }
 
 func TestMergingTheCurrentBranchIsRefused(t *testing.T) {
+	t.Parallel()
+
 	handler, id, _ := openSwitchableRepository(t)
 
 	for _, route := range []string{"/merge", "/merge/plan"} {
@@ -308,6 +330,8 @@ func TestMergingTheCurrentBranchIsRefused(t *testing.T) {
 // The window this guard exists for: the dialog says "into main", and HEAD is
 // somewhere else by the time the button is pressed.
 func TestMergingIntoABranchHEADHasLeftIsRefused(t *testing.T) {
+	t.Parallel()
+
 	handler, id, path := openSwitchableRepository(t)
 
 	planned := decode[wireMergePlan](t,
@@ -334,6 +358,8 @@ func TestMergingIntoABranchHEADHasLeftIsRefused(t *testing.T) {
 // answer here rather than "merging into itself does nothing": one names what
 // changed under the dialog, the other describes a request nobody made.
 func TestAMergeWhoseDestinationBecameItsOwnBranchSaysHEADMoved(t *testing.T) {
+	t.Parallel()
+
 	handler, id, path := openSwitchableRepository(t)
 
 	runGitIn(t, path, "switch", "side")
@@ -351,6 +377,8 @@ func TestAMergeWhoseDestinationBecameItsOwnBranchSaysHEADMoved(t *testing.T) {
 // An empty destination is not a wildcard: a client that names none is one that
 // did not read the plan.
 func TestMergingWithoutNamingWhereItGoesIsRefused(t *testing.T) {
+	t.Parallel()
+
 	handler, id, _ := openSwitchableRepository(t)
 
 	response := postJSON(t, handler, "/api/repos/"+id+"/merge",
@@ -361,6 +389,8 @@ func TestMergingWithoutNamingWhereItGoesIsRefused(t *testing.T) {
 }
 
 func TestMergingWithAConflictIsGitsRefusal(t *testing.T) {
+	t.Parallel()
+
 	handler, id, path := openSwitchableRepository(t)
 	configureIdentityIn(t, path)
 
@@ -389,6 +419,8 @@ func TestMergingWithAConflictIsGitsRefusal(t *testing.T) {
 // The outcome chooses between two different commands, so a value the daemon
 // cannot name is refused rather than read as the safer one.
 func TestMergeRefusesAnOutcomeItCannotName(t *testing.T) {
+	t.Parallel()
+
 	handler, id, _ := openSwitchableRepository(t)
 
 	for _, outcome := range []string{"", "ff", "rebase"} {
@@ -404,6 +436,8 @@ func TestMergeRefusesAnOutcomeItCannotName(t *testing.T) {
 // the request that is wrong, so it is a 400 rather than the 500 an
 // unrecognised error would answer with.
 func TestMergeRoutesRefuseAnEmptyBranchName(t *testing.T) {
+	t.Parallel()
+
 	handler, id, _ := openSwitchableRepository(t)
 
 	for route, body := range map[string]string{
@@ -423,6 +457,8 @@ func TestMergeRoutesRefuseAnEmptyBranchName(t *testing.T) {
 // A detached HEAD has no branch to merge into. The state is the refusal, not
 // the request, which is what makes it a 409.
 func TestMergingWithADetachedHEADIsRefused(t *testing.T) {
+	t.Parallel()
+
 	handler, id, path := openSwitchableRepository(t)
 
 	runGitIn(t, path, "switch", "--detach", "main")
@@ -434,6 +470,8 @@ func TestMergingWithADetachedHEADIsRefused(t *testing.T) {
 }
 
 func TestMergeRoutesRefuseABodyTheyDoNotUnderstand(t *testing.T) {
+	t.Parallel()
+
 	handler, id, _ := openSwitchableRepository(t)
 
 	for _, route := range []string{"/merge", "/merge/plan"} {
@@ -448,6 +486,8 @@ func TestMergeRoutesRefuseABodyTheyDoNotUnderstand(t *testing.T) {
 // take those fields itself: a client that could name its own destination would
 // be describing a merge it had already decided.
 func TestThePlanRouteTakesNothingButTheBranch(t *testing.T) {
+	t.Parallel()
+
 	handler, id, _ := openSwitchableRepository(t)
 
 	response := postJSON(t, handler, "/api/repos/"+id+"/merge/plan",
@@ -481,6 +521,8 @@ func parentsIn(t *testing.T, path, sha string) []string {
 }
 
 func TestMergePlanPrefersAMergeCommitOverAFastForward(t *testing.T) {
+	t.Parallel()
+
 	handler, id, path := openSwitchableRepository(t)
 	configureIdentityIn(t, path)
 
@@ -513,6 +555,8 @@ func TestMergePlanPrefersAMergeCommitOverAFastForward(t *testing.T) {
 // Squash is a preference over either bringing-in reading: the plan pins
 // --squash, the run keeps the lease, and HEAD does not move.
 func TestMergePlanPrefersASquash(t *testing.T) {
+	t.Parallel()
+
 	handler, id, path := openSwitchableRepository(t)
 	configureIdentityIn(t, path)
 
@@ -545,6 +589,8 @@ func TestMergePlanPrefersASquash(t *testing.T) {
 // A squash approval over a reading that became up-to-date is refused: there is
 // nothing left to fold into the index, and --squash would still exit 0.
 func TestASquashThatBecameUpToDateIsRefused(t *testing.T) {
+	t.Parallel()
+
 	handler, id, path := openSwitchableRepository(t)
 
 	planned := decode[wireMergePlan](t,

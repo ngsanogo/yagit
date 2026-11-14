@@ -27,6 +27,8 @@ func headRefIn(t *testing.T, dir string) string {
 }
 
 func TestInitPlanShowsTheCommandWithoutMakingAnything(t *testing.T) {
+	t.Parallel()
+
 	handler, root := serverOnRoot(t)
 	destination := filepath.Join(root, "fresh")
 
@@ -59,6 +61,8 @@ func TestInitPlanShowsTheCommandWithoutMakingAnything(t *testing.T) {
 // none is answered with the name that will actually be used rather than left
 // to guess.
 func TestInitPlanFillsTheBranchTheClientLeftEmpty(t *testing.T) {
+	t.Parallel()
+
 	handler, root := serverOnRoot(t)
 
 	response := postJSON(t, handler, "/api/repos/init/plan",
@@ -83,6 +87,8 @@ func TestInitPlanFillsTheBranchTheClientLeftEmpty(t *testing.T) {
 }
 
 func TestInitMakesTheRepositoryAndOpensIt(t *testing.T) {
+	t.Parallel()
+
 	handler, root := serverOnRoot(t)
 	destination := filepath.Join(root, "fresh")
 
@@ -118,6 +124,8 @@ func TestInitMakesTheRepositoryAndOpensIt(t *testing.T) {
 }
 
 func TestInitRefusesADestinationOutsideTheRoot(t *testing.T) {
+	t.Parallel()
+
 	handler, _ := serverOnRoot(t)
 
 	response := postJSON(t, handler, "/api/repos/init",
@@ -128,6 +136,8 @@ func TestInitRefusesADestinationOutsideTheRoot(t *testing.T) {
 }
 
 func TestInitRefusesAPathThatExists(t *testing.T) {
+	t.Parallel()
+
 	handler, root := serverOnRoot(t)
 	taken := filepath.Join(root, "taken")
 	if err := os.MkdirAll(taken, 0o755); err != nil {
@@ -142,6 +152,8 @@ func TestInitRefusesAPathThatExists(t *testing.T) {
 }
 
 func TestInitRefusesABranchNameGitWouldNot(t *testing.T) {
+	t.Parallel()
+
 	handler, root := serverOnRoot(t)
 	destination := filepath.Join(root, "fresh")
 

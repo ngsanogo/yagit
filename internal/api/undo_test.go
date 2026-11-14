@@ -11,6 +11,8 @@ import (
 )
 
 func TestUndoCommitSoftResetsTheTip(t *testing.T) {
+	t.Parallel()
+
 	handler, id, path := openNamedRepository(t, "undo-commit")
 
 	writeFile(t, path, "f.txt", "one\n")
@@ -75,6 +77,8 @@ func TestUndoCommitSoftResetsTheTip(t *testing.T) {
 }
 
 func TestUndoCheckoutSwitchesBack(t *testing.T) {
+	t.Parallel()
+
 	handler, id, path := openNamedRepository(t, "undo-co")
 
 	writeFile(t, path, "f.txt", "one\n")
@@ -145,6 +149,8 @@ func TestUndoCheckoutSwitchesBack(t *testing.T) {
 }
 
 func TestUndoResetPutsTheBranchBack(t *testing.T) {
+	t.Parallel()
+
 	handler, id, path := openNamedRepository(t, "undo-reset")
 
 	writeFile(t, path, "f.txt", "one\n")
@@ -201,6 +207,8 @@ func TestUndoResetPutsTheBranchBack(t *testing.T) {
 }
 
 func TestUndoOfferAbsentWhenTipIsNotUndoable(t *testing.T) {
+	t.Parallel()
+
 	handler, id, path := openNamedRepository(t, "undo-absent")
 
 	writeFile(t, path, "f.txt", "one\n")
@@ -221,6 +229,8 @@ func TestUndoOfferAbsentWhenTipIsNotUndoable(t *testing.T) {
 }
 
 func TestUndoBranchDeletionPutsItBack(t *testing.T) {
+	t.Parallel()
+
 	handler, id, path := openNamedRepository(t, "undo-branch-delete")
 
 	writeFile(t, path, "f.txt", "one\n")
@@ -306,6 +316,8 @@ func TestUndoBranchDeletionPutsItBack(t *testing.T) {
 // so spending the record over a failed subprocess would lose the restore for
 // good and quietly replace the offer with whatever the reflog held.
 func TestUndoBranchDeletionYieldsWhenTheBranchIsBack(t *testing.T) {
+	t.Parallel()
+
 	handler, id, path := openNamedRepository(t, "undo-delete-branch-back")
 
 	writeFile(t, path, "f.txt", "one\n")
@@ -342,6 +354,8 @@ func TestUndoBranchDeletionYieldsWhenTheBranchIsBack(t *testing.T) {
 // A commit after the deletion is more recent than it, and the reflog gets the
 // offer back.
 func TestUndoBranchDeletionYieldsToALaterCommit(t *testing.T) {
+	t.Parallel()
+
 	handler, id, path := openNamedRepository(t, "undo-delete-then-commit")
 
 	writeFile(t, path, "f.txt", "one\n")
@@ -368,6 +382,8 @@ func TestUndoBranchDeletionYieldsToALaterCommit(t *testing.T) {
 // quietly — available:false — rather than answering with git's
 // "ambiguous argument 'HEAD'" fatal as a 422.
 func TestUndoOfferOnAnUnbornBranch(t *testing.T) {
+	t.Parallel()
+
 	handler, root := serverOnRoot(t)
 	path := filepath.Join(root, "undo-unborn")
 	if err := os.MkdirAll(path, 0o755); err != nil {

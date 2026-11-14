@@ -12,6 +12,8 @@ import (
 )
 
 func TestParseReflog(t *testing.T) {
+	t.Parallel()
+
 	when := time.Date(2026, 9, 5, 7, 0, 0, 0, time.UTC)
 	output := []byte(
 		"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\x00HEAD@{0}\x00commit: second\x00" +
@@ -35,7 +37,7 @@ func TestParseReflog(t *testing.T) {
 // "ambiguous argument 'HEAD'" as a failure — Undo treats that state as
 // nothing to undo, and the log panel must not show a fatal for it.
 func TestHeadReflogOfAnUnbornBranch(t *testing.T) {
-	isolateGitConfiguration(t)
+	t.Parallel()
 
 	dir := t.TempDir()
 	runner := git.NewRunner(nil)
@@ -56,6 +58,8 @@ func TestHeadReflogOfAnUnbornBranch(t *testing.T) {
 }
 
 func TestPreviewUndoCommit(t *testing.T) {
+	t.Parallel()
+
 	dir := initRepo(t)
 	runner := git.NewRunner(nil)
 	ctx := context.Background()
@@ -89,6 +93,8 @@ func TestPreviewUndoCommit(t *testing.T) {
 }
 
 func TestUndoCommitRestoresTheIndex(t *testing.T) {
+	t.Parallel()
+
 	dir := initRepo(t)
 	runner := git.NewRunner(nil)
 	ctx := context.Background()
@@ -120,7 +126,8 @@ func TestUndoCommitRestoresTheIndex(t *testing.T) {
 }
 
 func TestPreviewUndoCommitRefusesARoot(t *testing.T) {
-	isolateGitConfiguration(t)
+	t.Parallel()
+
 	dir := filepath.Join(t.TempDir(), "repo")
 	runner := git.NewRunner(nil)
 	ctx := context.Background()
@@ -139,6 +146,8 @@ func TestPreviewUndoCommitRefusesARoot(t *testing.T) {
 }
 
 func TestPreviewUndoCheckout(t *testing.T) {
+	t.Parallel()
+
 	dir := initRepo(t)
 	runner := git.NewRunner(nil)
 	ctx := context.Background()
@@ -180,6 +189,8 @@ func TestPreviewUndoCheckout(t *testing.T) {
 }
 
 func TestPreviewUndoReset(t *testing.T) {
+	t.Parallel()
+
 	dir := initRepo(t)
 	runner := git.NewRunner(nil)
 	ctx := context.Background()
@@ -223,6 +234,8 @@ func TestPreviewUndoReset(t *testing.T) {
 // so the commit comes back — and the index round-trips to clean, which is the
 // property that makes the pair a real undo/redo rather than two edits.
 func TestUndoOfAnUndoRestoresTheCommit(t *testing.T) {
+	t.Parallel()
+
 	dir := initRepo(t)
 	runner := git.NewRunner(nil)
 	ctx := context.Background()
@@ -269,6 +282,8 @@ func TestUndoOfAnUndoRestoresTheCommit(t *testing.T) {
 // as `git reset --hard HEAD`. Both leave a reset entry at the tip having moved
 // no ref, and undo must not offer a command that does nothing.
 func TestPreviewUndoRefusesAResetThatMovedNothing(t *testing.T) {
+	t.Parallel()
+
 	dir := initRepo(t)
 	runner := git.NewRunner(nil)
 	ctx := context.Background()
@@ -286,6 +301,8 @@ func TestPreviewUndoRefusesAResetThatMovedNothing(t *testing.T) {
 }
 
 func TestUndoCommitRefusesAMovedHead(t *testing.T) {
+	t.Parallel()
+
 	dir := initRepo(t)
 	runner := git.NewRunner(nil)
 	ctx := context.Background()
@@ -311,6 +328,8 @@ func TestUndoCommitRefusesAMovedHead(t *testing.T) {
 }
 
 func TestPreviewUndoBranchDeletion(t *testing.T) {
+	t.Parallel()
+
 	dir := initRepo(t)
 	runner := git.NewRunner(nil)
 	ctx := context.Background()
@@ -364,6 +383,8 @@ func TestPreviewUndoBranchDeletion(t *testing.T) {
 // The record is only the most recent action while HEAD has not moved. Once it
 // has, whatever moved it is more recent and the reflog owns the offer.
 func TestPreviewUndoBranchDeletionYieldsOnceHeadMoves(t *testing.T) {
+	t.Parallel()
+
 	dir := initRepo(t)
 	runner := git.NewRunner(nil)
 	ctx := context.Background()
@@ -390,6 +411,8 @@ func TestPreviewUndoBranchDeletionYieldsOnceHeadMoves(t *testing.T) {
 }
 
 func TestPreviewUndoBranchDeletionRefusesANameThatIsBack(t *testing.T) {
+	t.Parallel()
+
 	dir := initRepo(t)
 	runner := git.NewRunner(nil)
 	ctx := context.Background()
@@ -413,6 +436,8 @@ func TestPreviewUndoBranchDeletionRefusesANameThatIsBack(t *testing.T) {
 }
 
 func TestPreviewUndoBranchDeletionRefusesACollectedCommit(t *testing.T) {
+	t.Parallel()
+
 	dir := initRepo(t)
 	runner := git.NewRunner(nil)
 	ctx := context.Background()

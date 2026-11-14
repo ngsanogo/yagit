@@ -72,6 +72,8 @@ func policyOf(t *testing.T, handler http.Handler) string {
 
 // The production policy is the strict one: nothing inline may run.
 func TestContentSecurityPolicyForbidsInlineScriptsInProduction(t *testing.T) {
+	t.Parallel()
+
 	policy := policyOf(t, middlewareServer(t, false))
 
 	if !strings.Contains(policy, "script-src 'self';") {
@@ -89,6 +91,8 @@ func TestContentSecurityPolicyForbidsInlineScriptsInProduction(t *testing.T) {
 // component fails to mount with "can't detect preamble", and the only clue is
 // in a console nobody has open. It cost a full end-to-end suite once.
 func TestContentSecurityPolicyAllowsVitesPreambleInDevelopment(t *testing.T) {
+	t.Parallel()
+
 	policy := policyOf(t, middlewareServer(t, true))
 
 	if !strings.Contains(policy, "script-src 'self' 'unsafe-inline';") {
@@ -123,6 +127,8 @@ func TestContentSecurityPolicyAllowsVitesPreambleInDevelopment(t *testing.T) {
 // policy that differed there would break the interface nobody runs in
 // production while developing it.
 func TestReferrerPolicyKeepsFormPostOrigins(t *testing.T) {
+	t.Parallel()
+
 	for _, development := range []bool{false, true} {
 		policy := headerOf(t, middlewareServer(t, development), "Referrer-Policy")
 
@@ -142,6 +148,8 @@ func TestReferrerPolicyKeepsFormPostOrigins(t *testing.T) {
 // guards against, because it is the tempting one — it makes the console clean
 // again while leaving default-src meaning less than it says.
 func TestContentSecurityPolicyAdmitsNoDataURIs(t *testing.T) {
+	t.Parallel()
+
 	for _, development := range []bool{false, true} {
 		policy := policyOf(t, middlewareServer(t, development))
 
@@ -159,6 +167,8 @@ func TestContentSecurityPolicyAdmitsNoDataURIs(t *testing.T) {
 // their own daemon for a minute. This walks well past any limit in the file
 // and expects every one of them through.
 func TestRateLimitDoesNotCountTheInterfacesOwnAssets(t *testing.T) {
+	t.Parallel()
+
 	handler := middlewareServer(t, true)
 
 	for attempt := range 1200 {
@@ -184,6 +194,8 @@ func TestRateLimitDoesNotCountTheInterfacesOwnAssets(t *testing.T) {
 // end-to-end suite reached it as soon as phase 5 landed. Reaching these routes
 // at all means holding the secret, so there is nothing left to throttle.
 func TestAnAuthenticatedClientIsNotThrottled(t *testing.T) {
+	t.Parallel()
+
 	handler := middlewareServer(t, false)
 
 	for attempt := range 1200 {
@@ -204,6 +216,8 @@ func TestAnAuthenticatedClientIsNotThrottled(t *testing.T) {
 // to one budget, because presenting a token that is wrong is the same act
 // either way — and a limit on one of the two doors is not a limit.
 func TestPresentingACredentialIsLimited(t *testing.T) {
+	t.Parallel()
+
 	for _, probe := range []struct {
 		name    string
 		request func() *http.Request

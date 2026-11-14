@@ -34,6 +34,20 @@ func TestMain(m *testing.M) {
 		}
 		os.Exit(0)
 	}
+	// No test here may read this machine's git configuration: a global
+	// init.templateDir or commit.gpgsign changes what the fixtures come out as,
+	// and the suite would pass or fail on whose machine ran it. The Runner
+	// forwards GIT_CONFIG_GLOBAL and GIT_CONFIG_SYSTEM for exactly this, and
+	// they are set here, once for the whole binary, rather than per test with
+	// t.Setenv, which would forbid every test that uses it from running in
+	// parallel with the others. The few tests that need a configuration of
+	// their own still set one with t.Setenv, and run on their own.
+	for _, name := range []string{"GIT_CONFIG_GLOBAL", "GIT_CONFIG_SYSTEM"} {
+		if err := os.Setenv(name, os.DevNull); err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			os.Exit(1)
+		}
+	}
 	os.Exit(m.Run())
 }
 
@@ -117,6 +131,8 @@ func planStep(sha, instruction string) string {
 }
 
 func TestPlanningAnInteractiveRebaseAnswersTheRangeOldestFirst(t *testing.T) {
+	t.Parallel()
+
 	handler, id, path := openPlannableRepository(t)
 	base := shaOf(t, path, "main~3")
 
@@ -148,6 +164,8 @@ func TestPlanningAnInteractiveRebaseAnswersTheRangeOldestFirst(t *testing.T) {
 }
 
 func TestPlanningAnInteractiveRebaseRefusesTheTipAndForeignHistory(t *testing.T) {
+	t.Parallel()
+
 	handler, id, path := openPlannableRepository(t)
 
 	for name, commit := range map[string]string{
@@ -162,6 +180,8 @@ func TestPlanningAnInteractiveRebaseRefusesTheTipAndForeignHistory(t *testing.T)
 }
 
 func TestRunningAnInteractiveRebaseRewritesTheRange(t *testing.T) {
+	t.Parallel()
+
 	handler, id, path := openPlannableRepository(t)
 	base := shaOf(t, path, "main~3")
 	planned := interactivePlanFor(t, handler, id, base)
@@ -200,6 +220,8 @@ func TestRunningAnInteractiveRebaseRewritesTheRange(t *testing.T) {
 // answer has to say so: a toast reporting a finished rebase over a repository
 // sitting halfway through one is the worst lie this interface could tell.
 func TestRunningAPlanThatStopsAnswersThatItStopped(t *testing.T) {
+	t.Parallel()
+
 	handler, id, path := openPlannableRepository(t)
 	base := shaOf(t, path, "main~3")
 	planned := interactivePlanFor(t, handler, id, base)
@@ -226,6 +248,8 @@ func TestRunningAPlanThatStopsAnswersThatItStopped(t *testing.T) {
 // plan has to be exactly it. A commit landing on the branch while the dialog
 // was open makes the plan a list about a history that no longer exists.
 func TestRunningAnInteractiveRebaseRefusesAPlanThatIsNotTheRange(t *testing.T) {
+	t.Parallel()
+
 	handler, id, path := openPlannableRepository(t)
 	base := shaOf(t, path, "main~3")
 	planned := interactivePlanFor(t, handler, id, base)
@@ -250,6 +274,8 @@ func TestRunningAnInteractiveRebaseRefusesAPlanThatIsNotTheRange(t *testing.T) {
 }
 
 func TestRunningAnInteractiveRebaseRefusesAPlanTheDaemonCannotCarryOut(t *testing.T) {
+	t.Parallel()
+
 	handler, id, path := openPlannableRepository(t)
 	base := shaOf(t, path, "main~3")
 	planned := interactivePlanFor(t, handler, id, base)

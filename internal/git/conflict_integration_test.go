@@ -26,8 +26,6 @@ import (
 //	side:  one SIDE three
 func conflicted(t *testing.T) (string, *git.Runner) {
 	t.Helper()
-	isolateGitConfiguration(t)
-
 	dir := t.TempDir()
 	runner := git.NewRunner(nil)
 
@@ -85,6 +83,8 @@ func fileIn(t *testing.T, status git.Status, path string) git.FileStatus {
 }
 
 func TestAStoppedMergeIsReportedAsOne(t *testing.T) {
+	t.Parallel()
+
 	dir, runner := conflicted(t)
 
 	status := statusOf(t, runner, dir)
@@ -110,6 +110,8 @@ func TestAStoppedMergeIsReportedAsOne(t *testing.T) {
 // `range "@@@" does not start with "-"` over a file whose real problem was an
 // unfinished merge.
 func TestTheDiffOfAnUnmergedPathIsRefusedByName(t *testing.T) {
+	t.Parallel()
+
 	dir, runner := conflicted(t)
 
 	_, err := runner.Diff(context.Background(), dir, git.DiffRequest{Path: "f.txt", Side: git.DiffUnstaged})
@@ -119,6 +121,8 @@ func TestTheDiffOfAnUnmergedPathIsRefusedByName(t *testing.T) {
 }
 
 func TestGitLeavesConflictMarkersInTheFile(t *testing.T) {
+	t.Parallel()
+
 	dir, _ := conflicted(t)
 
 	content, err := os.ReadFile(filepath.Join(dir, "f.txt"))
@@ -133,6 +137,8 @@ func TestGitLeavesConflictMarkersInTheFile(t *testing.T) {
 }
 
 func TestKeepingOneSideResolvesTheConflict(t *testing.T) {
+	t.Parallel()
+
 	for _, testCase := range []struct {
 		side git.ConflictSide
 		want string
@@ -193,6 +199,8 @@ func TestKeepingOneSideResolvesTheConflict(t *testing.T) {
 // After resolving, the merge can be committed — with the message git prepared
 // for it, which is the whole point of reading MERGE_MSG.
 func TestAResolvedMergeCommitsWithGitsOwnMessage(t *testing.T) {
+	t.Parallel()
+
 	dir, runner := conflicted(t)
 
 	text, source, err := runner.PreparedMessage(context.Background(), dir, filepath.Join(dir, ".git"), false)
@@ -233,6 +241,8 @@ func TestAResolvedMergeCommitsWithGitsOwnMessage(t *testing.T) {
 
 // An ordinary repository has prepared nothing, and that is not a failure.
 func TestNoOperationPreparesNoMessage(t *testing.T) {
+	t.Parallel()
+
 	dir, runner := testRepository(t)
 
 	text, source, err := runner.PreparedMessage(context.Background(), dir, filepath.Join(dir, ".git"), false)
@@ -248,7 +258,7 @@ func TestNoOperationPreparesNoMessage(t *testing.T) {
 // there with "path 'f.txt' does not have our version", so keeping ours means
 // recording the deletion instead — which is what HasSide is read for.
 func TestKeepingASideThatHasNoFileRemovesIt(t *testing.T) {
-	isolateGitConfiguration(t)
+	t.Parallel()
 
 	dir := t.TempDir()
 	runner := git.NewRunner(nil)
@@ -302,6 +312,8 @@ func TestKeepingASideThatHasNoFileRemovesIt(t *testing.T) {
 // The third way out, and the one the editing pane exists for: fix the file by
 // hand, stage it, and the conflict is over.
 func TestEditingTheFileAndStagingItResolvesTheConflict(t *testing.T) {
+	t.Parallel()
+
 	dir, runner := conflicted(t)
 
 	writeWorkFile(t, dir, "f.txt", "one\nMAIN\nSIDE\nthree\n")
@@ -315,6 +327,8 @@ func TestEditingTheFileAndStagingItResolvesTheConflict(t *testing.T) {
 }
 
 func TestResolvingRefusesAnEmptyPathList(t *testing.T) {
+	t.Parallel()
+
 	dir, runner := conflicted(t)
 
 	if err := runner.KeepSide(context.Background(), dir, nil, git.SideOurs); !errors.Is(err, git.ErrNoPaths) {

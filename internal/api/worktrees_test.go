@@ -64,6 +64,8 @@ func worktreeFixture(t *testing.T, name string) (http.Handler, string, string, s
 }
 
 func TestWorktreesListsTheMainTreeFirst(t *testing.T) {
+	t.Parallel()
+
 	handler, id, _, path := worktreeFixture(t, "wt-list")
 
 	answer := worktreesOf(t, handler, id)
@@ -77,6 +79,8 @@ func TestWorktreesListsTheMainTreeFirst(t *testing.T) {
 }
 
 func TestAddWorktreeChecksOutABranchBesideIt(t *testing.T) {
+	t.Parallel()
+
 	handler, id, root, _ := worktreeFixture(t, "wt-add")
 	destination := filepath.Join(root, "wt-add-side")
 
@@ -113,6 +117,8 @@ func TestAddWorktreeChecksOutABranchBesideIt(t *testing.T) {
 }
 
 func TestAddWorktreeMakesTheBranchWhenAsked(t *testing.T) {
+	t.Parallel()
+
 	handler, id, root, _ := worktreeFixture(t, "wt-new-branch")
 	destination := filepath.Join(root, "wt-new-branch-topic")
 
@@ -129,6 +135,8 @@ func TestAddWorktreeMakesTheBranchWhenAsked(t *testing.T) {
 }
 
 func TestAddWorktreeDetached(t *testing.T) {
+	t.Parallel()
+
 	handler, id, root, _ := worktreeFixture(t, "wt-detach")
 	destination := filepath.Join(root, "wt-detach-at")
 
@@ -145,6 +153,8 @@ func TestAddWorktreeDetached(t *testing.T) {
 }
 
 func TestAddWorktreeRefusesAPathOutsideTheRoot(t *testing.T) {
+	t.Parallel()
+
 	handler, id, _, _ := worktreeFixture(t, "wt-outside")
 
 	response := postJSON(t, handler, "/api/repos/"+id+"/worktrees",
@@ -156,6 +166,8 @@ func TestAddWorktreeRefusesAPathOutsideTheRoot(t *testing.T) {
 }
 
 func TestRemoveWorktreeDeletesTheDirectory(t *testing.T) {
+	t.Parallel()
+
 	handler, id, root, _ := worktreeFixture(t, "wt-remove")
 	destination := filepath.Join(root, "wt-remove-side")
 
@@ -191,6 +203,8 @@ func TestRemoveWorktreeDeletesTheDirectory(t *testing.T) {
 // about a button that should not have been there. Refused before the
 // confirmation is drawn.
 func TestRemoveWorktreeRefusesTheMainTree(t *testing.T) {
+	t.Parallel()
+
 	handler, id, _, path := worktreeFixture(t, "wt-main")
 
 	response := postJSON(t, handler, "/api/repos/"+id+"/worktrees/remove/plan",
@@ -203,6 +217,8 @@ func TestRemoveWorktreeRefusesTheMainTree(t *testing.T) {
 // A checkout whose directory somebody deleted by hand is reported as prunable
 // and forgotten on request. What prune removes is git's record of it.
 func TestPruneWorktreesForgetsAMissingDirectory(t *testing.T) {
+	t.Parallel()
+
 	handler, id, root, _ := worktreeFixture(t, "wt-prune")
 	destination := filepath.Join(root, "wt-prune-side")
 
@@ -233,6 +249,8 @@ func TestPruneWorktreesForgetsAMissingDirectory(t *testing.T) {
 // removable through the API — that would be directory-tree deletion past the
 // security boundary. Add is root-bounded; remove has to be the same question.
 func TestRemoveWorktreeRefusesAPathOutsideTheRoot(t *testing.T) {
+	t.Parallel()
+
 	handler, id, root, path := worktreeFixture(t, "wt-outside-remove")
 
 	outside := filepath.Join(t.TempDir(), "linked")

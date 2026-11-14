@@ -16,6 +16,8 @@ import (
 // `--` goes, and that a chosen ref is refused before it can be an option.
 
 func TestSearchArgsPutTheRevisionWhereGitReadsIt(t *testing.T) {
+	t.Parallel()
+
 	args := SearchArgs(SearchMessage, "fix the cache", []string{"HEAD"}, SearchLimit)
 
 	// Immediately after the subcommand. `git log --grep=x HEAD` works too, but
@@ -37,6 +39,8 @@ func TestSearchArgsPutTheRevisionWhereGitReadsIt(t *testing.T) {
 }
 
 func TestSearchArgsForAPathUseAPathspecAfterTheSeparator(t *testing.T) {
+	t.Parallel()
+
 	args := SearchArgs(SearchPath, "cache.go", []string{"--all"}, SearchLimit)
 
 	if args[1] != "--all" {
@@ -57,6 +61,8 @@ func TestSearchArgsForAPathUseAPathspecAfterTheSeparator(t *testing.T) {
 // string, which is the shape `git log` takes and the shape a comma-separated
 // value is not.
 func TestSearchArgsWalkEveryRefThatWasChosen(t *testing.T) {
+	t.Parallel()
+
 	chosen := []string{"refs/heads/main", "refs/heads/topic"}
 	args := SearchArgs(SearchMessage, "fix", chosen, SearchLimit)
 
@@ -70,6 +76,8 @@ func TestSearchArgsWalkEveryRefThatWasChosen(t *testing.T) {
 // through this function; a check only one of them ran would be a check the
 // other is one refactor away from not having.
 func TestRevisionsForScopeRefuseWhatGitWouldMisread(t *testing.T) {
+	t.Parallel()
+
 	cases := map[string]struct {
 		scope    Scope
 		selected []string
@@ -106,6 +114,8 @@ func TestRevisionsForScopeRefuseWhatGitWouldMisread(t *testing.T) {
 // because an empty walk drawn is indistinguishable from an empty repository,
 // and this layer answers the honest "there is nothing to walk".
 func TestRevisionsForScopeSayNothingIsWalkableWithNoRefs(t *testing.T) {
+	t.Parallel()
+
 	revisions, walkable, err := revisionsForScope(ScopeRefs, nil, HEAD{}, nil)
 	if err != nil {
 		t.Fatalf("revisionsForScope: %v", err)

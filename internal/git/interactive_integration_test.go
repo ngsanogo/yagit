@@ -36,6 +36,20 @@ func TestMain(m *testing.M) {
 		}
 		os.Exit(0)
 	}
+	// No test here may read this machine's git configuration: a global
+	// init.templateDir or commit.gpgsign changes what the fixtures come out as,
+	// and the suite would pass or fail on whose machine ran it. The Runner
+	// forwards GIT_CONFIG_GLOBAL and GIT_CONFIG_SYSTEM for exactly this, and
+	// they are set here, once for the whole binary, rather than per test with
+	// t.Setenv, which would forbid every test that uses it from running in
+	// parallel with the others. The few tests that need a configuration of
+	// their own still set one with t.Setenv, and run on their own.
+	for _, name := range []string{"GIT_CONFIG_GLOBAL", "GIT_CONFIG_SYSTEM"} {
+		if err := os.Setenv(name, os.DevNull); err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			os.Exit(1)
+		}
+	}
 	os.Exit(m.Run())
 }
 
@@ -45,8 +59,6 @@ func TestMain(m *testing.M) {
 // and a test that wants a conflict has to arrange one on purpose.
 func planned(t *testing.T) (string, *git.Runner) {
 	t.Helper()
-	isolateGitConfiguration(t)
-
 	dir := t.TempDir()
 	runner := git.NewRunner(nil)
 
@@ -107,6 +119,8 @@ func run(t *testing.T, runner *git.Runner, dir, base string, commits []git.Commi
 }
 
 func TestPlanRangeListsTheCommitsAfterTheBaseOldestFirst(t *testing.T) {
+	t.Parallel()
+
 	dir, runner := planned(t)
 	base := commitOf(t, runner, dir, "main~3")
 
@@ -135,6 +149,8 @@ func TestPlanRangeListsTheCommitsAfterTheBaseOldestFirst(t *testing.T) {
 }
 
 func TestPlanRangeRefusesACommitTheBranchNeverHeld(t *testing.T) {
+	t.Parallel()
+
 	dir, runner := planned(t)
 
 	runGit(t, runner, dir, "checkout", "-b", "elsewhere", "main~2")
@@ -151,6 +167,8 @@ func TestPlanRangeRefusesACommitTheBranchNeverHeld(t *testing.T) {
 }
 
 func TestPlanRangeRefusesTheTipItself(t *testing.T) {
+	t.Parallel()
+
 	dir, runner := planned(t)
 
 	_, _, _, err := runner.PlanRange(context.Background(), dir, "main")
@@ -162,6 +180,8 @@ func TestPlanRangeRefusesTheTipItself(t *testing.T) {
 // A merge in the range is refused rather than flattened. git would drop it
 // without a word — a plan is a list of lines and a merge commit is not one.
 func TestPlanRangeRefusesAMergeInTheRange(t *testing.T) {
+	t.Parallel()
+
 	dir, runner := planned(t)
 
 	runGit(t, runner, dir, "checkout", "-b", "side", "main~1")
@@ -179,6 +199,8 @@ func TestPlanRangeRefusesAMergeInTheRange(t *testing.T) {
 }
 
 func TestRebaseInteractiveReordersCommits(t *testing.T) {
+	t.Parallel()
+
 	dir, runner := planned(t)
 	base := commitOf(t, runner, dir, "main~3")
 	commits := planRange(t, runner, dir, base)
@@ -201,6 +223,8 @@ func TestRebaseInteractiveReordersCommits(t *testing.T) {
 }
 
 func TestRebaseInteractiveDropsACommit(t *testing.T) {
+	t.Parallel()
+
 	dir, runner := planned(t)
 	base := commitOf(t, runner, dir, "main~3")
 	commits := planRange(t, runner, dir, base)
@@ -231,6 +255,8 @@ func TestRebaseInteractiveDropsACommit(t *testing.T) {
 // is the question `squash` dodges by joining them and opening an editor over
 // the result, which is the question a daemon cannot ask.
 func TestRebaseInteractiveCombinesKeepingTheMessageChosen(t *testing.T) {
+	t.Parallel()
+
 	for _, combine := range []struct {
 		instruction git.Instruction
 		// survives is the subject the combined commit ends up with.
@@ -276,6 +302,8 @@ func TestRebaseInteractiveCombinesKeepingTheMessageChosen(t *testing.T) {
 // and NOTHING is blocked — so the Continue button the banner draws is a button
 // that runs.
 func TestRebaseInteractiveStopsAtAnEditTheBannerCanFinish(t *testing.T) {
+	t.Parallel()
+
 	dir, runner := planned(t)
 	base := commitOf(t, runner, dir, "main~3")
 	commits := planRange(t, runner, dir, base)
@@ -339,6 +367,8 @@ func TestRebaseInteractiveStopsAtAnEditTheBannerCanFinish(t *testing.T) {
 // this test hung for ten minutes there instead of failing, and so would a
 // daemon.
 func TestRebaseInteractiveFailsLoudlyOnAStepThatOpensAnEditor(t *testing.T) {
+	t.Parallel()
+
 	dir, runner := planned(t)
 	base := commitOf(t, runner, dir, "main~3")
 	commits := planRange(t, runner, dir, base)
@@ -367,6 +397,8 @@ func TestRebaseInteractiveFailsLoudlyOnAStepThatOpensAnEditor(t *testing.T) {
 // last row leaves every commit below that row exactly where it was, hash and
 // all. With --no-ff every one of them would be written again.
 func TestRebaseInteractiveKeepsTheHashesThePlanDidNotTouch(t *testing.T) {
+	t.Parallel()
+
 	dir, runner := planned(t)
 	base := commitOf(t, runner, dir, "main~3")
 	commits := planRange(t, runner, dir, base)
@@ -390,6 +422,8 @@ func TestRebaseInteractiveKeepsTheHashesThePlanDidNotTouch(t *testing.T) {
 // travels whole — the command, the exit code, git's own stderr — so the
 // resolution screen that already exists takes over.
 func TestRebaseInteractiveStopsOnAConflictWithTheCommandWhole(t *testing.T) {
+	t.Parallel()
+
 	dir, runner := planned(t)
 
 	// Two commits touching one file, so reordering them cannot apply.

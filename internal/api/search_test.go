@@ -50,6 +50,8 @@ func searchFor(t *testing.T, handler http.Handler, id, field, query string) sear
 }
 
 func TestSearchFindsByEachField(t *testing.T) {
+	t.Parallel()
+
 	handler, id := searchableRepository(t, "search-fields")
 
 	for _, probe := range []struct {
@@ -71,6 +73,8 @@ func TestSearchFindsByEachField(t *testing.T) {
 // to a regex engine would find nothing, and `a(b` would be an error about
 // parentheses.
 func TestSearchTakesTheQueryLiterally(t *testing.T) {
+	t.Parallel()
+
 	handler, id := searchableRepository(t, "search-literal")
 
 	if answer := searchFor(t, handler, id, "message", "fix(api)"); len(answer.Commits) != 1 {
@@ -82,6 +86,8 @@ func TestSearchTakesTheQueryLiterally(t *testing.T) {
 }
 
 func TestSearchAnswersWithTheCommandItRan(t *testing.T) {
+	t.Parallel()
+
 	handler, id := searchableRepository(t, "search-command")
 
 	answer := searchFor(t, handler, id, "message", "parser")
@@ -91,6 +97,8 @@ func TestSearchAnswersWithTheCommandItRan(t *testing.T) {
 }
 
 func TestSearchRefusesAnEmptyQuery(t *testing.T) {
+	t.Parallel()
+
 	handler, id := searchableRepository(t, "search-empty")
 
 	response := get(t, handler, "/api/repos/"+id+"/search?in=message&q=")
@@ -100,6 +108,8 @@ func TestSearchRefusesAnEmptyQuery(t *testing.T) {
 }
 
 func TestSearchRefusesAnUnknownField(t *testing.T) {
+	t.Parallel()
+
 	handler, id := searchableRepository(t, "search-field")
 
 	response := get(t, handler, "/api/repos/"+id+"/search?in=committer&q=ada")
@@ -111,6 +121,8 @@ func TestSearchRefusesAnUnknownField(t *testing.T) {
 // The search and the graph beside it have to cover the same commits, or a
 // result would be a row the graph cannot scroll to.
 func TestSearchIsBoundedByTheScope(t *testing.T) {
+	t.Parallel()
+
 	handler, id, path := openNamedRepository(t, "search-scope")
 
 	writeFile(t, path, "f.txt", "one\n")

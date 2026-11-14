@@ -8,6 +8,8 @@ import (
 )
 
 func TestLineHistoryTracksAChangedLine(t *testing.T) {
+	t.Parallel()
+
 	handler, id, path := openNamedRepository(t, "line-hist")
 
 	writeFile(t, path, "notes.md", "one\ntwo\nthree\n")
@@ -46,6 +48,8 @@ func TestLineHistoryTracksAChangedLine(t *testing.T) {
 }
 
 func TestLineHistoryRefusesABadLine(t *testing.T) {
+	t.Parallel()
+
 	handler, id, _ := openNamedRepository(t, "line-bad")
 	response := get(t, handler, "/api/repos/"+id+"/files/line-history?path=a.txt&line=0")
 	if response.Code != http.StatusBadRequest {

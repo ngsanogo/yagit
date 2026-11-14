@@ -8,6 +8,8 @@ import (
 )
 
 func TestBlameAttributesLines(t *testing.T) {
+	t.Parallel()
+
 	handler, id, path := openNamedRepository(t, "blame-lines")
 
 	writeFile(t, path, "notes.md", "one\n")
@@ -38,6 +40,8 @@ func TestBlameAttributesLines(t *testing.T) {
 }
 
 func TestBlameRefusesABadPath(t *testing.T) {
+	t.Parallel()
+
 	handler, id, _ := openNamedRepository(t, "blame-bad")
 	response := get(t, handler, "/api/repos/"+id+"/files/blame?path=../etc/passwd")
 	if response.Code != http.StatusBadRequest {

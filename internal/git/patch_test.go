@@ -29,6 +29,8 @@ func selectAll(file git.FileDiff) map[int]bool {
 }
 
 func TestFormatPatchWithEveryLineSelectedReproducesTheDiffBody(t *testing.T) {
+	t.Parallel()
+
 	// The round trip is the property that matters. A patch built from every
 	// line of a diff is that diff, so any drift here — a miscounted range, a
 	// lost marker — shows up as a difference from git's own bytes.
@@ -47,6 +49,8 @@ func TestFormatPatchWithEveryLineSelectedReproducesTheDiffBody(t *testing.T) {
 }
 
 func TestFormatPatchDropsAnUnselectedAddition(t *testing.T) {
+	t.Parallel()
+
 	file := parseOneFile(t, []byte(modifiedDiff))
 
 	// Lines: 0 context, 1 removed "two", 2 added "TWO", 3 context, 4 added
@@ -66,6 +70,8 @@ func TestFormatPatchDropsAnUnselectedAddition(t *testing.T) {
 }
 
 func TestFormatPatchTurnsAnUnselectedRemovalIntoContext(t *testing.T) {
+	t.Parallel()
+
 	file := parseOneFile(t, []byte(modifiedDiff))
 
 	// Take "four" alone. "two" is not being removed, so it is still in the
@@ -83,6 +89,8 @@ func TestFormatPatchTurnsAnUnselectedRemovalIntoContext(t *testing.T) {
 }
 
 func TestFormatPatchSkipsAHunkWithNothingSelected(t *testing.T) {
+	t.Parallel()
+
 	file := parseOneFile(t, diffOutput(
 		"diff --git a/a.txt b/a.txt",
 		"--- a/a.txt",
@@ -112,6 +120,8 @@ func TestFormatPatchSkipsAHunkWithNothingSelected(t *testing.T) {
 }
 
 func TestFormatPatchShiftsLaterHunksByWhatEarlierOnesChanged(t *testing.T) {
+	t.Parallel()
+
 	// Two hunks, the first adding a line. The second hunk begins one line
 	// later in the file this patch produces than it did in the old one, and
 	// its header has to say so.
@@ -141,6 +151,8 @@ func TestFormatPatchShiftsLaterHunksByWhatEarlierOnesChanged(t *testing.T) {
 }
 
 func TestFormatPatchLeavingOutTheFirstInsertionMovesTheSecondBack(t *testing.T) {
+	t.Parallel()
+
 	file := parseOneFile(t, diffOutput(
 		"diff --git a/a.txt b/a.txt",
 		"--- a/a.txt",
@@ -168,6 +180,8 @@ func TestFormatPatchLeavingOutTheFirstInsertionMovesTheSecondBack(t *testing.T) 
 }
 
 func TestFormatPatchOfANewFileWritesDevNullOnTheOldSide(t *testing.T) {
+	t.Parallel()
+
 	file := parseOneFile(t, diffOutput(
 		"diff --git a/new.txt b/new.txt",
 		"new file mode 100644",
@@ -195,6 +209,8 @@ func TestFormatPatchOfANewFileWritesDevNullOnTheOldSide(t *testing.T) {
 }
 
 func TestFormatPatchKeepsTheNoNewlineMarker(t *testing.T) {
+	t.Parallel()
+
 	file := parseOneFile(t, diffOutput(
 		"diff --git a/a.txt b/a.txt",
 		"--- a/a.txt",
@@ -220,6 +236,8 @@ func TestFormatPatchKeepsTheNoNewlineMarker(t *testing.T) {
 }
 
 func TestFormatPatchRefusesWhatItCannotExpress(t *testing.T) {
+	t.Parallel()
+
 	t.Run("nothing selected", func(t *testing.T) {
 		file := parseOneFile(t, []byte(modifiedDiff))
 		_, err := git.FormatPatch(file, map[int]bool{}, git.PatchForward)
@@ -268,6 +286,8 @@ func TestFormatPatchRefusesWhatItCannotExpress(t *testing.T) {
 }
 
 func TestChangedLinesCountsOnlyChanges(t *testing.T) {
+	t.Parallel()
+
 	file := parseOneFile(t, []byte(modifiedDiff))
 
 	changed := git.ChangedLines(file)
@@ -282,6 +302,8 @@ func TestChangedLinesCountsOnlyChanges(t *testing.T) {
 }
 
 func TestCoversEveryChange(t *testing.T) {
+	t.Parallel()
+
 	file := parseOneFile(t, []byte(modifiedDiff))
 
 	if !git.CoversEveryChange(file, selectAll(file)) {
@@ -301,6 +323,8 @@ func TestCoversEveryChange(t *testing.T) {
 }
 
 func TestFormatPatchInReverseKeepsAnUnselectedAdditionAsContext(t *testing.T) {
+	t.Parallel()
+
 	// The mirror of the forward rules, and the reason there is a direction at
 	// all. The base here is the NEW side: "TWO" and "four" are both in the
 	// file being changed. Discarding "four" alone must leave "TWO" exactly
@@ -322,6 +346,8 @@ func TestFormatPatchInReverseKeepsAnUnselectedAdditionAsContext(t *testing.T) {
 }
 
 func TestFormatPatchInReverseDropsAnUnselectedRemoval(t *testing.T) {
+	t.Parallel()
+
 	file := parseOneFile(t, []byte(modifiedDiff))
 
 	// Take back the substitution and leave "four" alone. "two" was removed
@@ -342,6 +368,8 @@ func TestFormatPatchInReverseDropsAnUnselectedRemoval(t *testing.T) {
 }
 
 func TestFormatPatchReversedIsNotTheForwardPatchTurnedAround(t *testing.T) {
+	t.Parallel()
+
 	// Stated as a test because it is the mistake worth pinning: the two
 	// patches differ in the lines the user did NOT choose, and `git apply`
 	// matches on exactly those.
