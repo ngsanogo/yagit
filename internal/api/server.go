@@ -222,6 +222,9 @@ func (s *Server) Handler() http.Handler {
 	protected.HandleFunc("GET /api/repos/{id}/undo", s.handleUndoOffer)
 	protected.HandleFunc("POST /api/repos/{id}/undo/plan", s.handlePlanUndo)
 	protected.HandleFunc("POST /api/repos/{id}/undo", s.handleUndo)
+	protected.HandleFunc("GET /api/repos/{id}/reflog", s.handleReflog)
+	protected.HandleFunc("POST /api/repos/{id}/reflog/restore/plan", s.handlePlanReflogRestore)
+	protected.HandleFunc("POST /api/repos/{id}/reflog/restore", s.handleReflogRestore)
 
 	// The stash. Read as a collection, written as three operations, and the
 	// two spellings are the split the rest of this table already uses:

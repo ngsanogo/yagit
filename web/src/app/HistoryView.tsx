@@ -21,6 +21,7 @@ import { useHistoryProposals } from './historyProposals';
 import { HISTORY_SCOPES, initialSelectedRefs } from './historyScope';
 import { LFSPanel } from './LFSPanel';
 import { LineHistoryPanel } from './LineHistory';
+import { ReflogPanel } from './ReflogPanel';
 import { RefPicker } from './RefPicker';
 import { RefSidebar } from './RefSidebar';
 import { RepositoryAdditions } from './RepositoryAdditions';
@@ -593,6 +594,21 @@ export function HistoryView({
             {...(stashRefusal === undefined ? {} : { stashRefusal })}
             onApply={proposals.proposeStashApply}
             onDrop={proposals.proposeStashDrop}
+          />
+        )}
+
+        {canCheckOut && (
+          <ReflogPanel
+            entries={ops.reflog.entries.data?.entries}
+            loading={ops.reflog.entries.isPending}
+            {...(ops.reflog.entries.error === null ? {} : { error: ops.reflog.entries.error })}
+            retry={ops.reflog.entries}
+            onRestore={(entry) => proposals.proposeReflogRestore(entry)}
+            restoring={
+              ops.reflog.planRestore.isPending
+                ? ops.reflog.planRestore.variables?.selector
+                : undefined
+            }
           />
         )}
 

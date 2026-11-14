@@ -236,7 +236,8 @@ test('renders only the rows on screen', async ({ page }) => {
 
   await expect(page.getByRole('heading', { name: `History — ${FIXTURE_COMMITS}` })).toBeVisible();
 
-  const rendered = await page.getByRole('listitem').count();
+  // The history's own rows: the sidebar's panels are lists too.
+  const rendered = await page.getByRole('list', { name: 'Commits' }).getByRole('listitem').count();
   expect(rendered).toBeLessThan(FIXTURE_COMMITS);
 
   // A viewport of about 900px at 56px per row is ~16 rows, plus the

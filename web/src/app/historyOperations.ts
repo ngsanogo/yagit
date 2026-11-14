@@ -7,6 +7,7 @@ import { useCherryPick } from './useCherryPick';
 import { useInteractiveRebase } from './useInteractiveRebase';
 import { useLFS } from './useLFS';
 import { remotesQuery } from './useRemote';
+import { useReflog } from './useReflog';
 import { useReset } from './useReset';
 import { useRevert } from './useRevert';
 import { useStash } from './useStash';
@@ -41,6 +42,7 @@ export function useHistoryOperations(repositoryId: string, bare: boolean) {
     revert: useRevert(repositoryId),
     reset: useReset(repositoryId),
     bisect: useBisect(repositoryId),
+    reflog: useReflog(repositoryId, !bare),
     rewrite: useInteractiveRebase(repositoryId),
     stash: useStash(repositoryId, !bare),
     worktrees: useWorktrees(repositoryId),

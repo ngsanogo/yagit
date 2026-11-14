@@ -3,6 +3,7 @@ import { useRef } from 'react';
 import type {
   Ref,
   Remote,
+  ReflogEntry,
   ResetMode,
   Stash,
   StashApplyMode,
@@ -293,6 +294,26 @@ export function useHistoryProposals(
   }
 
   /**
+   * Puts the question of restoring HEAD to one reflog entry, and asks again
+   * whenever the mode changes — reset's three modes, mixed first for the
+   * reason proposeReset gives. The entry goes as the list showed it, selector
+   * and object both: HEAD moving since renumbers the selectors, and the
+   * daemon refuses a pair that no longer matches rather than restoring
+   * whatever the selector has come to mean.
+   */
+  function proposeReflogRestore(
+    entry: Pick<ReflogEntry, 'selector' | 'sha'>,
+    mode: ResetMode = 'mixed',
+  ) {
+    propose(
+      ops.reflog.planRestore,
+      { selector: entry.selector, sha: entry.sha, mode },
+      `what restoring ${entry.selector} would run`,
+      (plan) => ({ kind: 'reflog-restore', plan }),
+    );
+  }
+
+  /**
    * Puts the reset question, and asks again whenever the mode changes.
    *
    * Mixed is what it opens on — git's own default when no flag is given — and
@@ -460,6 +481,7 @@ export function useHistoryProposals(
     proposeStartBisect,
     proposeRevert,
     proposeReset,
+    proposeReflogRestore,
     proposeRewrite,
     proposeStash,
     proposeStashApply,

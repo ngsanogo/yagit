@@ -15,6 +15,8 @@ import type {
   SearchField,
   Submodule,
   SearchResult as SearchResultPayload,
+  ReflogEntry,
+  ReflogRestorePlan,
   UndoPlan,
   Worktree,
   WorktreeRequest,
@@ -924,6 +926,32 @@ export const api = {
         to_ref: plan.to_ref,
         branch: plan.branch,
         detach: plan.detach,
+      }),
+    }),
+
+  /** Newest entries of HEAD's reflog. */
+  reflog: (id: string, limit = 50) =>
+    request<{ entries: ReflogEntry[] }>(`/api/repos/${id}/reflog?limit=${limit}`),
+
+  /** What restoring HEAD to a reflog entry would run. */
+  planReflogRestore: (id: string, selector: string, sha: string, mode: ResetMode) =>
+    request<ReflogRestorePlan>(`/api/repos/${id}/reflog/restore/plan`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ selector, sha, mode }),
+    }),
+
+  /** Restores HEAD to a past reflog entry. */
+  reflogRestore: (id: string, plan: ReflogRestorePlan) =>
+    request<RefsPayload>(`/api/repos/${id}/reflog/restore`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        selector: plan.selector,
+        sha: plan.sha,
+        head: plan.head,
+        into: plan.into,
+        mode: plan.mode,
       }),
     }),
 

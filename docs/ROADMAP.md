@@ -99,6 +99,10 @@ what will be lost.
   cannot answer, so the tip is read before the delete and remembered while the
   repository is open
 .
+- **The reflog**: HEAD's last fifty moves, beside the stash, and any of them
+  restored through a reset in one of its three modes. The entry is named by
+  its selector and its object together, since every move renumbers the
+  selectors, and the confirmation counts what the reset leaves behind.
 
 ## Talking to a remote
 

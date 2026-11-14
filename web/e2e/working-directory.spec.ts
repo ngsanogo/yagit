@@ -253,7 +253,9 @@ test('commits what is staged, and the history says so', async ({ page }) => {
   // event stream and the cache between them put it on screen.
   await page.getByRole('radio', { name: 'History' }).click();
   await expect(page.getByRole('heading', { name: 'History — 2' })).toBeVisible();
-  await expect(page.getByText('second: from the interface')).toBeVisible();
+  // In the history itself: the reflog beside it names the same commit too.
+  const commits = page.getByRole('list', { name: 'Commits' });
+  await expect(commits.getByText('second: from the interface')).toBeVisible();
 });
 
 /**
@@ -311,8 +313,11 @@ test('amends the last commit, after showing the command it will run', async ({ p
   // git, and the message alone could not tell the difference.
   await page.getByRole('radio', { name: 'History' }).click();
   await expect(page.getByRole('heading', { name: 'History — 1' })).toBeVisible();
-  await expect(page.getByText('first: reworded from the interface')).toBeVisible();
-  await expect(page.getByText('first: the committed state')).toBeHidden();
+  // In the history: the reflog keeps naming the commit the amend replaced,
+  // which is what a reflog is for.
+  const commits = page.getByRole('list', { name: 'Commits' });
+  await expect(commits.getByText('first: reworded from the interface')).toBeVisible();
+  await expect(commits.getByText('first: the committed state')).toBeHidden();
 
   // And what the dialog promised is what ran.
   await page.getByRole('button', { name: 'Command log' }).click();
