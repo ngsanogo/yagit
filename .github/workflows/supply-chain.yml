@@ -56,10 +56,13 @@ jobs:
           # A known-vulnerable dependency fails the pull request outright.
           fail-on-severity: low
 
-          # This project is MIT and intends to stay installable by anyone. A
-          # copyleft dependency pulled in by a transitive bump is the kind of
-          # thing nobody notices until it is load-bearing.
-          deny-licenses: AGPL-1.0-or-later, AGPL-3.0-or-later, GPL-2.0-or-later, GPL-3.0-or-later
+          # Align with OPEN_SOURCE_POLICY.md: keep the MIT tree free of strong
+          # copyleft and of non-OSI “source available” licenses. deny-licenses
+          # is a blocklist of SPDX identifiers, not a full policy — unclear
+          # licenses stay a human review (policy rule 5).
+          deny-licenses: >-
+            AGPL-1.0-or-later, AGPL-3.0-or-later, GPL-2.0-or-later, GPL-3.0-or-later,
+            BUSL-1.1, SSPL-1.0, Elastic-2.0
 
   # The vulnerability databases, asked directly rather than through GitHub.
   #

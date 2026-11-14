@@ -1,5 +1,12 @@
 # Contributing
 
+## Hard rule — OSI only
+
+Use [OSI-approved](https://opensource.org/licenses) open source only. Do **not**
+add SSPL, BSL, SUL, Fair Source, Commons Clause, Elastic License, proprietary
+SDKs, or “free for non-commercial only” terms. If a license is unclear, treat
+it as blocked. Full rules: [`OPEN_SOURCE_POLICY.md`](OPEN_SOURCE_POLICY.md).
+
 ## Getting set up
 
 One prerequisite: [mise](https://mise.jdx.dev). Nothing else — `./do` is a
@@ -199,9 +206,3 @@ gh label create accessibility \
 
 The repository is in English — code, comments, documentation, commit messages,
 user-facing strings — so nobody has to guess which half they are reading.
-
-## Agent configuration
-
-Instructions for AI coding agents are [`AGENTS.md`](AGENTS.md) at the
-repository root, with rules in `.agents/rules/` and skills in
-`.agents/skills/`. Edit those files directly.
