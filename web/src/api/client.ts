@@ -934,11 +934,11 @@ export const api = {
     request<{ entries: ReflogEntry[] }>(`/api/repos/${id}/reflog?limit=${limit}`),
 
   /** What restoring HEAD to a reflog entry would run. */
-  planReflogRestore: (id: string, selector: string, mode: ResetMode) =>
+  planReflogRestore: (id: string, selector: string, sha: string, mode: ResetMode) =>
     request<ReflogRestorePlan>(`/api/repos/${id}/reflog/restore/plan`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ selector, mode }),
+      body: JSON.stringify({ selector, sha, mode }),
     }),
 
   /** Restores HEAD to a past reflog entry. */

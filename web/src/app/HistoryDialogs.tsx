@@ -353,12 +353,7 @@ export function HistoryDialogs({
           onModeChange={(mode) => {
             if (mode !== dialog.plan.mode) {
               proposals.proposeReflogRestore(
-                {
-                  sha: dialog.plan.sha,
-                  selector: dialog.plan.selector,
-                  subject: dialog.plan.subject,
-                  date: '',
-                },
+                { selector: dialog.plan.selector, sha: dialog.plan.sha },
                 mode,
               );
             }

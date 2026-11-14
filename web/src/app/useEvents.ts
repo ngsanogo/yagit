@@ -98,6 +98,9 @@ export function useEvents(initialExecutions: GitExecution[]): EventStream {
       // learns that a repository moved, and a second mechanism beside it would
       // be two answers to one question.
       void queryClient.invalidateQueries({ queryKey: ['undo', changed.id] });
+      // The reflog panel is the same reading at length, and a list left as it
+      // was would offer selectors that now name other moments.
+      void queryClient.invalidateQueries({ queryKey: ['reflog', changed.id] });
       // An open comparison counts between two tips, and either can move.
       void queryClient.invalidateQueries({ queryKey: ['compare', changed.id] });
     });

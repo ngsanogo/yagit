@@ -63,7 +63,7 @@ export function ReflogPanel({
               return (
                 <li
                   key={`${entry.selector}:${entry.sha}`}
-                  className={cx('flex items-start gap-2 px-3 py-2 text-sm', REVEALED_ON_ATTENTION)}
+                  className="group/row flex items-start gap-2 px-3 py-2 text-sm"
                 >
                   <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
@@ -80,15 +80,20 @@ export function ReflogPanel({
                     </p>
                   </div>
                   {onRestore !== undefined && (
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      disabled={restoring !== undefined}
-                      loading={restoring === entry.selector}
-                      onClick={() => onRestore(entry)}
-                    >
-                      Restore…
-                    </Button>
+                    // The action, not the row, waits for attention: the row
+                    // is the reading and has to be on screen without a hover.
+                    <span className={cx('shrink-0', REVEALED_ON_ATTENTION)}>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        disabled={restoring !== undefined}
+                        loading={restoring === entry.selector}
+                        onClick={() => onRestore(entry)}
+                        aria-label={`Restore to ${entry.selector}`}
+                      >
+                        Restore…
+                      </Button>
+                    </span>
                   )}
                 </li>
               );

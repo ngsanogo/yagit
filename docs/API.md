@@ -108,7 +108,7 @@ stream — the destination is not an open repository yet
 | `POST /api/repos/{id}/undo/plan` | What undoing would run: soft reset, switch/detach back, or `git branch` putting back one this daemon deleted. |
 | `POST /api/repos/{id}/undo` | Carries out the plan. Body echoes `kind`, `into`, `head`, `to`, `to_ref`, `branch`, `detach`. |
 | `GET /api/repos/{id}/reflog` | Newest entries of HEAD's reflog. Query: optional `limit` (default 50, capped at 200). |
-| `POST /api/repos/{id}/reflog/restore/plan` | What restoring HEAD to a reflog entry would run. Body: `{"selector":"HEAD@{n}","mode":"soft\|mixed\|hard"}`. |
+| `POST /api/repos/{id}/reflog/restore/plan` | What restoring HEAD to a reflog entry would run. Body: `{"selector":"HEAD@{n}","sha":"…","mode":"soft\|mixed\|hard"}` — the entry as the list showed it; both must still match, since every move of HEAD renumbers the selectors. The plan carries `dropping` and `dirty_files` as reset's does. |
 | `POST /api/repos/{id}/reflog/restore` | Restores HEAD to that entry. Body echoes the plan's `selector`, `sha`, `head`, `into`, `mode`. |
 | `POST /api/repos/{id}/rebase/interactive/plan` | The commits a plan may cover: everything after one commit, oldest first. Body: `{"commit": "…"}`. Changes nothing. |
 | `POST /api/repos/{id}/rebase/interactive` | Rewrites them, following a plan. Body: `{"base": "…", "from": "…", "steps": [{"commit": "…", "instruction": "pick\|fixup\|fixup -C\|edit\|drop"}]}`. |

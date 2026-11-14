@@ -15,12 +15,14 @@ import (
 // the user is choosing that moment again, even when the current tip has since
 // moved onto a different line. The lease is the object names, not ancestry.
 
-// ErrReflogEntryGone: the selector or SHA is not among the entries just read.
+// ErrReflogEntryGone: no entry just read has both that selector and that SHA.
 //
-// The list on screen and the restore plan can disagree when a new movement of
-// HEAD pushes the entry past the window, or when the client invents a
-// selector. Refused rather than run: a restore of the wrong moment is worse
-// than a refusal that asks the list to be read again.
+// The list on screen and the restore plan disagree whenever HEAD has moved
+// since the list was drawn: every movement renumbers the selectors, so
+// HEAD@{3} on screen is HEAD@{4} by the time the click arrives, and the
+// selector alone would name a different moment from the one clicked. Refused
+// rather than run: a restore of the wrong moment is worse than a refusal that
+// asks the list to be read again.
 var ErrReflogEntryGone = errors.New("that reflog entry is no longer in reach")
 
 // ReflogRestorePreview is what restoring HEAD to one entry would run.
@@ -32,19 +34,25 @@ type ReflogRestorePreview struct {
 	Into     string    `json:"into"`
 	Mode     ResetMode `json:"mode"`
 	Command  string    `json:"command"`
+
+	// Dropping and DirtyFiles are ResetPreview's two counts, for the same
+	// confirmation sentence: the commits on HEAD the entry does not hold,
+	// and the tracked paths a hard restore puts back.
+	Dropping   int `json:"dropping"`
+	DirtyFiles int `json:"dirty_files"`
 }
 
 // PreviewReflogRestore says what restoring HEAD to the named entry would run.
 //
-// selector is git's own name ("HEAD@{3}") or the full object name the entry
-// holds. Matched against a fresh HeadReflog walk so a stale list cannot name a
-// moment that has scrolled out of the window.
+// selector is git's own name ("HEAD@{3}") and sha the object the client saw
+// at it; both must match one entry of a fresh HeadReflog walk, so a list drawn
+// before HEAD last moved cannot name a moment other than the one clicked.
 func (r *Runner) PreviewReflogRestore(
-	ctx context.Context, dir, selector string, mode ResetMode, max int,
+	ctx context.Context, dir, selector, sha string, mode ResetMode, max int,
 ) (ReflogRestorePreview, error) {
-	selector = strings.TrimSpace(selector)
-	if selector == "" {
-		return ReflogRestorePreview{}, fmt.Errorf("%w: none was given", ErrNoRef)
+	selector, sha = strings.TrimSpace(selector), strings.TrimSpace(sha)
+	if selector == "" || sha == "" {
+		return ReflogRestorePreview{}, fmt.Errorf("%w: a reflog entry is named by its selector and its object", ErrNoRef)
 	}
 	if _, err := ParseResetMode(string(mode)); err != nil {
 		return ReflogRestorePreview{}, err
@@ -54,11 +62,11 @@ func (r *Runner) PreviewReflogRestore(
 	if err != nil {
 		return ReflogRestorePreview{}, err
 	}
-	entry, ok := findReflogEntry(entries, selector)
+	entry, ok := findReflogEntry(entries, selector, sha)
 	if !ok {
 		return ReflogRestorePreview{}, fmt.Errorf(
-			"%w: %s is not among the %d newest HEAD entries",
-			ErrReflogEntryGone, selector, len(entries))
+			"%w: no entry among the %d newest is %s at %s — read the reflog again",
+			ErrReflogEntryGone, len(entries), selector, ShortSHA(sha))
 	}
 
 	head, err := r.ReadHEAD(ctx, dir)
@@ -74,6 +82,15 @@ func (r *Runner) PreviewReflogRestore(
 		into = head.Name
 	}
 
+	dropping, err := r.countCommits(ctx, dir, entry.SHA+".."+head.SHA)
+	if err != nil {
+		return ReflogRestorePreview{}, err
+	}
+	status, err := r.Status(ctx, dir)
+	if err != nil {
+		return ReflogRestorePreview{}, err
+	}
+
 	return ReflogRestorePreview{
 		Selector: entry.Selector,
 		SHA:      entry.SHA,
@@ -82,6 +99,9 @@ func (r *Runner) PreviewReflogRestore(
 		Into:     into,
 		Mode:     mode,
 		Command:  CommandLine(ResetArgs(entry.SHA, mode)),
+
+		Dropping:   dropping,
+		DirtyFiles: status.DirtyTracked(),
 	}, nil
 }
 
@@ -112,9 +132,9 @@ func (r *Runner) ReflogRestore(ctx context.Context, dir string, plan ReflogResto
 	return r.Reset(ctx, dir, sha, plan.Mode)
 }
 
-func findReflogEntry(entries []ReflogEntry, needle string) (ReflogEntry, bool) {
+func findReflogEntry(entries []ReflogEntry, selector, sha string) (ReflogEntry, bool) {
 	for _, entry := range entries {
-		if entry.Selector == needle || entry.SHA == needle {
+		if entry.Selector == selector && entry.SHA == sha {
 			return entry, true
 		}
 	}

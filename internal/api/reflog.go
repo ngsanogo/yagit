@@ -25,6 +25,7 @@ type reflogPayload struct {
 
 type reflogRestorePlanRequest struct {
 	Selector string        `json:"selector"`
+	SHA      string        `json:"sha"`
 	Mode     git.ResetMode `json:"mode"`
 }
 
@@ -81,7 +82,7 @@ func (s *Server) handlePlanReflogRestore(writer http.ResponseWriter, request *ht
 
 	var body reflogRestorePlanRequest
 	if !decodeBody(writer, s.logger, request, &body,
-		`{"selector":"HEAD@{n}","mode":"soft|mixed|hard"}`) {
+		`{"selector":"HEAD@{n}","sha":"…","mode":"soft|mixed|hard"}`) {
 		return
 	}
 	mode, err := git.ParseResetMode(string(body.Mode))
@@ -91,7 +92,7 @@ func (s *Server) handlePlanReflogRestore(writer http.ResponseWriter, request *ht
 	}
 
 	preview, err := s.runner.PreviewReflogRestore(
-		request.Context(), opened.Path, body.Selector, mode, defaultReflogLimit)
+		request.Context(), opened.Path, body.Selector, body.SHA, mode, defaultReflogLimit)
 	if err != nil {
 		writeError(writer, s.logger, statusForReflogError(err), err)
 		return
@@ -122,7 +123,7 @@ func (s *Server) handleReflogRestore(writer http.ResponseWriter, request *http.R
 	}
 
 	fresh, err := s.runner.PreviewReflogRestore(
-		request.Context(), opened.Path, body.Selector, mode, defaultReflogLimit)
+		request.Context(), opened.Path, body.Selector, body.SHA, mode, defaultReflogLimit)
 	if err != nil {
 		writeError(writer, s.logger, statusForReflogError(err), err)
 		return

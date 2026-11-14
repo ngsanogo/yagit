@@ -662,6 +662,10 @@ export interface ReflogRestorePlan {
   head: string;
   into: string;
   mode: ResetMode;
+  /** Commits on HEAD the entry does not hold, as on ResetPlan. */
+  dropping: number;
+  /** Tracked paths a hard restore puts back, as on ResetPlan. */
+  dirty_files: number;
 }
 
 /**

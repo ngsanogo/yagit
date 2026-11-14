@@ -21,8 +21,8 @@ export function useReflog(repositoryId: string, enabled = true) {
   });
 
   const planRestore = useMutation({
-    mutationFn: ({ selector, mode }: { selector: string; mode: ResetMode }) =>
-      api.planReflogRestore(repositoryId, selector, mode),
+    mutationFn: ({ selector, sha, mode }: { selector: string; sha: string; mode: ResetMode }) =>
+      api.planReflogRestore(repositoryId, selector, sha, mode),
   });
 
   const restore = useMutation({
