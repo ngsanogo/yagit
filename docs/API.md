@@ -572,7 +572,7 @@ clicked. A position past the end is a 404: there is no such thing to look at.
 | Route | Answers |
 | --- | --- |
 | `GET /api/repos/{id}/status` | What differs, on the side it differs on, plus branch, upstream, ahead and behind. |
-| `GET /api/repos/{id}/diff` | One file's diff. Takes `path` and `side=staged\|unstaged\|untracked`. |
+| `GET /api/repos/{id}/diff` | One file's diff. Takes `path`, `side=staged\|unstaged\|untracked`, and optionally `context`, the unchanged lines around each hunk: 3 (git's own, the default), 10, 25 or 50. |
 | `POST /api/repos/{id}/stage` | Stages whole files, or chosen lines. |
 | `POST /api/repos/{id}/unstage` | The reverse. |
 | `POST /api/repos/{id}/discard` | Destroys working-directory changes. |
@@ -587,7 +587,10 @@ clicked. A position past the end is a 404: there is no such thing to look at.
 The three staging routes take `{"paths": [...]}` for whole files, or
 `{"paths": [...], "lines": {...}}` to stage part of one. Line selections are
 turned into a patch fed to `git apply`; the builder is pure and fuzzed
-([ARCHITECTURE.md](ARCHITECTURE.md#staging-part-of-a-file)).
+([ARCHITECTURE.md](ARCHITECTURE.md#staging-part-of-a-file)). A selection made
+on a widened diff carries `lines.context`, the width it was made at: the
+fingerprint covers the diff's bytes, and the daemon re-reads at that width to
+check it.
 
 `discard/plan` exists because discarding is the one operation that destroys
 work no commit holds, and the interface cannot know the command: the split

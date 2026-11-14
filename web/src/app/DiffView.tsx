@@ -58,7 +58,7 @@ interface DiffViewProps {
    */
   context?: number;
   onMoreContext?: () => void;
-  onFewerContext?: () => void;
+  onLessContext?: () => void;
 }
 
 /** How each side reads in the header. git's own words for git's own states. */
@@ -88,7 +88,7 @@ export function DiffView({
   busy,
   context,
   onMoreContext,
-  onFewerContext,
+  onLessContext,
 }: DiffViewProps) {
   const [selected, setSelected] = useState<ReadonlySet<number>>(new Set());
   // Where the last click landed, so Shift+click has a range to close. It is
@@ -272,7 +272,7 @@ export function DiffView({
         busy={busy}
         context={context}
         onMoreContext={onMoreContext}
-        onFewerContext={onFewerContext}
+        onLessContext={onLessContext}
         onApply={(action) => apply(action, [...selected])}
         onClear={() => {
           setSelected(new Set());
@@ -363,7 +363,7 @@ function DiffHeader({
   busy,
   context,
   onMoreContext,
-  onFewerContext,
+  onLessContext,
   onApply,
   onClear,
 }: {
@@ -373,13 +373,15 @@ function DiffHeader({
   busy: boolean;
   context?: number;
   onMoreContext?: () => void;
-  onFewerContext?: () => void;
+  onLessContext?: () => void;
   onApply: (action: DiffAction) => void;
   onClear: () => void;
 }) {
   const { primary, label, discardable } = actionsFor(side);
   const cameFrom = diff.old_path !== undefined && diff.old_path !== '' ? diff.old_path : undefined;
-  const canWiden = onMoreContext !== undefined && onFewerContext !== undefined;
+  // Drawn wherever a context is given, with the button at an end disabled:
+  // the pair keeps its place in the header as the width moves.
+  const canWiden = context !== undefined;
 
   return (
     <div className="@container flex h-10 shrink-0 items-center gap-3 border-b border-line bg-sunken/40 px-3">
@@ -407,11 +409,21 @@ function DiffHeader({
 
       {canWiden && (
         <span className="flex shrink-0 items-center gap-1">
-          <Button size="sm" variant="ghost" disabled={busy} onClick={onMoreContext}>
-            More context
+          <Button
+            size="sm"
+            variant="ghost"
+            disabled={busy || onLessContext === undefined}
+            onClick={onLessContext}
+          >
+            Less context
           </Button>
-          <Button size="sm" variant="ghost" disabled={busy} onClick={onFewerContext}>
-            Fewer
+          <Button
+            size="sm"
+            variant="ghost"
+            disabled={busy || onMoreContext === undefined}
+            onClick={onMoreContext}
+          >
+            More context
           </Button>
           {context !== undefined && (
             <span

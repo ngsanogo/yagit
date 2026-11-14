@@ -24,8 +24,8 @@ import { CommitBox } from './CommitBox';
 import { DiffView, type DiffAction } from './DiffView';
 import { FileEditor, KeepWholeFileDialog } from './FileEditor';
 import {
-  fewerDiffContext,
   isOnDisk,
+  lessDiffContext,
   moreDiffContext,
   sideOf,
   useFileDiff,
@@ -683,8 +683,7 @@ export function ChangesView({
             repositoryId={repository.id}
             busy={busy}
             context={diffContext}
-            onMoreContext={() => setDiffContext(moreDiffContext)}
-            onFewerContext={() => setDiffContext(fewerDiffContext)}
+            {...contextSteps(diffContext, setDiffContext)}
             onApply={applyToDiff}
           />
         )}
@@ -1074,4 +1073,20 @@ export function resolveSelection(
   }
 
   return undefined;
+}
+
+/**
+ * The two context buttons, each present only where there is a step to take,
+ * so the button at an end is drawn disabled rather than taking a step back.
+ */
+function contextSteps(
+  current: DiffContext,
+  set: (next: DiffContext) => void,
+): { onMoreContext?: () => void; onLessContext?: () => void } {
+  const more = moreDiffContext(current);
+  const less = lessDiffContext(current);
+  return {
+    ...(more === undefined ? {} : { onMoreContext: () => set(more) }),
+    ...(less === undefined ? {} : { onLessContext: () => set(less) }),
+  };
 }

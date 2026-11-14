@@ -290,22 +290,18 @@ func requestedSide(raw string) (git.DiffSide, error) {
 
 // requestedDiffContext reads ?context=, which widens unified-diff context.
 //
-// Absent means the package default. Only the widths git.AllowedContexts names
-// are accepted — anything else is a bad request rather than a surprise -U.
+// Absent means the package default. Only the reading is done here: which
+// widths exist is git.AllowedContexts' to say, and a width outside it is
+// refused there, as a 400, with the list in the sentence.
 func requestedDiffContext(raw string) (int, error) {
 	if raw == "" {
 		return 0, nil
 	}
 	value, err := strconv.Atoi(raw)
 	if err != nil {
-		return 0, fmt.Errorf("context %q is not an integer", raw)
+		return 0, fmt.Errorf("context %q is not a number of lines", raw)
 	}
-	for _, allowed := range git.AllowedContexts {
-		if value == allowed {
-			return value, nil
-		}
-	}
-	return 0, fmt.Errorf("context=%d is none of 3, 10, 25, 50", value)
+	return value, nil
 }
 
 // selection is the body every operation takes.

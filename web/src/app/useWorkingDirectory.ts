@@ -55,24 +55,28 @@ export function useWorkingDirectory(repositoryId: string, enabled: boolean) {
 }
 
 /**
- * How many unchanged lines surround each hunk. Matches the daemon's
- * AllowedContexts; the default is the first entry.
+ * How many unchanged lines surround each hunk, as steps a button moves
+ * between. The daemon's AllowedContexts is the authority and refuses any
+ * other width; the first entry is git's own default.
  */
 export const DIFF_CONTEXT_STEPS = [3, 10, 25, 50] as const;
 
 export type DiffContext = (typeof DIFF_CONTEXT_STEPS)[number];
 
-/** The next wider (or wrapped) context step. */
-export function moreDiffContext(current: DiffContext): DiffContext {
-  const at = DIFF_CONTEXT_STEPS.indexOf(current);
-  return DIFF_CONTEXT_STEPS[(at + 1) % DIFF_CONTEXT_STEPS.length] ?? 3;
+/**
+ * The next wider step, or undefined at the widest.
+ *
+ * Stops rather than wraps: "More context" that answered with three lines
+ * would be the opposite of its label, and the button is disabled instead.
+ */
+export function moreDiffContext(current: DiffContext): DiffContext | undefined {
+  return DIFF_CONTEXT_STEPS[DIFF_CONTEXT_STEPS.indexOf(current) + 1];
 }
 
-/** The next narrower (or wrapped) context step. */
-export function fewerDiffContext(current: DiffContext): DiffContext {
+/** The next narrower step, or undefined at git's own default. */
+export function lessDiffContext(current: DiffContext): DiffContext | undefined {
   const at = DIFF_CONTEXT_STEPS.indexOf(current);
-  const previous = at <= 0 ? DIFF_CONTEXT_STEPS.length - 1 : at - 1;
-  return DIFF_CONTEXT_STEPS[previous] ?? 3;
+  return at <= 0 ? undefined : DIFF_CONTEXT_STEPS[at - 1];
 }
 
 /**

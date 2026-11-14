@@ -38,7 +38,8 @@ step.
   rather than letting `init.defaultBranch` decide a name the log panel would
   then misreport.
 - **Staging by file, by hunk and by line**, and discard at the same three
-  granularities. Anything finer than a path is a patch handed to `git apply`,
+  granularities. The context around each hunk widens from git's three lines
+  to fifty on request, and a selection made on the wider diff stages the same. Anything finer than a path is a patch handed to `git apply`,
   built once for both directions and fuzzed, because a patch with a miscounted
   range applies cleanly and stages a file nobody asked for.
 - **Images** in a diff are drawn rather than called binary: the two sides of a

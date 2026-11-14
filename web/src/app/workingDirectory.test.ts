@@ -10,7 +10,7 @@ import {
   firstLineOfFile,
   firstLineOfHunk,
 } from './DiffView';
-import { fewerDiffContext, isOnDisk, moreDiffContext, sideOf } from './useWorkingDirectory';
+import { isOnDisk, lessDiffContext, moreDiffContext, sideOf } from './useWorkingDirectory';
 
 /**
  * The pure parts of the working-directory screen.
@@ -309,17 +309,17 @@ describe('isOnDisk', () => {
 });
 
 describe('diff context steps', () => {
-  it('widens 3 → 10 → 25 → 50 and wraps', () => {
+  it('widens 3 → 10 → 25 → 50 and stops there', () => {
     expect(moreDiffContext(3)).toBe(10);
     expect(moreDiffContext(10)).toBe(25);
     expect(moreDiffContext(25)).toBe(50);
-    expect(moreDiffContext(50)).toBe(3);
+    expect(moreDiffContext(50)).toBeUndefined();
   });
 
-  it('narrows the other way and wraps', () => {
-    expect(fewerDiffContext(3)).toBe(50);
-    expect(fewerDiffContext(50)).toBe(25);
-    expect(fewerDiffContext(25)).toBe(10);
-    expect(fewerDiffContext(10)).toBe(3);
+  it("narrows back down to git's own three and stops there", () => {
+    expect(lessDiffContext(50)).toBe(25);
+    expect(lessDiffContext(25)).toBe(10);
+    expect(lessDiffContext(10)).toBe(3);
+    expect(lessDiffContext(3)).toBeUndefined();
   });
 });

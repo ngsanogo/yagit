@@ -173,7 +173,8 @@ const contextLines = 3
 var AllowedContexts = []int{contextLines, 10, 25, 50}
 
 // ErrBadDiffContext: DiffRequest.Context named a width outside AllowedContexts.
-var ErrBadDiffContext = errors.New("diff context is not one of 3, 10, 25, 50")
+// The refusal lists them, so the widths are written in one place.
+var ErrBadDiffContext = errors.New("that diff context is not one of the widths offered")
 
 // maxDiffBytes caps how much unified diff one read may produce.
 //
@@ -248,7 +249,7 @@ func unifiedContextFlag(lines int) (string, error) {
 			return "-U" + strconv.Itoa(lines), nil
 		}
 	}
-	return "", fmt.Errorf("%w: %d", ErrBadDiffContext, lines)
+	return "", fmt.Errorf("%w: %d, where the widths are %v", ErrBadDiffContext, lines, AllowedContexts)
 }
 
 // diffSwitches is diffBaseArgs plus -U for the requested context width.
