@@ -1,9 +1,6 @@
 import { expect, type Page } from '@playwright/test';
 
-import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
-
-let cachedRoot: string | undefined;
 
 /** The yagit checkout these tests run from. */
 export function projectRoot(): string {
@@ -30,42 +27,6 @@ export function sessionToken(): string {
   throw new Error(
     'YAGIT_TOKEN is not set. The end-to-end tests need the daemon and its token: ' +
       'run `./do test e2e`, which starts the daemon and passes the token here.',
-  );
-}
-
-/**
- * The repository root the daemon was started with.
- *
- * `./do test e2e` passes it through the environment. The suite reads it in one
- * place — the check in global-setup that the fixture directory is inside it —
- * because a fixture outside the root is refused by every test at once, with a
- * message about a security boundary rather than about configuration.
- */
-export function yagitRoot(): string {
-  const fromEnv = process.env['YAGIT_ROOT'];
-  if (fromEnv !== undefined && fromEnv !== '') {
-    return fromEnv;
-  }
-
-  if (cachedRoot !== undefined) return cachedRoot;
-
-  const envPath = resolve(projectRoot(), '.env');
-  try {
-    const contents = readFileSync(envPath, 'utf8');
-    for (const line of contents.split('\n')) {
-      const trimmed = line.trim();
-      if (trimmed.startsWith('YAGIT_ROOT=')) {
-        cachedRoot = trimmed.slice('YAGIT_ROOT='.length).trim();
-        return cachedRoot;
-      }
-    }
-  } catch {
-    // fall through
-  }
-
-  throw new Error(
-    `YAGIT_ROOT is not set and could not be read from ${envPath}. ` +
-      'Run the end-to-end tests through `./do test e2e`.',
   );
 }
 
