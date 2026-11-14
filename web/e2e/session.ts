@@ -123,6 +123,9 @@ async function clearSessionPreferences(page: Page): Promise<void> {
     for (const key of ['yagit.open-paths', 'yagit.active-path', 'yagit.history-scope']) {
       localStorage.removeItem(key);
     }
+    // Ordinary empty state rather than first-run welcome — specs assert on
+    // "No repository open" and the add form, not the welcome hints.
+    localStorage.setItem('yagit.onboarding-done', '1');
   });
 }
 
