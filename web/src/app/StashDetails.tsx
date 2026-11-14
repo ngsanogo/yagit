@@ -54,7 +54,7 @@ export function StashDetails({ repositoryId, index, onClose }: StashDetailsProps
 
       {detail.isError && <Refusal error={detail.error} index={index} />}
 
-      {detail.data !== undefined && <Body detail={detail.data} />}
+      {detail.data !== undefined && <Body repositoryId={repositoryId} detail={detail.data} />}
     </Panel>
   );
 }
@@ -88,7 +88,7 @@ function Refusal({ error, index }: { error: Error; index: number }) {
   );
 }
 
-function Body({ detail }: { detail: StashDetail }) {
+function Body({ repositoryId, detail }: { repositoryId: string; detail: StashDetail }) {
   const made = new Date(detail.date);
   const message = detail.message === '' ? stashRef(detail.index) : detail.message;
 
@@ -153,7 +153,7 @@ function Body({ detail }: { detail: StashDetail }) {
               description="git makes no such stash, so this one was written by something else."
             />
           ) : (
-            <ReadOnlyPatch files={detail.files} />
+            <ReadOnlyPatch files={detail.files} repositoryId={repositoryId} revision={detail.sha} />
           )}
         </div>
       </div>
