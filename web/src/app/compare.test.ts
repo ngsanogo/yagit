@@ -26,12 +26,12 @@ describe('compareSummary', () => {
   });
 
   it('names only behind', () => {
-    expect(compareSummary(result({ behind: 1 }))).toBe('1 commit behind.');
+    expect(compareSummary(result({ behind: 1 }))).toBe('topic is 1 commit behind main.');
   });
 
   it('names both sides', () => {
     expect(compareSummary(result({ ahead: 2, behind: 1 }))).toBe(
-      'topic is 2 commits ahead of main, and 1 commit behind.',
+      'topic is 2 commits ahead of main and 1 commit behind it.',
     );
   });
 

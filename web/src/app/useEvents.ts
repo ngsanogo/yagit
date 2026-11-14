@@ -98,6 +98,8 @@ export function useEvents(initialExecutions: GitExecution[]): EventStream {
       // learns that a repository moved, and a second mechanism beside it would
       // be two answers to one question.
       void queryClient.invalidateQueries({ queryKey: ['undo', changed.id] });
+      // An open comparison counts between two tips, and either can move.
+      void queryClient.invalidateQueries({ queryKey: ['compare', changed.id] });
     });
 
     source.addEventListener('git', (event: MessageEvent<string>) => {

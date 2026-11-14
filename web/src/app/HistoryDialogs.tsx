@@ -81,19 +81,7 @@ export function HistoryDialogs({
           repositoryId={repository.id}
           refs={refs}
           headName={head?.detached ? undefined : head?.name}
-          canAct={!repository.bare && head?.detached !== true}
-          actRefusal={
-            repository.bare
-              ? 'A bare repository has no work tree to merge or rebase in.'
-              : head?.detached
-                ? 'HEAD is detached, so there is no branch to merge into or rebase.'
-                : undefined
-          }
-          busyMerge={ops.branches.planMerge.isPending}
-          busyRebase={ops.branches.planRebase.isPending}
           onClose={close}
-          onMerge={(branch) => proposals.proposeBranchMerge(branch)}
-          onRebase={(onto) => proposals.proposeBranchRebase(onto)}
         />
       );
     case 'search':

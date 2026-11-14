@@ -27,6 +27,9 @@ step.
   alone would show connections the repository does not have.
 - **Blame** at a revision, **file history** following renames, and **line
   history** from a blame line number (`git log -L`).
+- **Compare** the tip you are on with any branch, remote branch or tag: how
+  many commits each side holds that the other does not, counted between the
+  two object names the answer gives back.
 
 ## Working on a repository
 

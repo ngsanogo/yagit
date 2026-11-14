@@ -11,8 +11,7 @@ import (
 //
 // One route: the answer is a reading, not an operation. Merge and rebase each
 // have their own plan routes; this one only says how far the two tips have
-// run, so the history screen can name the drift and offer those plans when
-// the other side is a local branch.
+// run.
 
 type compareRequest struct {
 	// Ref is a full reference name. CheckRefName refuses a short name and

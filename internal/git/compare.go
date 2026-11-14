@@ -33,8 +33,8 @@ type CompareResult struct {
 	// Behind is how many commits Against holds that HEAD does not.
 	Behind int `json:"behind"`
 
-	// HeadSHA and AgainstSHA are the tips the count walked, so a confirmation
-	// that later offers merge or rebase can name the same objects.
+	// HeadSHA and AgainstSHA are the tips the count walked: the counts are
+	// true of these two objects, whatever either name points at since.
 	HeadSHA    string `json:"head_sha"`
 	AgainstSHA string `json:"against_sha"`
 }
@@ -78,8 +78,11 @@ func (r *Runner) Compare(ctx context.Context, dir, against string) (CompareResul
 	}
 	againstSHA := strings.TrimSpace(string(resolved))
 
+	// Both sides by object name: the counts must describe the two tips this
+	// answer names, and a ref that moved between the rev-parse above and the
+	// walk would otherwise be counted at a commit the answer never mentions.
 	output, err := r.Run(ctx, dir, "rev-list", "--left-right", "--count",
-		fmt.Sprintf("%s...%s", head.SHA, against))
+		fmt.Sprintf("%s...%s", head.SHA, againstSHA))
 	if err != nil {
 		return CompareResult{}, err
 	}

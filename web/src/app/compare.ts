@@ -5,7 +5,7 @@ import { pluralize } from '../lib/format';
  * One sentence about how far HEAD and another tip have drifted.
  *
  * The counts come from the daemon; this only turns them into English the
- * history dialog can put above its Merge and Rebase buttons.
+ * compare dialog shows.
  */
 export function compareSummary(result: CompareResult): string {
   const here = result.head === '' ? 'HEAD' : result.head;
@@ -13,15 +13,14 @@ export function compareSummary(result: CompareResult): string {
   if (result.ahead === 0 && result.behind === 0) {
     return `${here} and ${there} point at the same commit.`;
   }
-  const parts: string[] = [];
-  if (result.ahead > 0) {
-    parts.push(`${here} is ${pluralize(result.ahead, 'commit')} ahead of ${there}`);
+  if (result.behind === 0) {
+    return `${here} is ${pluralize(result.ahead, 'commit')} ahead of ${there}.`;
   }
-  if (result.behind > 0) {
-    parts.push(`${pluralize(result.behind, 'commit')} behind`);
+  if (result.ahead === 0) {
+    return `${here} is ${pluralize(result.behind, 'commit')} behind ${there}.`;
   }
-  if (parts.length === 1) {
-    return `${parts[0]}.`;
-  }
-  return `${parts[0]}, and ${parts[1]}.`;
+  return (
+    `${here} is ${pluralize(result.ahead, 'commit')} ahead of ${there} ` +
+    `and ${pluralize(result.behind, 'commit')} behind it.`
+  );
 }

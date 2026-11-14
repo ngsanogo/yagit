@@ -570,9 +570,8 @@ export const api = {
   /**
    * How far HEAD and another reference have diverged.
    *
-   * A reading rather than a plan. Merge and rebase each have their own plan
-   * routes; this only answers the counts so the history screen can name the
-   * drift and offer those plans when the other side is a local branch.
+   * A reading rather than a plan: it changes nothing, and merge and rebase
+   * keep their own plan routes.
    */
   compare: (id: string, ref: string) =>
     request<CompareResult>(`/api/repos/${id}/compare`, {
