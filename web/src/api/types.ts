@@ -6,6 +6,19 @@
  * one more tool to the chain for a handful of structures that rarely change.
  */
 
+/**
+ * The committer identity git will use, and the raw pull.rebase value.
+ *
+ * pull.rebase is shown only — the Pull button already names three strategies,
+ * and changing the setting from preferences would disagree with those labels.
+ */
+export interface GitIdentity {
+  name: string;
+  email: string;
+  /** Raw pull.rebase when set; empty when unset. */
+  pull_rebase: string;
+}
+
 export interface Commit {
   sha: string;
   parents: string[];

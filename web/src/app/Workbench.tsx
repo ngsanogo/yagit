@@ -42,6 +42,7 @@ import {
   writeStoredTheme,
   type ThemeChoice,
 } from './sessionStore';
+import { PreferencesDialog } from './PreferencesDialog';
 import { UndoActions } from './UndoActions';
 import { useEvents, type StreamState } from './useEvents';
 import { useWorkingDirectory } from './useWorkingDirectory';
@@ -424,6 +425,7 @@ function Header({
   onCycleTheme: () => void;
 }) {
   const [opening, setOpening] = useState(false);
+  const [prefsOpen, setPrefsOpen] = useState(false);
   const queryClient = useQueryClient();
   const toast = useToast();
 
@@ -531,6 +533,10 @@ function Header({
 
         <ThemeButton choice={theme} onCycle={onCycleTheme} />
 
+        <Button size="sm" variant="ghost" onClick={() => setPrefsOpen(true)}>
+          Preferences…
+        </Button>
+
         {/* Reachable whatever is on screen. The tab bar holds many
             repositories, so a way to open one that exists only when none is
             open would cap the application at exactly one — which the tabs
@@ -550,6 +556,8 @@ function Header({
           Add repository…
         </Button>
       </div>
+
+      <PreferencesDialog open={prefsOpen} onClose={() => setPrefsOpen(false)} />
 
       <Dialog
         open={opening}

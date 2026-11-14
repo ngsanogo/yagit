@@ -21,6 +21,7 @@ import type {
   UndoStatus,
   GitExecution,
   GitFailure,
+  GitIdentity,
   HistoryScope,
   InteractiveRebasePlan,
   InteractiveRebaseResult,
@@ -216,6 +217,17 @@ async function request<T>(path: string, options?: RequestOptions): Promise<T> {
 export const api = {
   listRepositories: () =>
     request<{ repos: Repository[] }>('/api/repos').then((payload) => payload.repos),
+
+  /** The committer identity and the raw pull.rebase value. */
+  identity: () => request<GitIdentity>('/api/prefs/identity'),
+
+  /** Writes user.name and user.email into the global git config. */
+  setIdentity: (name: string, email: string) =>
+    request<GitIdentity>('/api/prefs/identity', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, email }),
+    }),
 
   /**
    * The git repositories the daemon can find on disk.
