@@ -9,7 +9,7 @@ import {
   countPatchLines,
   firstLineOfFile,
   firstLineOfHunk,
-} from './DiffView';
+} from './diffLines';
 import { isOnDisk, lessDiffContext, moreDiffContext, sideOf } from './useWorkingDirectory';
 
 /**

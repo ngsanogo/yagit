@@ -9,7 +9,7 @@ import type {
   RepositoryState,
   WorkingDirectory,
 } from '../api/types';
-import { countDrawnLines } from './DiffView';
+import { countDrawnLines } from './diffLines';
 import { overCap } from './drawnLines';
 
 /**
