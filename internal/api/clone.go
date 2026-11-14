@@ -1,7 +1,6 @@
 package api
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
@@ -31,20 +30,12 @@ type clonePlan struct {
 	Path    string `json:"path"`
 }
 
-// NDJSON events on POST /api/repos/clone. One object per line.
-type cloneProgressEvent struct {
-	Type string `json:"type"` // "progress"
-	Line string `json:"line"`
-}
-
+// cloneDoneEvent ends POST /api/repos/clone: the repository it made, where the
+// other network routes end on the references they moved. Its progress and
+// error events are theirs — see progress.go.
 type cloneDoneEvent struct {
 	Type       string         `json:"type"` // "done"
 	Repository repositoryView `json:"repository"`
-}
-
-type cloneErrorEvent struct {
-	Type  string      `json:"type"` // "error"
-	Error errorDetail `json:"error"`
 }
 
 // handlePlanClone says what cloning would run, without running it.
@@ -84,50 +75,21 @@ func (s *Server) handleClone(writer http.ResponseWriter, request *http.Request) 
 		return
 	}
 
-	flusher, streamable := writer.(http.Flusher)
-	if !streamable {
-		writeError(writer, s.logger, http.StatusInternalServerError,
-			fmt.Errorf("this connection cannot stream (%T does not flush)", writer))
+	emit, err := beginProgressStream(writer, s.logger)
+	if err != nil {
+		writeError(writer, s.logger, http.StatusInternalServerError, err)
 		return
 	}
 
-	writer.Header().Set("Content-Type", "application/x-ndjson; charset=utf-8")
-	writer.Header().Set("Cache-Control", "no-cache")
-	writer.WriteHeader(http.StatusOK)
-	flusher.Flush()
-
-	encode := json.NewEncoder(writer)
-	encode.SetEscapeHTML(false)
-
-	emit := func(event any) bool {
-		if err := encode.Encode(event); err != nil {
-			s.logger.Warn("clone stream write interrupted", "error", err)
-			return false
-		}
-		flusher.Flush()
-		return true
-	}
-
-	// Once a write has failed the reader is gone, and every further line would
-	// be another failed encode and another identical warning in the log — a
-	// ten-minute clone writes thousands of them. The clone itself is
-	// deliberately not cancelled: it runs on uninterrupted, and a half-written
-	// destination is worse than one nobody is watching.
-	streaming := true
 	// Through a pump, so the writing happens on a goroutine of ours rather
 	// than on the one os/exec copies git's stderr on. A ten-minute clone
 	// watched in a tab that gets backgrounded would otherwise stop: the
 	// browser stops reading, the write blocks, git's stderr pipe fills, and
 	// git waits. See progressPump.
-	pump := startProgressPump(func(line string) {
-		if !streaming {
-			return
-		}
-		streaming = emit(cloneProgressEvent{Type: "progress", Line: line})
-	})
+	pump := startProgressPump(emitProgressLine(emit))
 	defer pump.stop()
 
-	err := s.runner.Clone(uninterrupted(request), body.URL, destination, pump.line)
+	err = s.runner.Clone(uninterrupted(request), body.URL, destination, pump.line)
 	// Before the terminal event below: until this returns, the pump's own
 	// goroutine is still writing to this response.
 	pump.stop()
@@ -152,10 +114,10 @@ func (s *Server) handleClone(writer http.ResponseWriter, request *http.Request) 
 				destination, removeErr)
 		}
 
-		// The return is ignored on the terminal events for the reason above:
-		// there is nothing left to say to a reader that has already gone, and
-		// emit has logged the write that failed.
-		_ = emit(cloneErrorEvent{
+		// The return is ignored on the terminal events: there is nothing left
+		// to say to a reader that has already gone, and emit has logged the
+		// write that failed.
+		_ = emit(progressErrorEvent{
 			Type: "error",
 			Error: errorDetail{
 				Message: message,
@@ -167,7 +129,7 @@ func (s *Server) handleClone(writer http.ResponseWriter, request *http.Request) 
 
 	opened, err := s.registry.Open(uninterrupted(request), destination)
 	if err != nil {
-		_ = emit(cloneErrorEvent{
+		_ = emit(progressErrorEvent{
 			Type:  "error",
 			Error: errorDetail{Message: err.Error()},
 		})
