@@ -82,8 +82,8 @@ import {
  *
  * Single origin, so the paths are relative. The daemon serves this application
  * and proxies to Vite in development, which means there is no base URL to
- * configure and no CORS to arrange — see the note in README on why development
- * and production go through the same door.
+ * configure and no CORS to arrange — docs/ARCHITECTURE.md ("One origin, in
+ * development and in production") says why both go through the same door.
  */
 
 /**
@@ -299,13 +299,6 @@ export const api = {
     }),
 
   /**
-   * What cloning would run, without running it.
-   *
-   * Asked before the confirmation opens: the dialog shows the exact command,
-   * with credentials stripped from the URL, and a path the daemon has already
-   * checked against the root.
-   */
-  /**
    * What making an empty repository would run.
    *
    * Sending an empty branch asks the daemon for the machine's own
@@ -326,6 +319,13 @@ export const api = {
       body: JSON.stringify({ path, branch }),
     }),
 
+  /**
+   * What cloning would run, without running it.
+   *
+   * Asked before the confirmation opens: the dialog shows the exact command,
+   * with credentials stripped from the URL, and a path the daemon has already
+   * checked against the root.
+   */
   clonePlan: (url: string, path: string) =>
     request<ClonePlan>('/api/repos/clone/plan', {
       method: 'POST',
