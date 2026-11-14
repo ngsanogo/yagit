@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { useMemo, useState, type KeyboardEvent } from 'react';
+import { useEffect, useMemo, useRef, useState, type KeyboardEvent, type RefObject } from 'react';
 
 import { api } from '../api/client';
 
@@ -7,10 +7,26 @@ import type { DiffHunk, DiffLine, DiffSide, FileDiff } from '../api/types';
 import { Badge } from '../components/Badge';
 import { Button } from '../components/Button';
 import { EmptyState } from '../components/EmptyState';
-import { FileIcon, MinusIcon, PlusIcon, TrashIcon } from '../components/Icons';
+import {
+  CloseIcon,
+  FileIcon,
+  MinusIcon,
+  PlusIcon,
+  SearchIcon,
+  TrashIcon,
+} from '../components/Icons';
 import { Kbd } from '../components/Kbd';
 import { cx } from '../lib/cx';
 import { errorDescription } from '../lib/errorDisplay';
+import { commandModifier } from '../lib/platform';
+import {
+  findInDiff,
+  findInPatch,
+  findSpans,
+  matchesByLine,
+  stepMatch,
+  type DiffFindMatch,
+} from './diffFind';
 import { Capped, MAX_DRAWN_LINES, Truncated } from './drawnLines';
 import {
   blobURL,
@@ -96,12 +112,20 @@ export function DiffView({
   // touched is the line it should come back to, and a roving tab stop needs
   // exactly one line to be the one — see the arrow keys below.
   const [anchor, setAnchor] = useState<number>();
+  const [findOpen, setFindOpen] = useState(false);
+  const [findQuery, setFindQuery] = useState('');
+  const [findAt, setFindAt] = useState(0);
+  const findInput = useRef<HTMLInputElement>(null);
+  const scroller = useRef<HTMLDivElement>(null);
 
   // The changed lines in the order they are drawn, which is the order a
   // Shift+click range runs through. Derived rather than stored: the diff is
   // refetched on every change, and a stored copy would describe the file as it
   // was before the last stage.
   const changed = useMemo(() => changedLines(diff), [diff]);
+  const findMatches = useMemo(() => findInDiff(diff, findQuery), [diff, findQuery]);
+  const activeFind =
+    findMatches.length === 0 ? undefined : findMatches[findAt % findMatches.length];
 
   // The same lines by index, because the arrow keys move between line NUMBERS
   // and toggling wants the line itself. Built once per diff rather than
@@ -141,7 +165,26 @@ export function DiffView({
     setSeenDiff(diff.id);
     setSelected(new Set());
     setAnchor(undefined);
+    setFindAt(0);
   }
+
+  // Clamp during render rather than in an effect: when the query shrinks the
+  // match list, an effect that wrote findAt would cascade a second paint for
+  // a number we already know.
+  const findIndex = findMatches.length === 0 ? 0 : findAt % findMatches.length;
+  if (findIndex !== findAt && findMatches.length > 0) {
+    setFindAt(findIndex);
+  }
+
+  useEffect(() => {
+    if (activeFind === undefined || scroller.current === null) {
+      return;
+    }
+    const target = scroller.current.querySelector(`[data-diff-line="${activeFind.line}"]`);
+    if (target instanceof HTMLElement) {
+      target.scrollIntoView({ block: 'nearest' });
+    }
+  }, [activeFind]);
 
   if (diff.binary) {
     if (isImageDiff(diff)) {
@@ -262,9 +305,23 @@ export function DiffView({
 
   const drawn = countDrawnLines(diff);
   const gutter = gutterWidth([diff]);
+  const modifier = commandModifier();
+
+  function openFind() {
+    setFindOpen(true);
+    queueMicrotask(() => findInput.current?.select());
+  }
+
+  function onFindShortcut(event: KeyboardEvent<HTMLDivElement>) {
+    if (!(event.metaKey || event.ctrlKey) || event.key.toLowerCase() !== 'f') {
+      return;
+    }
+    event.preventDefault();
+    openFind();
+  }
 
   return (
-    <div className="flex h-full min-h-0 flex-col">
+    <div className="flex h-full min-h-0 flex-col" onKeyDown={onFindShortcut}>
       <DiffHeader
         diff={diff}
         side={side}
@@ -273,12 +330,34 @@ export function DiffView({
         context={context}
         onMoreContext={onMoreContext}
         onLessContext={onLessContext}
+        findOpen={findOpen}
+        onFind={openFind}
+        findHint={modifier.label}
         onApply={(action) => apply(action, [...selected])}
         onClear={() => {
           setSelected(new Set());
           setAnchor(undefined);
         }}
       />
+
+      {findOpen && (
+        <DiffFindBar
+          query={findQuery}
+          count={findMatches.length}
+          at={findAt}
+          inputRef={findInput}
+          onQuery={(next) => {
+            setFindQuery(next);
+            setFindAt(0);
+          }}
+          onStep={(delta) => setFindAt((at) => stepMatch(findMatches.length, at, delta))}
+          onClose={() => {
+            setFindOpen(false);
+            setFindQuery('');
+            setFindAt(0);
+          }}
+        />
+      )}
 
       {/* Absolute fill rather than a bare overflow-auto flex child. A tall
           file's hunks inside `overflow-auto` still contributed their layout
@@ -287,7 +366,11 @@ export function DiffView({
           slot keeps the content's height inside the Diff panel. The same
           repair is on a commit's patch in CommitDetails. */}
       <div className="relative min-h-0 flex-1">
-        <div className="absolute inset-0 overflow-auto font-mono text-xs" onKeyDown={moveByKey}>
+        <div
+          ref={scroller}
+          className="absolute inset-0 overflow-auto font-mono text-xs"
+          onKeyDown={moveByKey}
+        >
           <Capped lines={drawn}>Hunk buttons act on the lines drawn, not on the rest.</Capped>
 
           {pointer !== undefined && <PointerNote note={pointer} />}
@@ -301,6 +384,8 @@ export function DiffView({
               hunk={hunk}
               firstDrawnLine={firstLineOfHunk(diff, position)}
               gutter={gutter}
+              findMatches={findMatches}
+              activeFind={activeFind}
               actions={{
                 side,
                 busy,
@@ -364,6 +449,9 @@ function DiffHeader({
   context,
   onMoreContext,
   onLessContext,
+  findOpen,
+  findHint,
+  onFind,
   onApply,
   onClear,
 }: {
@@ -374,6 +462,9 @@ function DiffHeader({
   context?: number;
   onMoreContext?: () => void;
   onLessContext?: () => void;
+  findOpen: boolean;
+  findHint: string;
+  onFind: () => void;
   onApply: (action: DiffAction) => void;
   onClear: () => void;
 }) {
@@ -436,48 +527,133 @@ function DiffHeader({
         </span>
       )}
 
-      {count === 0 ? (
-        <p className="ml-auto hidden shrink-0 items-center gap-1.5 text-2xs text-ink-subtle @2xl:flex">
-          Click a line to choose it, <Kbd>Shift</Kbd>
-          <span>+ click for a range, or {label.toLowerCase()} a hunk from its header</span>
-        </p>
-      ) : (
-        <span className="ml-auto flex shrink-0 items-center gap-2">
-          {/* The sentence above says Shift+click, and the moment a first line
+      <span className="ml-auto flex shrink-0 items-center gap-2">
+        {!findOpen && (
+          <Button
+            size="sm"
+            variant="ghost"
+            onClick={onFind}
+            aria-keyshortcuts={`${findHint}+F`}
+            title={`Find in this diff (${findHint}+F)`}
+          >
+            <SearchIcon />
+            Find
+          </Button>
+        )}
+        {count === 0 ? (
+          <p className="hidden shrink-0 items-center gap-1.5 text-2xs text-ink-subtle @2xl:flex">
+            Click a line to choose it, <Kbd>Shift</Kbd>
+            <span>+ click for a range, or {label.toLowerCase()} a hunk from its header</span>
+          </p>
+        ) : (
+          <span className="flex shrink-0 items-center gap-2">
+            {/* The sentence above says Shift+click, and the moment a first line
               is chosen it is replaced by these buttons — which is exactly when
               the reader first has an anchor to extend from. The short form
               survives into that state. */}
-          <span className="hidden text-2xs text-ink-subtle @3xl:inline">Shift+click to extend</span>
-          <Badge tone="accent">{count} selected</Badge>
-          {/* Secondary, not primary. The screen already has its one primary
+            <span className="hidden text-2xs text-ink-subtle @3xl:inline">
+              Shift+click to extend
+            </span>
+            <Badge tone="accent">{count} selected</Badge>
+            {/* Secondary, not primary. The screen already has its one primary
               button — Commit — and that is the action it is ultimately
               waiting for; staging is a step on the way. The accent badge
               beside this is what draws the eye to the selection. */}
-          <Button
-            size="sm"
-            variant="secondary"
-            leading={actionGlyph(primary)}
-            disabled={busy}
-            onClick={() => onApply(primary)}
-          >
-            {label} {count === 1 ? 'line' : 'lines'}
-          </Button>
-          {discardable && (
             <Button
               size="sm"
-              variant="danger"
-              leading={<TrashIcon />}
+              variant="secondary"
+              leading={actionGlyph(primary)}
               disabled={busy}
-              onClick={() => onApply('discard')}
+              onClick={() => onApply(primary)}
             >
-              Discard
+              {label} {count === 1 ? 'line' : 'lines'}
             </Button>
-          )}
-          <Button size="sm" variant="ghost" onClick={onClear}>
-            Clear
-          </Button>
-        </span>
-      )}
+            {discardable && (
+              <Button
+                size="sm"
+                variant="danger"
+                leading={<TrashIcon />}
+                disabled={busy}
+                onClick={() => onApply('discard')}
+              >
+                Discard
+              </Button>
+            )}
+            <Button size="sm" variant="ghost" onClick={onClear}>
+              Clear
+            </Button>
+          </span>
+        )}
+      </span>
+    </div>
+  );
+}
+
+/**
+ * Find bar for the open patch.
+ *
+ * Lives under the header rather than inside it so the path and the Stage
+ * buttons keep a fixed height: a find field that grew the header would shove
+ * every line down by its own height on open.
+ */
+function DiffFindBar({
+  query,
+  count,
+  at,
+  inputRef,
+  onQuery,
+  onStep,
+  onClose,
+}: {
+  query: string;
+  count: number;
+  at: number;
+  inputRef: RefObject<HTMLInputElement | null>;
+  onQuery: (query: string) => void;
+  onStep: (delta: 1 | -1) => void;
+  onClose: () => void;
+}) {
+  const label =
+    query.trim() === '' ? 'Type to find' : count === 0 ? 'No matches' : `${at + 1} of ${count}`;
+
+  return (
+    <div className="flex h-9 shrink-0 items-center gap-2 border-b border-line bg-sunken px-3">
+      <SearchIcon className="shrink-0 text-ink-subtle" />
+      <input
+        ref={inputRef}
+        type="search"
+        value={query}
+        onChange={(event) => onQuery(event.target.value)}
+        onKeyDown={(event) => {
+          if (event.key === 'Escape') {
+            event.preventDefault();
+            onClose();
+            return;
+          }
+          if (event.key === 'Enter') {
+            event.preventDefault();
+            onStep(event.shiftKey ? -1 : 1);
+          }
+        }}
+        placeholder="Find in this diff"
+        aria-label="Find in this diff"
+        className={cx(
+          'h-7 min-w-0 flex-1 rounded-md border border-line-strong bg-canvas px-2 text-xs text-ink',
+          'outline-none placeholder:text-ink-subtle focus-visible:focus-ring',
+        )}
+      />
+      <span className="shrink-0 text-2xs text-ink-subtle tabular" aria-live="polite">
+        {label}
+      </span>
+      <Button size="sm" variant="ghost" disabled={count === 0} onClick={() => onStep(-1)}>
+        Previous
+      </Button>
+      <Button size="sm" variant="ghost" disabled={count === 0} onClick={() => onStep(1)}>
+        Next
+      </Button>
+      <Button size="sm" variant="ghost" onClick={onClose} aria-label="Close find">
+        <CloseIcon />
+      </Button>
     </div>
   );
 }
@@ -513,9 +689,19 @@ interface HunkViewProps {
    * cannot drift into drawing the same patch two different ways.
    */
   actions?: HunkActions;
+  /** Find hits for the open query; empty when find is closed. */
+  findMatches?: readonly DiffFindMatch[];
+  activeFind?: DiffFindMatch;
 }
 
-function HunkView({ hunk, firstDrawnLine, gutter, actions }: HunkViewProps) {
+function HunkView({
+  hunk,
+  firstDrawnLine,
+  gutter,
+  actions,
+  findMatches = [],
+  activeFind,
+}: HunkViewProps) {
   // How many of this hunk's lines the cap still has room for — nought or fewer
   // for a hunk that is entirely past it. A commit's patch is every hunk of
   // every file it touched, so most of them are never drawn at all, and the one
@@ -530,6 +716,9 @@ function HunkView({ hunk, firstDrawnLine, gutter, actions }: HunkViewProps) {
     () => (drawable > 0 ? markedSpans(hunk, drawable) : new Map<number, LineSpan[]>()),
     [drawable, hunk],
   );
+  // Grouped once per hunk, then looked up per line: filtering every match for
+  // every line is lines × matches, and a common letter makes that thousands.
+  const findByLine = useMemo(() => matchesByLine(findMatches), [findMatches]);
 
   if (drawable <= 0) {
     return null;
@@ -551,19 +740,35 @@ function HunkView({ hunk, firstDrawnLine, gutter, actions }: HunkViewProps) {
       </header>
 
       <div>
-        {hunk.lines.map((line, offset) =>
-          offset >= drawable ? null : (
+        {hunk.lines.map((line, offset) => {
+          if (offset >= drawable) {
+            return null;
+          }
+          const onLine = findByLine.get(line.index) ?? [];
+          const activeOnLine =
+            activeFind !== undefined && activeFind.line === line.index ? activeFind : undefined;
+          // Find paint replaces the intra-line edit wash for that line: layering
+          // both made the current match unreadable on an added/removed tint.
+          const find = findSpans(
+            line.text,
+            onLine.map((match) => ({ start: match.start, length: match.length })),
+            activeOnLine === undefined
+              ? undefined
+              : { start: activeOnLine.start, length: activeOnLine.length },
+          );
+          return (
             <LineView
               key={line.index}
               line={line}
               gutter={gutter}
-              spans={marked.get(line.index)}
+              spans={find === undefined ? marked.get(line.index) : undefined}
+              findSpans={find}
               selected={actions?.selected.has(line.index) ?? false}
               tabStop={actions?.tabStop === line.index}
               onToggle={actions?.onToggle}
             />
-          ),
-        )}
+          );
+        })}
       </div>
     </section>
   );
@@ -711,6 +916,7 @@ function LineView({
   line,
   gutter,
   spans,
+  findSpans: findRuns,
   selected,
   tabStop,
   onToggle,
@@ -718,6 +924,7 @@ function LineView({
   line: DiffLine;
   gutter: string;
   spans: readonly LineSpan[] | undefined;
+  findSpans?: readonly { text: string; hit: boolean; current: boolean }[];
   selected: boolean;
   tabStop: boolean;
   onToggle?: (line: DiffLine, extend: boolean) => void;
@@ -726,9 +933,27 @@ function LineView({
   const note = whitespaceNote(spans);
 
   const body =
-    spans === undefined
-      ? line.text
-      : spans.map((span, at) => <Span key={at} span={span} tint={KIND_TINTS[line.kind].changed} />);
+    findRuns !== undefined
+      ? findRuns.map((span, at) => (
+          <span
+            key={at}
+            // The current match is the accent itself, with the ink made for
+            // it. The others are outlined rather than filled: a soft accent
+            // fill is the green an added line is already tinted with, and on
+            // one it vanished.
+            className={cx(
+              span.current && 'bg-accent text-accent-ink',
+              span.hit && !span.current && 'ring-1 ring-accent ring-inset',
+            )}
+          >
+            {span.text}
+          </span>
+        ))
+      : spans === undefined
+        ? line.text
+        : spans.map((span, at) => (
+            <Span key={at} span={span} tint={KIND_TINTS[line.kind].changed} />
+          ));
 
   const number = cx(
     gutter,
@@ -803,7 +1028,13 @@ function LineView({
   );
 
   if (!changeable) {
-    return <div className={shared}>{content}</div>;
+    // data-diff-line here too: find scrolls by that attribute, and a
+    // read-only patch has no buttons to hang it on.
+    return (
+      <div className={shared} data-diff-line={line.index}>
+        {content}
+      </div>
+    );
   }
 
   return (
@@ -1088,28 +1319,108 @@ export function ReadOnlyPatch({
   // drawn into a single scroll region, and a gutter that resized at each
   // header would step the whole page sideways as the reader went down it.
   const gutter = gutterWidth(files);
+  const [findOpen, setFindOpen] = useState(false);
+  const [findQuery, setFindQuery] = useState('');
+  const [findAt, setFindAt] = useState(0);
+  const findInput = useRef<HTMLInputElement>(null);
+  const scroller = useRef<HTMLDivElement>(null);
+  const findMatches = useMemo(() => findInPatch(files, findQuery), [files, findQuery]);
+  const findIndex = findMatches.length === 0 ? 0 : findAt % findMatches.length;
+  if (findIndex !== findAt && findMatches.length > 0) {
+    setFindAt(findIndex);
+  }
+  const activeFind = findMatches.length === 0 ? undefined : findMatches[findIndex];
+  const modifier = commandModifier();
+
+  useEffect(() => {
+    if (activeFind === undefined || scroller.current === null) {
+      return;
+    }
+    const section = scroller.current.querySelector(
+      `[data-diff-path="${CSS.escape(activeFind.path)}"]`,
+    );
+    const target =
+      section?.querySelector(`[data-diff-line="${activeFind.line}"]`) ??
+      scroller.current.querySelector(`[data-diff-line="${activeFind.line}"]`);
+    if (target instanceof HTMLElement) {
+      target.scrollIntoView({ block: 'nearest' });
+    }
+  }, [activeFind]);
+
+  function openFind() {
+    setFindOpen(true);
+    queueMicrotask(() => findInput.current?.select());
+  }
 
   return (
-    <>
-      <Capped lines={drawn} />
-
-      {files.map((file, position) => (
-        <ReadOnlyDiff
-          key={file.path}
-          diff={file}
-          repositoryId={repositoryId}
-          revision={revision}
-          drawnBefore={starts[position] ?? 0}
-          gutter={gutter}
-          {...(onFileHistory === undefined ? {} : { onHistory: () => onFileHistory(file.path) })}
-          {...(onBlame === undefined || file.binary || file.removed
-            ? {}
-            : { onBlame: () => onBlame(file.path) })}
+    <div
+      className="flex min-h-0 flex-col"
+      onKeyDown={(event) => {
+        if (!(event.metaKey || event.ctrlKey) || event.key.toLowerCase() !== 'f') {
+          return;
+        }
+        event.preventDefault();
+        openFind();
+      }}
+    >
+      {/* One strip, in either state: the button that opens the bar, or the
+          bar itself in its place — never an emptied strip above the bar. */}
+      {findOpen ? (
+        <DiffFindBar
+          query={findQuery}
+          count={findMatches.length}
+          at={findAt}
+          inputRef={findInput}
+          onQuery={(next) => {
+            setFindQuery(next);
+            setFindAt(0);
+          }}
+          onStep={(delta) => setFindAt((at) => stepMatch(findMatches.length, at, delta))}
+          onClose={() => {
+            setFindOpen(false);
+            setFindQuery('');
+            setFindAt(0);
+          }}
         />
-      ))}
+      ) : (
+        <div className="flex h-9 shrink-0 items-center justify-end gap-2 border-b border-line bg-sunken/40 px-3">
+          <Button
+            size="sm"
+            variant="ghost"
+            onClick={openFind}
+            title={`Find in this patch (${modifier.label}+F)`}
+          >
+            <SearchIcon />
+            Find
+          </Button>
+        </div>
+      )}
 
-      <Truncated lines={drawn} subject="patch" />
-    </>
+      <div ref={scroller} className="min-h-0 flex-1 overflow-auto">
+        <Capped lines={drawn} />
+
+        {files.map((file, position) => (
+          <ReadOnlyDiff
+            key={file.path}
+            diff={file}
+            repositoryId={repositoryId}
+            revision={revision}
+            drawnBefore={starts[position] ?? 0}
+            gutter={gutter}
+            findMatches={findMatches.filter((match) => match.path === file.path)}
+            activeFind={
+              activeFind !== undefined && activeFind.path === file.path ? activeFind : undefined
+            }
+            {...(onFileHistory === undefined ? {} : { onHistory: () => onFileHistory(file.path) })}
+            {...(onBlame === undefined || file.binary || file.removed
+              ? {}
+              : { onBlame: () => onBlame(file.path) })}
+          />
+        ))}
+
+        <Truncated lines={drawn} subject="patch" />
+      </div>
+    </div>
   );
 }
 
@@ -1132,6 +1443,8 @@ function ReadOnlyDiff({
   revision,
   drawnBefore,
   gutter,
+  findMatches = [],
+  activeFind,
   onHistory,
   onBlame,
 }: {
@@ -1140,13 +1453,15 @@ function ReadOnlyDiff({
   revision: string;
   drawnBefore: number;
   gutter: string;
+  findMatches?: readonly DiffFindMatch[];
+  activeFind?: DiffFindMatch;
   onHistory?: () => void;
   onBlame?: () => void;
 }) {
   const pointer = pointerNote(diff);
 
   return (
-    <section className="border-b border-line last:border-b-0">
+    <section className="border-b border-line last:border-b-0" data-diff-path={diff.path}>
       <header className="flex items-center gap-2 border-b border-line bg-sunken px-3 py-1.5">
         <FileIcon className="shrink-0 text-ink-subtle" />
         <span
@@ -1195,6 +1510,8 @@ function ReadOnlyDiff({
               hunk={hunk}
               firstDrawnLine={drawnBefore + firstLineOfHunk(diff, position)}
               gutter={gutter}
+              findMatches={findMatches}
+              activeFind={activeFind}
             />
           ))}
         </div>
