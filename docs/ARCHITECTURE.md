@@ -99,7 +99,6 @@ else.
 | `web/src/components` | Base components. |
 | `web/src/app` | The workbench: tabs, the history, the graph, the references. |
 | `web/e2e` | Playwright end-to-end tests, and the fixtures they build. |
-| `web/scripts` | Frontend tooling: the screenshot runner behind `./do shot`, and the browser driver behind `./do drive`. |
 
 ## Stack
 

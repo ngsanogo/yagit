@@ -222,19 +222,6 @@ description = "Reformat the code"
 depends = ["bootstrap"]
 run = ["golangci-lint fmt", "pnpm --dir web run fmt"]
 
-[tasks.shot]
-description = "Screenshot a page of the running stack: [url] [file.png]"
-depends = ["bootstrap:browsers"]
-env = { YAGIT_TOKEN = "{{ exec(command='node scripts/session-token.mjs') }}" }
-run = "node web/scripts/shot.mjs"
-
-[tasks.drive]
-description = "Drive the running interface from stdin: [url]"
-raw = true
-depends = ["bootstrap:browsers"]
-env = { YAGIT_TOKEN = "{{ exec(command='node scripts/session-token.mjs') }}" }
-run = "node web/scripts/driver.mjs"
-
 [tasks.version]
 description = "Print the version the next release would carry (nothing if none)"
 quiet = true

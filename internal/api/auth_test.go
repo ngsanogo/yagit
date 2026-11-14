@@ -244,9 +244,9 @@ func TestTheSecureAttributeFollowsTheScheme(t *testing.T) {
 		want          bool
 	}{
 		{name: "serving https", secureCookies: true, want: true},
-		// What the end-to-end suite, ./do shot and a browser on the same
-		// machine all do. A Secure cookie here would log every one of them
-		// out on their second request.
+		// What the end-to-end suite and a browser on the same machine both
+		// do. A Secure cookie here would log either of them out on its second
+		// request.
 		{name: "serving plain http", want: false},
 		{name: "a TLS connection the options did not describe", overTLS: true, want: true},
 		{name: "a proxy that terminated TLS", forwarded: "https", want: true},

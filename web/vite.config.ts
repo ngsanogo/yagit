@@ -80,10 +80,7 @@ export default defineConfig({
     // deletes stale fixtures from the daemon's root has to be tested where a
     // temporary directory can stand in for somebody's home directory, and
     // that is not something to find out about from a browser run.
-    // scripts/ holds the tooling `./do` calls: the line parser the driver
-    // reads its commands with is pure, and is where a driver silently types
-    // the wrong thing into the right box.
-    include: ['src/**/*.test.ts', 'src/**/*.test.tsx', 'e2e/**/*.test.ts', 'scripts/**/*.test.mjs'],
+    include: ['src/**/*.test.ts', 'src/**/*.test.tsx', 'e2e/**/*.test.ts'],
 
     // formatAbsoluteTime renders the day in the ambient timezone, which is
     // what a reader wants and what makes any assertion about it depend on
