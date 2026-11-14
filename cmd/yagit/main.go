@@ -73,7 +73,6 @@ type configuration struct {
 	frontendDevServer string
 	tlsCert           string
 	tlsKey            string
-	listenAll         bool
 
 	// publicURL is where a reverse proxy serves this daemon, held as the
 	// origin a browser presents there; empty when nothing does.
@@ -210,7 +209,6 @@ func parseConfiguration() (configuration, error) {
 		frontendDevServer: *frontendDevServer,
 		tlsCert:           *tlsCert,
 		tlsKey:            *tlsKey,
-		listenAll:         *listenAll,
 	}, nil
 }
 
