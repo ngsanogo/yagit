@@ -8,7 +8,8 @@ like on the way out.
 [`web/src/api/types.ts`](../web/src/api/types.ts), and that file is the
 contract — a second copy here would be a second definition to keep in step.
 Read it beside this page. A route's request body is shown where it has one,
-because that is what calling it with curl needs.
+or named as the same as its neighbour's, because that is what calling it with
+curl needs; the staging routes describe theirs under their table.
 
 ## Getting in
 
@@ -40,7 +41,7 @@ address, as is every request that arrives without a valid token.
 
 | Route | Answers |
 | --- | --- |
-| `POST /api/session` | Exchanges the token for the session cookie. The only unauthenticated route. |
+| `POST /api/session` | Exchanges the token for the session cookie. Body: `{"token": "…"}`, or the door page's form field of the same name. The only unauthenticated route. |
 | `GET /api/health` | What this is and what it runs on: `status`, the daemon's `version`, the count of open `repos`, the `platform` as `GOOS/GOARCH`, the `git` version it drives — or `gitError` when that could not be read — and `unavailable`, the operations this git is too old for, written as sentences. It is the first thing to ask for on a report nobody can reproduce, and it names no path, repository or branch, so it can be pasted into a public issue unread. |
 | `GET /api/prefs/identity` | `user.name`, `user.email` and the raw `pull.rebase` from the global git configuration (`--global --includes`), each empty when unset. Never a repository's own value: this route has no repository. |
 | `PUT /api/prefs/identity` | Writes `user.name` and `user.email` with `git config --global`, and answers with the reading above. Body: `{"name":"…","email":"…"}`; a blank or multi-line value is refused with 400. Does not change `pull.rebase`. |
@@ -85,21 +86,21 @@ stream — the destination is not an open repository yet.
 | `POST /api/repos/{id}/switch` | Moves HEAD. Body: `{"ref": "…", "detach": false}`. |
 | `POST /api/repos/{id}/branches` | Makes a local branch. Body: `{"name": "…", "start": "", "switch": true}`. |
 | `POST /api/repos/{id}/branches/rename` | Renames one. Body: `{"from": "…", "to": "…"}`. |
-| `POST /api/repos/{id}/branches/delete/plan` | Answers the command a delete would run. Changes nothing. |
+| `POST /api/repos/{id}/branches/delete/plan` | Answers the command a delete would run. Same body as the delete. Changes nothing. |
 | `POST /api/repos/{id}/branches/delete` | Deletes one, remembering its tip so Undo can put it back. Body: `{"name": "…", "force": false}`. |
 | `POST /api/repos/{id}/tags` | Makes a tag. Body: `{"name": "…", "message": "…", "target": "", "annotated": true}`. `annotated` defaults to true when omitted; lightweight tags need no message. |
-| `POST /api/repos/{id}/tags/delete/plan` | Answers the command a tag delete would run. Changes nothing. |
+| `POST /api/repos/{id}/tags/delete/plan` | Answers the command a tag delete would run. Same body as the delete. Changes nothing. |
 | `POST /api/repos/{id}/tags/delete` | Deletes a local tag. Body: `{"name": "…"}`. |
 | `POST /api/repos/{id}/tags/push/plan` | Answers the command a tag push would run. Body: `{"name": "…", "remote": "…"}`. Changes nothing. |
 | `POST /api/repos/{id}/tags/push` | Pushes a local tag to a remote under the same name. Same body. |
 | `POST /api/repos/{id}/compare` | How far HEAD and another reference have diverged. Body: `{"ref": "refs/heads/…"}`. Changes nothing. |
-| `POST /api/repos/{id}/merge/plan` | What merging a branch would do, and the line it would run. Changes nothing. |
+| `POST /api/repos/{id}/merge/plan` | What merging a branch would do, and the line it would run. Body: `{"branch": "…", "merge_commit": false, "squash": false}`. Changes nothing. |
 | `POST /api/repos/{id}/merge` | Merges one into the branch HEAD is on. Body: `{"branch": "…", "into": "…", "outcome": "up-to-date\|fast-forward\|merge-commit\|squash"}`. |
-| `POST /api/repos/{id}/rebase/plan` | What rebasing the current branch onto another would do, and the line it would run. Changes nothing. |
+| `POST /api/repos/{id}/rebase/plan` | What rebasing the current branch onto another would do, and the line it would run. Body: `{"onto": "…"}`. Changes nothing. |
 | `POST /api/repos/{id}/rebase` | Rebases the current branch onto another. Body: `{"onto": "…", "from": "…", "outcome": "up-to-date\|fast-forward\|rebase"}`. |
-| `POST /api/repos/{id}/cherry-pick/plan` | What cherry-picking a commit onto the current branch would do, and the line it would run. Changes nothing. |
+| `POST /api/repos/{id}/cherry-pick/plan` | What cherry-picking a commit onto the current branch would do, and the line it would run. Body: `{"commit": "…"}`. Changes nothing. |
 | `POST /api/repos/{id}/cherry-pick` | Cherry-picks one commit onto the branch HEAD is on. Body: `{"commit": "…", "into": "…", "outcome": "up-to-date\|fast-forward\|cherry-pick"}`. |
-| `POST /api/repos/{id}/revert/plan` | What reverting a commit on the current branch would do, and the line it would run. Changes nothing. |
+| `POST /api/repos/{id}/revert/plan` | What reverting a commit on the current branch would do, and the line it would run. Body: `{"commit": "…"}`. Changes nothing. |
 | `POST /api/repos/{id}/revert` | Reverts one commit on the branch HEAD is on. Body: `{"commit": "…", "into": "…", "outcome": "revert"}`. |
 | `POST /api/repos/{id}/reset/plan` | What resetting the current branch to a commit would do, and the line it would run. Body: `{"commit": "…", "mode": "soft\|mixed\|hard"}`. Changes nothing. |
 | `POST /api/repos/{id}/reset` | Resets the branch HEAD is on to a commit. Body: `{"commit": "…", "into": "…", "mode": "soft\|mixed\|hard"}`. |
@@ -350,9 +351,9 @@ repository left in the state the banner names and the conflict screen resolves.
 | `GET /api/repos/{id}/remotes` | The configured remotes (URLs redacted). |
 | `POST /api/repos/{id}/remotes` | Adds one. Body: `{"name": "…", "url": "…"}`. |
 | `POST /api/repos/{id}/remotes/rename` | Renames one. Body: `{"from": "…", "to": "…"}`. |
-| `POST /api/repos/{id}/remotes/set-url/plan` | Answers the command a set-url would run (URL redacted). Changes nothing. |
+| `POST /api/repos/{id}/remotes/set-url/plan` | Answers the command a set-url would run (URL redacted). Same body as the set-url. Changes nothing. |
 | `POST /api/repos/{id}/remotes/set-url` | Changes where a remote is fetched from. Body: `{"name": "…", "url": "…"}`. |
-| `POST /api/repos/{id}/remotes/remove/plan` | Answers the command a remove would run. Changes nothing. |
+| `POST /api/repos/{id}/remotes/remove/plan` | Answers the command a remove would run. Same body as the remove. Changes nothing. |
 | `POST /api/repos/{id}/remotes/remove` | Removes one and its remote-tracking branches. Body: `{"name": "…"}`. |
 | `POST /api/repos/{id}/upstream/plan` | What setting a follow would run. Body: `{"branch": "…", "remote": "…", "upstream": "…"}`. Empty branch means HEAD's. |
 | `POST /api/repos/{id}/upstream` | Records that a local branch follows a remote-tracking one. Same body. |
@@ -572,11 +573,11 @@ clicked. A position past the end is a 404: there is no such thing to look at.
 | `POST /api/repos/{id}/stage` | Stages whole files, or chosen lines. |
 | `POST /api/repos/{id}/unstage` | The reverse. |
 | `POST /api/repos/{id}/discard` | Destroys working-directory changes. |
-| `POST /api/repos/{id}/discard/plan` | The exact git commands a discard would run, having run none of them. |
+| `POST /api/repos/{id}/discard/plan` | The exact git commands a discard would run, having run none of them. Same body as the discard. |
 | `POST /api/repos/{id}/commit` | Commits what is staged. Body: `{"message": "…", "amend": false}`. |
 | `GET /api/repos/{id}/prepared-message` | The message git would open an editor on. Takes `amend=true\|false`. |
-| `POST /api/repos/{id}/operation/plan` | The command finishing or calling off the operation in progress would run. |
-| `POST /api/repos/{id}/operation` | Runs it. Body: `{"action": "abort\|continue\|skip\|good\|bad", "operation": "rebase"}`. |
+| `POST /api/repos/{id}/operation/plan` | The command finishing or calling off the operation in progress would run. Body: `{"action": "abort\|continue\|skip\|good\|bad"}`; the answer names the operation and its `identity`. |
+| `POST /api/repos/{id}/operation` | Runs it. Body: `{"action": "abort\|continue\|skip\|good\|bad", "operation": "rebase", "identity": "…"}`, the operation and identity the plan answered with; a request naming another, or none, is refused with 409. |
 | `POST /api/repos/{id}/bisect/start/plan` | The line that starts a bisect. Body: `{"bad": "<revision>", "good": ["<revision>", …]}`, both optional, `good` only beside `bad`. Changes nothing. |
 | `POST /api/repos/{id}/bisect/start` | Starts it, refused with 409 while another operation is in progress. Same body; answers with the status, whose `state` is then `bisect`. |
 
