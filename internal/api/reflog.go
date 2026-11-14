@@ -128,7 +128,10 @@ func (s *Server) handleReflogRestore(writer http.ResponseWriter, request *http.R
 		writeError(writer, s.logger, statusForReflogError(err), err)
 		return
 	}
-	if fresh.SHA != body.SHA || fresh.Head != body.Head || fresh.Mode != mode {
+	// Into too: a dialog left open while HEAD switched to another branch at
+	// the same commit would otherwise reset a branch it never named.
+	if fresh.SHA != body.SHA || fresh.Head != body.Head || fresh.Into != body.Into ||
+		fresh.Mode != mode {
 		writeError(writer, s.logger, http.StatusConflict, git.ErrUndoStale)
 		return
 	}

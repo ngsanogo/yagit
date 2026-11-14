@@ -1,7 +1,7 @@
 import type { ReflogRestorePlan, ResetMode } from '../api/types';
 import { ConfirmDialog } from '../components/ConfirmDialog';
 import { SegmentedControl } from '../components/SegmentedControl';
-import { namedCommit } from '../lib/format';
+import { namedCommit, pluralize } from '../lib/format';
 import { resetLosses } from './reset';
 
 const RESET_MODES: { value: ResetMode; label: string }[] = [
@@ -43,7 +43,7 @@ export function ReflogRestoreDialog({
 }) {
   const locked = busy || planning;
   const where = plan.into === '' ? 'HEAD' : plan.into;
-  const losses = resetLosses({ ...plan, commit: plan.sha, into: where });
+  const losses = restoreLosses(plan, where);
   const modePicker = (
     <SegmentedControl
       label="Restore mode"
@@ -74,4 +74,22 @@ export function ReflogRestoreDialog({
   }
 
   return <ConfirmDialog {...shared}>{modePicker}</ConfirmDialog>;
+}
+
+/**
+ * Reset's own list, plus the one loss a restore meets and a reset almost never
+ * does: untracked files the entry tracks, which a hard restore writes over.
+ */
+function restoreLosses(
+  plan: ReflogRestorePlan,
+  where: string,
+): readonly [string, ...string[]] | undefined {
+  const items = [...(resetLosses({ ...plan, commit: plan.sha, into: where }) ?? [])];
+  if (plan.overwritten_untracked > 0) {
+    items.push(
+      `${pluralize(plan.overwritten_untracked, 'untracked file')} the entry tracks, written over`,
+    );
+  }
+  const [first, ...rest] = items;
+  return first === undefined ? undefined : [first, ...rest];
 }

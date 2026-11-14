@@ -40,6 +40,13 @@ type ReflogRestorePreview struct {
 	// and the tracked paths a hard restore puts back.
 	Dropping   int `json:"dropping"`
 	DirtyFiles int `json:"dirty_files"`
+
+	// OverwrittenUntracked is how many untracked files the entry tracks,
+	// counted for a hard restore only. `git reset --hard` writes those over
+	// without a word, and DirtyFiles leaves untracked files out because a
+	// reset to an ancestor almost never meets one; an entry ahead of HEAD,
+	// which only a reflog restore reaches, is where it does.
+	OverwrittenUntracked int `json:"overwritten_untracked"`
 }
 
 // PreviewReflogRestore says what restoring HEAD to the named entry would run.
@@ -90,6 +97,13 @@ func (r *Runner) PreviewReflogRestore(
 	if err != nil {
 		return ReflogRestorePreview{}, err
 	}
+	overwritten := 0
+	if mode == ResetHard {
+		overwritten, err = r.untrackedTrackedAt(ctx, dir, entry.SHA, status)
+		if err != nil {
+			return ReflogRestorePreview{}, err
+		}
+	}
 
 	return ReflogRestorePreview{
 		Selector: entry.Selector,
@@ -100,8 +114,9 @@ func (r *Runner) PreviewReflogRestore(
 		Mode:     mode,
 		Command:  CommandLine(ResetArgs(entry.SHA, mode)),
 
-		Dropping:   dropping,
-		DirtyFiles: status.DirtyTracked(),
+		Dropping:             dropping,
+		DirtyFiles:           status.DirtyTracked(),
+		OverwrittenUntracked: overwritten,
 	}, nil
 }
 
@@ -139,4 +154,40 @@ func findReflogEntry(entries []ReflogEntry, selector, sha string) (ReflogEntry, 
 		}
 	}
 	return ReflogEntry{}, false
+}
+
+// untrackedTrackedAt counts the work tree's untracked files that the commit
+// tracks: the ones `git reset --hard` to it would write over.
+//
+// One `cat-file --batch-check` for all of them, asking for the type of
+// <commit>:<path> line by line; a path the commit lacks answers "missing".
+// A path holding a newline cannot be asked on that line-based input, and is
+// left out rather than misread as two.
+func (r *Runner) untrackedTrackedAt(ctx context.Context, dir, commit string, status Status) (int, error) {
+	var questions strings.Builder
+	for _, file := range status.Files {
+		if file.Kind != EntryUntracked || strings.Contains(file.Path, "\n") {
+			continue
+		}
+		questions.WriteString(commit + ":" + file.Path + "\n")
+	}
+	if questions.Len() == 0 {
+		return 0, nil
+	}
+
+	output, err := r.Exec(ctx, Command{
+		Dir:   dir,
+		Args:  []string{"cat-file", "--batch-check=%(objecttype)"},
+		Stdin: []byte(questions.String()),
+	})
+	if err != nil {
+		return 0, err
+	}
+	tracked := 0
+	for _, answer := range strings.Split(string(output), "\n") {
+		if answer == "blob" {
+			tracked++
+		}
+	}
+	return tracked, nil
 }

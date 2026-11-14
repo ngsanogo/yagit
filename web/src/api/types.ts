@@ -666,6 +666,8 @@ export interface ReflogRestorePlan {
   dropping: number;
   /** Tracked paths a hard restore puts back, as on ResetPlan. */
   dirty_files: number;
+  /** Untracked files the entry tracks, which a hard restore writes over. */
+  overwritten_untracked: number;
 }
 
 /**

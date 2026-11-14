@@ -85,3 +85,43 @@ func TestReflogRestoreGoneEntry(t *testing.T) {
 		t.Fatalf("PreviewReflogRestore = %v, want ErrReflogEntryGone", err)
 	}
 }
+
+// An entry ahead of HEAD — a reset undone through the reflog — can track a
+// file the work tree now holds untracked, and a hard restore writes over it.
+func TestAHardReflogRestoreCountsTheUntrackedFilesItOverwrites(t *testing.T) {
+	isolateGitConfiguration(t)
+	dir := t.TempDir()
+	runner := git.NewRunner(nil)
+
+	runGit(t, runner, dir, "init", "-b", "main")
+	commitEmpty(t, runner, dir, "first")
+	writeFile(t, dir, "notes.txt", "committed\n")
+	runGit(t, runner, dir, "add", "--", "notes.txt")
+	runGit(t, runner, dir, append(append([]string{}, identity...), "commit", "-m", "notes")...)
+	runGit(t, runner, dir, "reset", "--hard", "HEAD~1")
+	writeFile(t, dir, "notes.txt", "written since, never added\n")
+
+	entries, err := runner.HeadReflog(context.Background(), dir, 10)
+	if err != nil {
+		t.Fatalf("HeadReflog: %v", err)
+	}
+	ahead := entries[1]
+
+	hard, err := runner.PreviewReflogRestore(
+		context.Background(), dir, ahead.Selector, ahead.SHA, git.ResetHard, 20)
+	if err != nil {
+		t.Fatalf("PreviewReflogRestore: %v", err)
+	}
+	if hard.OverwrittenUntracked != 1 || hard.Dropping != 0 {
+		t.Fatalf("overwritten = %d, dropping = %d; want 1 and 0", hard.OverwrittenUntracked, hard.Dropping)
+	}
+
+	soft, err := runner.PreviewReflogRestore(
+		context.Background(), dir, ahead.Selector, ahead.SHA, git.ResetSoft, 20)
+	if err != nil {
+		t.Fatalf("PreviewReflogRestore: %v", err)
+	}
+	if soft.OverwrittenUntracked != 0 {
+		t.Fatalf("a soft restore counted %d overwritten files; it touches no work tree", soft.OverwrittenUntracked)
+	}
+}
