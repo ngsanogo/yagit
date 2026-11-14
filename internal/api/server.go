@@ -320,6 +320,11 @@ func (s *Server) Handler() http.Handler {
 	// up in the log panel as the two commands it runs.
 	protected.HandleFunc("POST /api/repos/{id}/resolve", s.handleResolve)
 
+	// The configured merge tool, for one conflicted path. Plan first so the
+	// confirmation shows the exact line; the in-app resolver stays the default.
+	protected.HandleFunc("POST /api/repos/{id}/mergetool/plan", s.handlePlanMergetool)
+	protected.HandleFunc("POST /api/repos/{id}/mergetool", s.handleMergetool)
+
 	// Finishing or calling off what the repository is in the middle of. The
 	// plan first, because aborting a rebase discards every conflict resolved
 	// since it began and the confirmation has to show the line that does it.

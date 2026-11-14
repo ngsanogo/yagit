@@ -93,6 +93,13 @@ export function ChangesView({
   const [pendingDeletion, setPendingDeletion] = useState<FileStatus>();
 
   /**
+   * The mergetool confirmation, opened on the plan rather than beside it —
+   * same shape as discard: the dialog's whole content is the command the
+   * daemon named.
+   */
+  const [pendingMergetool, setPendingMergetool] = useState<{ path: string; command: string }>();
+
+  /**
    * Which face of the chosen file the right pane shows.
    *
    * A preference and not a fact about the file: it survives moving between
@@ -228,7 +235,10 @@ export function ChangesView({
     operations.discardPlan.isPending ||
     operations.save.isPending ||
     operations.resolve.isPending ||
-    pendingDiscard !== undefined;
+    operations.mergetool.isPending ||
+    operations.mergetoolPlan.isPending ||
+    pendingDiscard !== undefined ||
+    pendingMergetool !== undefined;
 
   const editingConflict = current?.file.kind === 'unmerged';
   const editable = current !== undefined && isOnDisk(current.file);
@@ -333,6 +343,13 @@ export function ChangesView({
    * that decides which of the two commands a path actually needs, because the
    * side somebody keeps may be the side that has no file at all.
    */
+  function proposeMergetool(path: string) {
+    operations.mergetoolPlan.mutate(path, {
+      onSuccess: ({ command }) => setPendingMergetool({ path, command }),
+      onError: (error) => report('read what the mergetool would run', error),
+    });
+  }
+
   function keepWholeFile(paths: string[], side: ConflictSide, onSettled: () => void) {
     const kept = `Kept ${side} for ${describePaths(paths)}`;
 
@@ -614,6 +631,11 @@ export function ChangesView({
             // beside the conflict markers and nowhere else, so it is the same
             // press as the one on the row.
             onStage={(path) => markResolved([path])}
+            onMergetool={
+              current.file.kind === 'unmerged'
+                ? () => proposeMergetool(current.file.path)
+                : undefined
+            }
           />
         ) : diff.isPending ? (
           <div className="grid h-full place-items-center">
@@ -674,6 +696,30 @@ export function ChangesView({
           onCancel={() => setPendingDeletion(undefined)}
           onConfirm={() => {
             recordDeletion(pendingDeletion.path, () => setPendingDeletion(undefined));
+          }}
+        />
+      )}
+
+      {pendingMergetool !== undefined && (
+        <ConfirmDialog
+          open
+          title={`Open mergetool for ${pendingMergetool.path}?`}
+          description="Launches the merge tool configured in git for this path. The tool writes the file and typically stages it when it exits cleanly; unsaved edits in this pane are not sent to it."
+          command={pendingMergetool.command}
+          confirmLabel="Open mergetool"
+          busy={operations.mergetool.isPending}
+          onCancel={() => setPendingMergetool(undefined)}
+          onConfirm={() => {
+            const { path } = pendingMergetool;
+            operations.mergetool.mutate(path, {
+              onSuccess: () =>
+                toast.push({
+                  tone: 'success',
+                  title: `Mergetool finished for ${path}`,
+                }),
+              onError: (error) => report('run the mergetool', error),
+              onSettled: () => setPendingMergetool(undefined),
+            });
           }}
         />
       )}
