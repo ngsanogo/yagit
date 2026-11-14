@@ -115,7 +115,7 @@
       // process, console and the node: modules. Without this block no-undef
       // flags every one of them — an avalanche of false positives, and a
       // linter people learn to ignore is no longer worth anything.
-      "files": ["scripts/**/*.{js,mjs}", "e2e/**/*.ts", "*.config.{js,ts}"],
+      "files": ["e2e/**/*.ts", "*.config.{js,ts}"],
       "env": { "node": true }
     },
     {

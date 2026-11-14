@@ -82,7 +82,6 @@ of the two.
 | `lint` | Go (for every shipped platform), the frontend, the shell scripts, the workflows. |
 | `audit` | Go (standard library included) and frontend dependencies against the vulnerability databases. |
 | `fmt` | Reformat the code. |
-| `shot [url] [file]`, `drive [url]` | Screenshot a page / drive the running interface from stdin, headless. |
 | `token` | Print the session token, to query the API with curl. |
 | `version` | The version the next release would carry, from the Conventional Commits. |
 

@@ -16,8 +16,8 @@
 # Personal notes for this checkout. Never tracked.
 *.local.md
 
-# Runtime state: session token, e2e fixtures, air's build directory, logs,
-# screenshots. One directory rather than three scattered ones, and air is given
+# Runtime state: session token, e2e fixtures, air's build directory and logs.
+# One directory rather than three scattered ones, and air is given
 # a subdirectory of it rather than the whole thing — see .air.toml.
 /.yagit/
 
