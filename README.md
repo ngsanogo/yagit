@@ -6,6 +6,7 @@ commit graph at the center of the screen.
 
 [![CI](https://github.com/ngsanogo/yagit/actions/workflows/ci.yml/badge.svg)](https://github.com/ngsanogo/yagit/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![OSI](https://img.shields.io/badge/OSI-approved-green.svg)](https://opensource.org/licenses/MIT)
 
 **Pre-1.0.** Everything listed below is built and covered by the gates, on
 Linux, macOS and Windows.
@@ -113,7 +114,10 @@ left where it is; the script prints the path so you can delete it yourself.
 | [docs/ROADMAP.md](docs/ROADMAP.md) | What each phase landed |
 | [SECURITY.md](SECURITY.md) | Threat model and the session token |
 | [ACCESSIBILITY.md](ACCESSIBILITY.md) | Accessibility |
+| [OPEN_SOURCE_POLICY.md](OPEN_SOURCE_POLICY.md) | OSI-only dependency rules |
+| [NOTICE.md](NOTICE.md) | License notices for redistributors |
 
 ## License
 
-[MIT](LICENSE).
+[MIT](LICENSE). Dependencies and the default stack must stay
+[OSI-approved](OPEN_SOURCE_POLICY.md).

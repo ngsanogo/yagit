@@ -427,13 +427,12 @@ second origin: the browser still talks to one address, which is the proxy's,
 and `YAGIT_PUBLIC_URL` is how the daemon learns what that address is
 .
 
-## Agent configuration
+## Contributor documentation
 
-Instructions for an AI coding agent are ordinary files at the names those
-tools already open. [`AGENTS.md`](../AGENTS.md) at the repository root is the
-entry point. Rules live in `.agents/rules/`, skills in `.agents/skills/`.
-Nothing links them and nothing generates a second copy
-.
+How to develop, the command table, and review expectations live in
+[`CONTRIBUTING.md`](../CONTRIBUTING.md) and
+[`docs/DEVELOPMENT.md`](DEVELOPMENT.md). License and dependency rules live in
+[`OPEN_SOURCE_POLICY.md`](../OPEN_SOURCE_POLICY.md).
 
 ## Toolchain
 
