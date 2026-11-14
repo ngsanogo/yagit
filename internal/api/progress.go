@@ -3,6 +3,7 @@ package api
 import (
 	"encoding/json"
 	"fmt"
+	"log/slog"
 	"net/http"
 	"sync"
 
@@ -36,7 +37,14 @@ type progressErrorEvent struct {
 // beginProgressStream prepares the response for NDJSON progress. Validation
 // errors that happen before git starts still use writeError — there is
 // nothing to stream yet.
-func beginProgressStream(writer http.ResponseWriter) (emit func(any) bool, err error) {
+//
+// Once a write has failed the reader is gone, and every further event would
+// be another failed encode — a ten-minute clone writes thousands of lines. So
+// the first failure is logged, and every emit after it returns false without
+// writing. The command itself is deliberately not cancelled: it runs on
+// uninterrupted, and a half-written transfer is worse than one nobody is
+// watching.
+func beginProgressStream(writer http.ResponseWriter, logger *slog.Logger) (emit func(any) bool, err error) {
 	flusher, streamable := writer.(http.Flusher)
 	if !streamable {
 		return nil, fmt.Errorf("this connection cannot stream (%T does not flush)", writer)
@@ -57,6 +65,7 @@ func beginProgressStream(writer http.ResponseWriter) (emit func(any) bool, err e
 		}
 		if writeErr := encode.Encode(event); writeErr != nil {
 			streaming = false
+			logger.Warn("progress stream write interrupted", "error", writeErr)
 			return false
 		}
 		flusher.Flush()
@@ -225,7 +234,7 @@ func (s *Server) runWithProgress(
 	opened *repo.Repo,
 	run func(onLine func(string)) error,
 ) {
-	emit, err := beginProgressStream(writer)
+	emit, err := beginProgressStream(writer, s.logger)
 	if err != nil {
 		writeError(writer, s.logger, http.StatusInternalServerError, err)
 		return

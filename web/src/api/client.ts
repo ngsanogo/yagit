@@ -22,6 +22,7 @@ import type {
   WorktreeRequest,
   UndoStatus,
   GitExecution,
+  ApiErrorPayload,
   GitFailure,
   GitIdentity,
   HistoryScope,
@@ -178,42 +179,60 @@ async function request<T>(path: string, options?: RequestOptions): Promise<T> {
         cause,
       });
     }
-    // fetch rejects only when the request never completed: the daemon stopped,
-    // the machine went to sleep, the network moved. "Failed to fetch" on its
-    // own tells the user nothing about which of those it was, so the message
-    // says what is actually unreachable — and the original is kept as the
-    // cause rather than dropped, because the console is where the last clue
-    // lives when the message turns out not to be enough.
-    throw new ApiError(0, `the daemon is not answering on ${window.location.host}`, undefined, {
-      cause,
-    });
+    throw daemonUnreachable(cause);
   }
 
   if (response.status === 401) {
-    // The session ended — the token was rotated, or this daemon was never
-    // started by the ./do that minted the cookie's. Reloading lands on the
-    // daemon's own page, which explains how to get back in, rather than
-    // leaving a dead interface on screen.
-    window.location.reload();
-    throw new ApiError(401, 'the session expired');
+    sessionExpired();
   }
 
   const body: unknown = await response.json().catch(() => null);
 
   if (!response.ok) {
-    const detail =
-      body !== null && typeof body === 'object' && 'error' in body
-        ? (body as { error: { message?: string; git?: GitFailure } }).error
-        : undefined;
-
-    throw new ApiError(
-      response.status,
-      detail?.message ?? `${response.status} from ${path}`,
-      detail?.git,
-    );
+    throw refusal(response.status, path, body);
   }
 
   return body as T;
+}
+
+/**
+ * fetch rejected: the request never completed. The daemon stopped, the machine
+ * went to sleep, the network moved. "Failed to fetch" on its own tells the
+ * user nothing about which of those it was, so the message says what is
+ * actually unreachable — and the original is kept as the cause rather than
+ * dropped, because the console is where the last clue lives when the message
+ * turns out not to be enough.
+ */
+function daemonUnreachable(cause: unknown): ApiError {
+  return new ApiError(0, `the daemon is not answering on ${window.location.host}`, undefined, {
+    cause,
+  });
+}
+
+/**
+ * The session ended — the token was rotated, or this daemon was never started
+ * on the token the cookie was minted from. Reloading lands on the daemon's
+ * own page, which explains how to get back in, rather than leaving a dead
+ * interface on screen.
+ */
+function sessionExpired(): never {
+  window.location.reload();
+  throw new ApiError(401, 'the session expired');
+}
+
+/** What the daemon said about a failure: its sentence, and git's own account. */
+type FailureDetail = Partial<ApiErrorPayload['error']>;
+
+function failureDetailOf(body: unknown): FailureDetail | undefined {
+  return body !== null && typeof body === 'object' && 'error' in body
+    ? (body as { error: FailureDetail }).error
+    : undefined;
+}
+
+/** A refusal in the ordinary JSON shape, or the status and the route when it is not one. */
+function refusal(status: number, path: string, body: unknown): ApiError {
+  const detail = failureDetailOf(body);
+  return new ApiError(status, detail?.message ?? `${status} from ${path}`, detail?.git);
 }
 
 export const api = {
@@ -322,129 +341,16 @@ export const api = {
    * is still an ordinary JSON error. `onProgress` receives each stderr
    * segment as git writes it.
    */
-  clone: async (
-    url: string,
-    path: string,
-    onProgress: (line: string) => void,
-  ): Promise<Repository> => {
-    const deadline = idleDeadline();
-
-    let response: Response;
-    try {
-      response = await fetch('/api/repos/clone', {
-        method: 'POST',
-        credentials: 'same-origin',
-        headers: {
-          Accept: 'application/x-ndjson, application/json',
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ url, path }),
-        // Idle rather than elapsed: a clone of a large repository is an
-        // hour of legitimate work, and what says a connection is dead is
-        // silence. deadline.alive() below pushes it back on every line.
-        signal: deadline.signal,
-      });
-    } catch (cause) {
-      if (cause instanceof DOMException && cause.name === 'TimeoutError') {
-        throw new ApiError(
-          0,
-          `git reported nothing for ${waitedFor(NETWORK_IDLE_MS)}, so the transfer was given up on`,
-          undefined,
-          { cause },
-        );
-      }
-      throw new ApiError(0, `the daemon is not answering on ${window.location.host}`, undefined, {
-        cause,
-      });
-    }
-
-    if (response.status === 401) {
-      window.location.reload();
-      throw new ApiError(401, 'the session expired');
-    }
-
-    const contentType = response.headers.get('Content-Type') ?? '';
-    if (!contentType.includes('ndjson')) {
-      const body: unknown = await response.json().catch(() => null);
-      const detail =
-        body !== null && typeof body === 'object' && 'error' in body
-          ? (body as { error: { message?: string; git?: GitFailure } }).error
-          : undefined;
-      throw new ApiError(
-        response.status,
-        detail?.message ?? `${response.status} from /api/repos/clone`,
-        detail?.git,
-      );
-    }
-
-    if (response.body === null) {
-      throw new ApiError(0, 'the clone response had no body to read');
-    }
-
-    const reader = response.body.getReader();
-    const decoder = new TextDecoder();
-    let buffer = '';
-    let repository: Repository | undefined;
-
-    const handleLine = (line: string) => {
-      const trimmed = line.trim();
-      if (trimmed === '') {
-        return;
-      }
-      const event = JSON.parse(trimmed) as {
-        type: string;
-        line?: string;
-        repository?: Repository;
-        error?: { message?: string; git?: GitFailure };
-      };
-      if (event.type === 'progress' && event.line !== undefined) {
-        onProgress(event.line);
-        return;
-      }
-      if (event.type === 'done' && event.repository !== undefined) {
-        repository = event.repository;
-        return;
-      }
-      if (event.type === 'error') {
-        throw new ApiError(
-          response.status,
-          event.error?.message ?? 'clone failed',
-          event.error?.git,
-        );
-      }
-    };
-
-    try {
-      for (;;) {
-        const { done, value } = await reader.read();
-        if (done) {
-          break;
-        }
-        // Still talking, so it is still alive.
-        deadline.alive();
-        buffer += decoder.decode(value, { stream: true });
-        const parts = buffer.split('\n');
-        buffer = parts.pop() ?? '';
-        for (const part of parts) {
-          handleLine(part);
-        }
-      }
-    } finally {
-      // A timer left armed aborts nothing, but it keeps the page awake for
-      // five minutes after the work it was watching finished. handleLine
-      // throws on an error event, so this belongs in a finally.
-      deadline.settled();
-    }
-    buffer += decoder.decode();
-    if (buffer.trim() !== '') {
-      handleLine(buffer);
-    }
-
-    if (repository === undefined) {
-      throw new ApiError(0, 'clone ended without a repository');
-    }
-    return repository;
-  },
+  clone: (url: string, path: string, onProgress: (line: string) => void): Promise<Repository> =>
+    streamProgress({
+      path: '/api/repos/clone',
+      body: { url, path },
+      onProgress,
+      result: (done) => done.repository as Repository | undefined,
+      failed: 'clone failed',
+      noBody: 'the clone response had no body to read',
+      noResult: 'clone ended without a repository',
+    }),
 
   closeRepository: (id: string) => request<void>(`/api/repos/${id}`, { method: 'DELETE' }),
 
@@ -1529,24 +1435,69 @@ export const api = {
  * stream begins, a git failure arrives as an error event on a 200 — the same
  * shape clone uses.
  */
-async function networkWithProgress<T>(
+function networkWithProgress<T>(
   path: string,
   body: unknown,
   onProgress: (line: string) => void,
 ): Promise<T> {
+  return streamProgress({
+    path,
+    body,
+    onProgress,
+    result: ({ type, ...payload }) => {
+      void type;
+      return payload as T;
+    },
+    failed: `${path} failed`,
+    noBody: `${path} response had no body to read`,
+    noResult: `${path} ended without a result`,
+  });
+}
+
+/** One event of a progress stream. */
+interface ProgressEvent {
+  type: string;
+  line?: string;
+  error?: FailureDetail;
+  [field: string]: unknown;
+}
+
+/**
+ * A network route's stream, read to its end: progress lines while git runs,
+ * then the terminal event.
+ *
+ * Clone and the routes that move references share everything but what their
+ * done event carries, so that is the one thing a caller says — with the
+ * sentences each failure is told in, which name the route.
+ */
+interface ProgressStream<T> {
+  path: string;
+  body: unknown;
+  onProgress: (line: string) => void;
+  /** What the done event carries, or undefined when it carries nothing to answer with. */
+  result: (done: ProgressEvent) => T | undefined;
+  /** The message of an error event that brought none. */
+  failed: string;
+  noBody: string;
+  noResult: string;
+}
+
+async function streamProgress<T>(stream: ProgressStream<T>): Promise<T> {
   const deadline = idleDeadline();
 
   let response: Response;
   try {
-    response = await fetch(path, {
+    response = await fetch(stream.path, {
       method: 'POST',
       credentials: 'same-origin',
       headers: {
         Accept: 'application/x-ndjson, application/json',
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify(body),
-      // Idle rather than elapsed — see the clone above.
+      body: JSON.stringify(stream.body),
+      // Idle rather than elapsed: a clone of a large repository is an hour of
+      // legitimate work, and what says a connection is dead is silence.
+      // deadline.alive() below pushes it back on every line.
       signal: deadline.signal,
     });
   } catch (cause) {
@@ -1558,32 +1509,23 @@ async function networkWithProgress<T>(
         { cause },
       );
     }
-    throw new ApiError(0, `the daemon is not answering on ${window.location.host}`, undefined, {
-      cause,
-    });
+    throw daemonUnreachable(cause);
   }
 
   if (response.status === 401) {
-    window.location.reload();
-    throw new ApiError(401, 'the session expired');
+    sessionExpired();
   }
 
+  // A refusal before git starts — a path outside the root, a destination
+  // taken — is still an ordinary JSON error: there was nothing to stream yet.
   const contentType = response.headers.get('Content-Type') ?? '';
   if (!contentType.includes('ndjson')) {
     const parsed: unknown = await response.json().catch(() => null);
-    const detail =
-      parsed !== null && typeof parsed === 'object' && 'error' in parsed
-        ? (parsed as { error: { message?: string; git?: GitFailure } }).error
-        : undefined;
-    throw new ApiError(
-      response.status,
-      detail?.message ?? `${response.status} from ${path}`,
-      detail?.git,
-    );
+    throw refusal(response.status, stream.path, parsed);
   }
 
   if (response.body === null) {
-    throw new ApiError(0, `${path} response had no body to read`);
+    throw new ApiError(0, stream.noBody);
   }
 
   const reader = response.body.getReader();
@@ -1596,27 +1538,17 @@ async function networkWithProgress<T>(
     if (trimmed === '') {
       return;
     }
-    const event = JSON.parse(trimmed) as {
-      type: string;
-      line?: string;
-      error?: { message?: string; git?: GitFailure };
-    } & Partial<T>;
+    const event = JSON.parse(trimmed) as ProgressEvent;
     if (event.type === 'progress' && event.line !== undefined) {
-      onProgress(event.line);
+      stream.onProgress(event.line);
       return;
     }
     if (event.type === 'done') {
-      const { type, ...payload } = event;
-      void type;
-      result = payload as T;
+      result = stream.result(event) ?? result;
       return;
     }
     if (event.type === 'error') {
-      throw new ApiError(
-        response.status,
-        event.error?.message ?? `${path} failed`,
-        event.error?.git,
-      );
+      throw new ApiError(response.status, event.error?.message ?? stream.failed, event.error?.git);
     }
   };
 
@@ -1636,7 +1568,9 @@ async function networkWithProgress<T>(
       }
     }
   } finally {
-    // See the clone above.
+    // A timer left armed aborts nothing, but it keeps the page awake for five
+    // minutes after the work it was watching finished. handleLine throws on an
+    // error event, so this belongs in a finally.
     deadline.settled();
   }
   buffer += decoder.decode();
@@ -1645,7 +1579,7 @@ async function networkWithProgress<T>(
   }
 
   if (result === undefined) {
-    throw new ApiError(0, `${path} ended without a result`);
+    throw new ApiError(0, stream.noResult);
   }
   return result;
 }
