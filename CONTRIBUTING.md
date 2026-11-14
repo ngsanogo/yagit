@@ -169,8 +169,7 @@ announce itself in the program first: refuse, and name the variable and both
 ways out. That is the only announcement that arrives while the person is looking
 for it. The commit then carries `!` or a `BREAKING CHANGE:` footer so the
 version moves, and the pull request gets the `breaking-change` label so
-`.github/release.yml` prints it above everything else. See
-.
+`.github/release.yml` prints it above everything else.
 
 The release workflow then runs the gates again, builds the six binaries,
 attaches a Sigstore provenance attestation to each and an SPDX bill of materials
