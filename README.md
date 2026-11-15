@@ -82,6 +82,11 @@ Pin a tag with `YAGIT_VERSION=<tag>` before the install command. Then:
 yagit
 ```
 
+It prints the address to open and the file holding the session token the page
+asks for: `~/.local/state/yagit/token` on macOS and Linux (under
+`$XDG_STATE_HOME` when that is set), `%LOCALAPPDATA%\yagit\token` on Windows,
+or wherever `YAGIT_TOKEN_FILE` says.
+
 A checksum says the bytes arrived intact. It says nothing about where they came
 from, and it is published by whoever published the binaries. Every release
 binary also carries a Sigstore attestation of the workflow run that built it,

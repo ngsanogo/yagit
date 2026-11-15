@@ -162,7 +162,7 @@ func parseConfiguration() (configuration, error) {
 	tlsKey := flag.String("tls-key", os.Getenv("YAGIT_TLS_KEY"),
 		"TLS private key file")
 	listenAll := flag.Bool("listen-all", environmentTruthy("YAGIT_LISTEN_ALL"),
-		"listen on all interfaces (0.0.0.0); required when -addr names a non-loopback host")
+		"allow -addr to name a non-loopback host or every interface (0.0.0.0); without it such an -addr is refused")
 	flag.Parse()
 
 	if *root == "" {

@@ -60,8 +60,8 @@ The rest of the model follows from those two:
   knows the secret; a cookie is attached by the browser on its own and is the
   only case a third-party site could trigger. Known origins are the daemon's own
   address (loopback in its three spellings, the public host), the public URL a
-  proxy serves it at, and anything `-allow-origins` adds, compared as exact
-  strings. The cookie is `HttpOnly` and `SameSite=Strict`, and `Secure` whenever
+  proxy serves it at, and anything `-allow-origins` (or `YAGIT_ALLOW_ORIGINS`,
+  comma-separated) adds, compared as exact strings. The cookie is `HttpOnly` and `SameSite=Strict`, and `Secure` whenever
   the browser reached yagit over TLS. Every response carries baseline security
   headers (CSP, `X-Frame-Options`, `Referrer-Policy`, and others).
 - **Presenting a credential is rate limited; using one is not.** Six hundred

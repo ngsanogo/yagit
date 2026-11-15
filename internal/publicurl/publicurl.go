@@ -1,13 +1,13 @@
 // Package publicurl reads the address a reverse proxy serves yagit at, and
-// answers with what both programs need from it: the origin a browser presents
-// on a page served from there.
+// answers with what the daemon needs from it: the origin a browser presents on
+// a page served from there.
 //
 // The daemon reads it from -public-url (or YAGIT_PUBLIC_URL, which the
-// development stack takes from .env),
-// accepts its origin on cookie-authenticated writes, and announces it. Two
-// copies of the rule would drift in the one direction nobody sees — a card
-// printing an address whose origin the daemon refuses on the first click — so,
-// as internal/session is for the token, this package is the one place.
+// development stack takes from .env), refuses one it cannot turn into an
+// origin, accepts that origin on cookie-authenticated writes, and announces
+// the address at startup. The check and the origin are one rule, kept in its
+// own package so the announced address is never one whose origin the daemon
+// would then refuse on the first click.
 package publicurl
 
 import (
