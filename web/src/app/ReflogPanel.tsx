@@ -58,7 +58,6 @@ export function ReflogPanel({
             {entries.map((entry) => {
               const when = new Date(entry.date);
               // The clock, read at render on purpose: see formatRelativeTime.
-              // oxlint-disable-next-line react/purity
               const now = new Date();
               return (
                 <li
